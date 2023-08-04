@@ -1,5 +1,4 @@
 def call(String repoUrl) {
-   kubernetes {
             yaml '''
         apiVersion: v1
         kind: Pod
@@ -29,5 +28,4 @@ def call(String repoUrl) {
             - cat
             tty: true
         '''        
-        }
 }    
