@@ -1,4 +1,6 @@
-pipeline {
+def call(body){
+
+  pipeline {
   agent {
     kubernetes {
       label 'sample-app'
@@ -32,4 +34,5 @@ spec:
     '''
     }
   }
+}
 }
