@@ -1,4 +1,4 @@
-def call(string repoUrl) {
+def call(String repoUrl) {
    // def pipelineParams= [:]
    // body.resolveStrategy = Closure.DELEGATE_FIRST
    // body.delegate = pipelineParams
