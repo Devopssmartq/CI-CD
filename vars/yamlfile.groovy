@@ -1,8 +1,8 @@
-def call(String repoUrl) {
-   // def pipelineParams= [:]
-   // body.resolveStrategy = Closure.DELEGATE_FIRST
-   // body.delegate = pipelineParams
-   // body()
+def call(body) {
+    def pipelineParams= [:]
+    body.resolveStrategy = Closure.DELEGATE_FIRST
+    body.delegate = pipelineParams
+    body()
 
     pipeline {
         agent {
@@ -10,17 +10,17 @@ def call(String repoUrl) {
                 label 'jenkins-private-cluster'
                 defaultContainer 'jnlp'
                 yaml '''
-                apiVersion: v1
-                kind: Pod
-                spec:
-                    containers:
-                    - name: gcloud
-                    image: google/cloud-sdk:latest
-                    command:
-                    - sleep
-                    args:
-                    - 99d
-                    tty: true
+                    apiVersion: v1
+                    kind: Pod
+                    spec:
+                        containers:
+                        - name: gcloud
+                        image: google/cloud-sdk:latest
+                        command:
+                        - sleep
+                        args:
+                        - 99d
+                        tty: true
                 '''
             }
         }
