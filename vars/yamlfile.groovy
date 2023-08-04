@@ -1,24 +1,14 @@
 def call(String repoUrl){
 
   pipeline {
-    agent {
-      kubernetes {
-        label 'sample-app'
-        defaultContainer 'jnlp'
-      yaml '''
-      apiVersion: v1
-      kind: Pod
-      spec:
-        containers:
-      - name: golang
-        image: golang:latest
-        command:
-        - sleep
-        args:
-        - 99d
-        tty: true
-        '''
-      }
+    agent any
+
+    stages {
+        stage('Hello') {
+            steps {
+                echo 'Hello, World!'
+            }
+        }
     }
   }
 }
