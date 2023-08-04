@@ -9,7 +9,7 @@ def call(body) {
         kubernetes {
             label 'jenkins-private-cluster'
             defaultContainer 'jnlp'
-            yaml " " "
+            yaml '''
               apiVersion: v1
               kind: Pod
               spec:
@@ -21,7 +21,7 @@ def call(body) {
                   args:
                   - 99d
                   tty: true
-            " " "
+            '''
         }
     }
 }
