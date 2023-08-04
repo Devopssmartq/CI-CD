@@ -1,15 +1,15 @@
-def call(body) {
-    def pipelineParams= [:]
-    body.resolveStrategy = Closure.DELEGATE_FIRST
-    body.delegate = pipelineParams
-    body()
+def call(String repoUrl) {
+    //def pipelineParams= [:]
+    //body.resolveStrategy = Closure.DELEGATE_FIRST
+    //body.delegate = pipelineParams
+    //body()
 
-    pipeline {
-        agent {
-            kubernetes {
-                label 'jenkins-private-cluster'
-                defaultContainer 'jnlp'
-                yaml '''
+    //pipeline {
+        //agent {
+            //kubernetes {
+                //label 'jenkins-private-cluster'
+                //defaultContainer 'jnlp'
+                //yaml '''
                     apiVersion: v1
                     kind: Pod
                     spec:
@@ -21,8 +21,8 @@ def call(body) {
                         args:
                         - 99d
                         tty: true
-                '''
-            }
-        }
-    }
+                //'''
+            //}
+        //}
+    //}
 }    
