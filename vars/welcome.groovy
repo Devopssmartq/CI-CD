@@ -1,3 +1,3 @@
 def call(name){
-    echo "Hey $(name), welcome to SmartQ"
+    echo "Hey ${name}, welcome to SmartQ"
 }
