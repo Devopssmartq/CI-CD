@@ -1,14 +1,18 @@
-def call(String repoUrl){
+def call(body){
+    def pipelineParams= [:]
+    body.resolveStrategy = Closure.DELEGATE_FIRST
+    body.delegate = pipelineParams
+    body()
 
-  pipeline {
-    agent any
+    pipeline {
+        agent any
 
-    stages {
-        stage('Hello') {
-            steps {
-                echo 'Hello, World!'
+            stages {
+                stage('Hello') {
+                    steps {
+                        echo 'Hello, World!'
+                    }
+                }
             }
-        }
     }
-  }
 }
