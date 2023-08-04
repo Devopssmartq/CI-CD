@@ -1,5 +1,5 @@
-def call(String repoUrl) {
-            yaml '''
+def call() {
+            "yaml '''
         apiVersion: v1
         kind: Pod
         environment:
@@ -27,5 +27,5 @@ def call(String repoUrl) {
             command:
             - cat
             tty: true
-        '''        
+        '''  "      
 }    
