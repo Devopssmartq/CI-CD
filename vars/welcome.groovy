@@ -1,5 +1,5 @@
 def call(String name = 'User') {
-		echo "Welcome, ${name}."
+		echo "Welcome, ${name}. to SmartQ"
 }
 
 
