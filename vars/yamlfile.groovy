@@ -1,10 +1,9 @@
-def generatePodYaml(String repoUrl) {
-    return """
-		apiVersion: v1
-		kind: Pod
-		spec:
-		  containers:
-		  - name: gcloud
+podTemplate (yaml: '''
+			apiVersion: v1
+			kind: Pod
+			spec:
+		  	containers:
+		  	- name: gcloud
 			image: google/cloud-sdk:latest
 			command:
 			- sleep
@@ -18,5 +17,5 @@ def generatePodYaml(String repoUrl) {
 			args:
 			- 99d
 			tty: true
-    """
-}    
+'''    
+)  
