@@ -1,4 +1,4 @@
-def generatePodYaml() {
+def generatePodYaml(String repoUrl) {
     return """
 		apiVersion: v1
 		kind: Pod
