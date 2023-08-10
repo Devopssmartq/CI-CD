@@ -1,0 +1,239 @@
+/* groovylint-disable CompileStatic */
+// Uses Declarative syntax to run commands inside a container.
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+        apiVersion: v1
+        kind: Pod
+        environment:
+            name: "NODE_OPTIONS"
+            value: "--max-old-space-size=4096"
+        spec:
+          containers:
+          - name: jnlp  
+            resources:
+              requests:
+                memory: "2048Mi"
+                cpu: "500m"
+              limits:
+                memory: "4096Mi"
+                cpu: "1000m"
+                
+          - name: nodejs
+            image: node:18-alpine
+            command:
+            - cat
+            tty: true
+
+          - name: gcloud
+            image: google/cloud-sdk:latest
+            command:
+            - cat
+            tty: true
+        '''        
+        }
+    }
+
+    environment {
+        APP_ENGINE_PROJECT_ID = 'sqpreprod-us'
+        ENVIRONMENT = 'PRE-PROD'
+        APP_ENGINE_VERSION = 'v1' 
+        YAML = 'app.yaml'
+        YAML1 = 'time2eat.yaml'
+        YAML2 = 'baweb.yaml'
+    }
+         
+    stages {  
+        stage('Deploy NodeJS Apps') {
+            steps {
+                parallel (
+                    controldesk: {
+                            container('gcloud') {
+                                sh "mkdir -p controldesk-latest"
+                                sh 'echo ${WORKSPACE}'
+                                sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'  
+                                sh 'gcloud storage cp gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/controldesk-Latest/* ${WORKSPACE}/controldesk-latest --recursive'
+                                dir('controldesk-latest') {
+                                    sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet $YAML '
+                                }
+                            }
+                        },
+                    time2eat: {
+                        container('gcloud') {
+                            sh "mkdir -p time2eat-latest"
+                            sh 'echo ${WORKSPACE}'
+                            sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'  
+                            sh 'gcloud storage cp gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/Time2Eat-Latest/* ${WORKSPACE}/time2eat-latest --recursive'
+                            dir('time2eat-latest') {
+                                sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet $YAML1 '
+                                sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet $YAML2 '
+                            }
+                        }
+                    },
+                    webORT: {
+                        container('gcloud') {
+                            sh "mkdir -p web-ort-latest"
+                            sh 'echo ${WORKSPACE}'
+                            sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'  
+                            sh 'gcloud storage cp gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/web-ort-Latest/* ${WORKSPACE}/web-ort-latest --recursive'
+                            dir('web-ort-latest') {
+                                sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet $YAML '
+                            }
+                        }
+                    }
+                ) 
+            }
+        }    
+        stage('Clone smartq-backend') { 
+            steps { 
+                sh "mkdir -p smartq-cloud-backend"
+                dir('smartq-cloud-backend') {                        
+                    git branch: 'preprodindia',
+                    credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
+                    url: 'https://vrp63531@bitbucket.org/bottlelabtech/smartq-cloud-backend.git'
+
+                dir ('py3_project/py3_backend/bqreports/admindashboard/'){
+                        sh 'rm -rf ./{*,.*}'
+                    }
+                dir ('py3_project/py3_backend/bqreports/reports/'){
+                        sh 'rm -rf ./{*,.*}'
+                    }
+                dir ('eWallet'){
+                        sh 'rm -rf ./{*,.*}'
+                    }     
+                sh 'ls -lrt'
+                }
+            } 
+        }
+        stage('copy build output - ewallet, admin & vendor dash-board') {
+            steps {                
+                dir ('smartq-cloud-backend') {
+                    container('gcloud') {
+                        sh 'echo ${WORKSPACE}'
+                        sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'  
+                        sh 'gcloud storage cp gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/generic-admin-dashboard-Latest/* ${WORKSPACE}/smartq-cloud-backend/py3_project/py3_backend/bqreports/admindashboard --recursive'
+                        sh 'gcloud storage cp gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/vendor-dashboard-Latest/* ${WORKSPACE}/smartq-cloud-backend/py3_project/py3_backend/bqreports/reports --recursive'
+                        sh 'gcloud storage cp gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/ewallet-Latest/* ${WORKSPACE}/smartq-cloud-backend/eWallet --recursive'
+                        
+                        dir ('py3_project/py3_backend/bqreports/admindashboard') {
+                            sh 'ls -lrt'
+                        }
+                        dir ('py3_project/py3_backend/bqreports/reports') {
+                            sh 'ls -lrt'
+                        }
+                        dir ('eWallet') {
+                            sh 'ls -lrt'
+                        }
+                    }
+                }
+            }
+        }
+        stage('Deploy Smartq Backend') {
+            steps {
+                parallel (
+                    time2eat: {
+                            container('gcloud') {
+                                sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
+                                dir ('smartq-cloud-backend'){
+                                    sh 'ls *.yaml'
+                                    sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet time2eat_appservice.yaml '
+                                }
+                            }
+                        },
+                    background: {
+                            container('gcloud') {
+                                sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
+                                dir ('smartq-cloud-backend'){
+                                    sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet background.yaml '
+                                }
+                            }
+                        },
+                    taskqservice: {
+                            container('gcloud') {
+                                sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
+                                dir ('smartq-cloud-backend'){
+                                    sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet taskqservice.yaml '
+                                }
+                            }
+                        },
+                    eWallet: {
+                            container('gcloud') {
+                                sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
+                                dir ('smartq-cloud-backend'){
+                                    sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet app.yaml '
+                                }
+                            }
+                        }                    
+                )
+            }
+        }
+        stage('Deploy to BQ Reports') {
+            steps {
+                container('gcloud') {
+                    sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
+                    dir ('smartq-cloud-backend') {
+                        dir ('py3_project') {
+                            sh 'ls *.yaml'
+                            sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet bqreports.yaml '
+                        }
+                    }
+                }               
+            }
+        }
+        stage('Clone sq_microservices_backend') { 
+            steps { 
+                sh "mkdir -p sq_microservices_backend"
+                dir('sq_microservices_backend') {                        
+                    git branch: 'preprodsetup',
+                    credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
+                    url: 'https://vrp63531@bitbucket.org/bottlelabtech/sq_microservices_backend.git'
+                                   
+                sh 'ls -lrt'
+                }
+            } 
+        }
+        stage('Deploy Microservices') {
+            steps {
+                parallel (
+                    appms: {
+                            container('gcloud') {
+                                sh 'echo ${WORKSPACE}'
+                                sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
+                                //add sh 'cp -r commonlib appms'
+                                dir ('sq_microservices_backend/appms') {
+                                    sh 'ls *.yaml'
+                                    sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet sqpreprod-us.yaml '
+                                }
+                            } 
+                        },
+                    dashboardms: {
+                            container('gcloud') {
+                                sh 'echo ${WORKSPACE}'
+                                sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
+
+                                dir ('sq_microservices_backend') {
+                                    sh 'cp -r commonlib dashboardms'
+                                    dir ('dashboardms'){
+                                        sh 'ls *.yaml'
+                                        sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet sqpreprod-us.yaml '
+                                    }                                  
+                                }
+                            }
+                        },
+                    sso_flex: {
+                            container('gcloud') {
+                                sh 'echo ${WORKSPACE}'
+                                sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
+                                //add sh 'cp -r commonlib sso_flex'
+                                dir ('sq_microservices_backend/sso_flex') {
+                                    sh 'ls *.yaml'
+                                    sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet app.yaml '
+                                }
+                            }
+                        }              
+                )
+            }
+        }      
+    }
+}
