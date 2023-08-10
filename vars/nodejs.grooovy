@@ -1,4 +1,5 @@
 def call() {
-    sh "npm install"
-    sh "CI=false npm run build"
+    echo "hi smartq"
+    //sh "npm install"
+    //sh "CI=false npm run build"
 }
