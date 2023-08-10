@@ -37,48 +37,77 @@ pipeline {
 
     environment {
         APP_ENGINE_PROJECT_ID = 'sqpreprod-us'
-        ENVIRONMENT = 'PRE-PROD'
-        APP_ENGINE_VERSION = 'v1' 
+        GCS_BUCKET_NAME = 'sqinternational-cicd.appspot.com'
+        ENVIRONMENT = 'MASTER'
+        APP_ENGINE_VERSION = 'v2'
         YAML = 'app.yaml'
         YAML1 = 'time2eat.yaml'
         YAML2 = 'baweb.yaml'
+        //GOOGLE_APPLICATION_CREDENTIALS = credentials('gcloud-creds')
     }
-         
+   
     stages {  
         stage('Deploy NodeJS Apps') {
             steps {
                 parallel (
                     controldesk: {
                             container('gcloud') {
-                                sh "mkdir -p controldesk-latest"
-                                sh 'echo ${WORKSPACE}'
-                                sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'  
-                                sh 'gcloud storage cp gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/controldesk-Latest/* ${WORKSPACE}/controldesk-latest --recursive'
-                                dir('controldesk-latest') {
-                                    sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet $YAML '
+                                script {
+                                    def APP_NAME = "controldesk"
+                                    sh "mkdir -p ${APP_NAME}-latest"                                
+                                    echo "current workspace: ${WORKSPACE}/${APP_NAME}"
+                                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
+                                    STORAGE_OBJECT_SOURCE_PATH = sh (
+                                        script: "gcloud storage ls gs://$GCS_BUCKET_NAME/$ENVIRONMENT/${APP_NAME} | sort --ignore-case -rV | head -n 1",
+                                        returnStdout: true
+                                    ).trim()
+                                    echo "Storage Object Source Path: ${STORAGE_OBJECT_SOURCE_PATH}"
+                                    sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
+                                   
+                                    dir("${APP_NAME}-latest") {
+                                        sh "gcloud app deploy --version=$APP_ENGINE_VERSION --quiet $YAML --no-promote"
+                                    }
                                 }
                             }
                         },
                     time2eat: {
-                        container('gcloud') {
-                            sh "mkdir -p time2eat-latest"
-                            sh 'echo ${WORKSPACE}'
-                            sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'  
-                            sh 'gcloud storage cp gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/Time2Eat-Latest/* ${WORKSPACE}/time2eat-latest --recursive'
-                            dir('time2eat-latest') {
-                                sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet $YAML1 '
-                                sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet $YAML2 '
+                        container('gcloud') {                           
+                            script {
+                                    def APP_NAME = "time2eat"
+                                    sh "mkdir -p ${APP_NAME}-latest"                                
+                                    echo "current workspace: ${WORKSPACE}/${APP_NAME}"
+                                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
+                                    STORAGE_OBJECT_SOURCE_PATH = sh (
+                                        script: "gcloud storage ls gs://$GCS_BUCKET_NAME/$ENVIRONMENT/${APP_NAME} | sort --ignore-case -rV | head -n 1",
+                                        returnStdout: true
+                                    ).trim()
+                                    echo "Storage Object Source Path: ${STORAGE_OBJECT_SOURCE_PATH}"
+                                    sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
+                                   
+                                    dir("${APP_NAME}-latest") {
+                                        sh "gcloud app deploy --version=$APP_ENGINE_VERSION --quiet $YAML1 --no-promote"
+                                        sh "gcloud app deploy --version=$APP_ENGINE_VERSION --quiet $YAML2 --no-promote"
+                                    }
                             }
                         }
                     },
                     webORT: {
-                        container('gcloud') {
-                            sh "mkdir -p web-ort-latest"
-                            sh 'echo ${WORKSPACE}'
-                            sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'  
-                            sh 'gcloud storage cp gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/web-ort-Latest/* ${WORKSPACE}/web-ort-latest --recursive'
-                            dir('web-ort-latest') {
-                                sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet $YAML '
+                        container('gcloud') {                            
+                            script {
+                                def APP_NAME = "web-ort"
+                                sh "mkdir -p ${APP_NAME}-latest"                                
+                                echo "current workspace: ${WORKSPACE}/${APP_NAME}"
+                                sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
+                                STORAGE_OBJECT_SOURCE_PATH = sh (
+                                    script: "gcloud storage ls gs://$GCS_BUCKET_NAME/$ENVIRONMENT/${APP_NAME} | sort --ignore-case -rV | head -n 1",
+                                    returnStdout: true
+                                ).trim()
+                                echo "Storage Object Source Path: ${STORAGE_OBJECT_SOURCE_PATH}"
+                                sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
+                                   
+                                dir("${APP_NAME}-latest") {
+                                    sh "gcloud app deploy --version=$APP_ENGINE_VERSION --quiet $YAML --no-promote"
+                                }
                             }
                         }
                     }
@@ -110,12 +139,44 @@ pipeline {
             steps {                
                 dir ('smartq-cloud-backend') {
                     container('gcloud') {
-                        sh 'echo ${WORKSPACE}'
-                        sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'  
-                        sh 'gcloud storage cp gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/generic-admin-dashboard-Latest/* ${WORKSPACE}/smartq-cloud-backend/py3_project/py3_backend/bqreports/admindashboard --recursive'
-                        sh 'gcloud storage cp gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/vendor-dashboard-Latest/* ${WORKSPACE}/smartq-cloud-backend/py3_project/py3_backend/bqreports/reports --recursive'
-                        sh 'gcloud storage cp gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/ewallet-Latest/* ${WORKSPACE}/smartq-cloud-backend/eWallet --recursive'
+                        sh "echo ${WORKSPACE}"
+                        sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
+
+                        //sh 'gcloud storage cp gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/generic-admin-dashboard/generic-admin-dashboard-Latest/* ${WORKSPACE}/smartq-cloud-backend/py3_project/py3_backend/bqreports/admindashboard --recursive'
+                                                
+                        script {  
+                                def APP_NAME = "generic-admin-dashboard" 
+                                STORAGE_OBJECT_SOURCE_PATH = sh (
+                                    script: "gcloud storage ls gs://$GCS_BUCKET_NAME/$ENVIRONMENT/${APP_NAME} | sort --ignore-case -rV | head -n 1",
+                                    returnStdout: true
+                                ).trim()
+                                echo "Storage Object Source Path: ${STORAGE_OBJECT_SOURCE_PATH}"
+                                sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/smartq-cloud-backend/py3_project/py3_backend/bqreports/admindashboard --recursive"
+                        }
                         
+                        //sh 'gcloud storage cp gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/vendor-dashboard/vendor-dashboard-Latest/* ${WORKSPACE}/smartq-cloud-backend/py3_project/py3_backend/bqreports/reports --recursive'
+
+                        script {  
+                                def APP_NAME = "vendor-dashboard" 
+                                STORAGE_OBJECT_SOURCE_PATH = sh (
+                                    script: "gcloud storage ls gs://$GCS_BUCKET_NAME/$ENVIRONMENT/${APP_NAME} | sort --ignore-case -rV | head -n 1",
+                                    returnStdout: true
+                                ).trim()
+                                echo "Storage Object Source Path: ${STORAGE_OBJECT_SOURCE_PATH}"
+                                sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/smartq-cloud-backend/py3_project/py3_backend/bqreports/reports --recursive"
+                        }
+
+                        //sh 'gcloud storage cp gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/ewallet/ewallet-Latest/* ${WORKSPACE}/smartq-cloud-backend/eWallet --recursive'
+                        script {  
+                                def APP_NAME = "ewallet" 
+                                STORAGE_OBJECT_SOURCE_PATH = sh (
+                                    script: "gcloud storage ls gs://$GCS_BUCKET_NAME/$ENVIRONMENT/${APP_NAME} | sort --ignore-case -rV | head -n 1",
+                                    returnStdout: true
+                                ).trim()
+                                echo "Storage Object Source Path: ${STORAGE_OBJECT_SOURCE_PATH}"
+                                sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/smartq-cloud-backend/eWallet --recursive"
+                        }        
+
                         dir ('py3_project/py3_backend/bqreports/admindashboard') {
                             sh 'ls -lrt'
                         }
@@ -134,34 +195,34 @@ pipeline {
                 parallel (
                     time2eat: {
                             container('gcloud') {
-                                sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
+                                sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                                 dir ('smartq-cloud-backend'){
-                                    sh 'ls *.yaml'
-                                    sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet time2eat_appservice.yaml '
+                                    sh "ls *.yaml"
+                                    sh "gcloud app deploy --version=$APP_ENGINE_VERSION --quiet time2eat_appservice.yaml --no-promote"
                                 }
                             }
                         },
                     background: {
                             container('gcloud') {
-                                sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
+                                sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                                 dir ('smartq-cloud-backend'){
-                                    sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet background.yaml '
+                                    sh "gcloud app deploy --version=$APP_ENGINE_VERSION --quiet background.yaml --no-promote"
                                 }
                             }
                         },
                     taskqservice: {
                             container('gcloud') {
-                                sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
+                                sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                                 dir ('smartq-cloud-backend'){
-                                    sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet taskqservice.yaml '
+                                    sh "gcloud app deploy --version=$APP_ENGINE_VERSION --quiet taskqservice.yaml --no-promote"
                                 }
                             }
                         },
                     eWallet: {
                             container('gcloud') {
-                                sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
+                                sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                                 dir ('smartq-cloud-backend'){
-                                    sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet app.yaml '
+                                    sh "gcloud app deploy --version=$APP_ENGINE_VERSION --quiet app.yaml --no-promote"
                                 }
                             }
                         }                    
@@ -171,11 +232,11 @@ pipeline {
         stage('Deploy to BQ Reports') {
             steps {
                 container('gcloud') {
-                    sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
+                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                     dir ('smartq-cloud-backend') {
                         dir ('py3_project') {
-                            sh 'ls *.yaml'
-                            sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet bqreports.yaml '
+                            sh "ls *.yaml"
+                            sh "gcloud app deploy --version=$APP_ENGINE_VERSION --quiet bqreports.yaml --no-promote"
                         }
                     }
                 }               
@@ -198,37 +259,42 @@ pipeline {
                 parallel (
                     appms: {
                             container('gcloud') {
-                                sh 'echo ${WORKSPACE}'
-                                sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
-                                //add sh 'cp -r commonlib appms'
-                                dir ('sq_microservices_backend/appms') {
-                                    sh 'ls *.yaml'
-                                    sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet sqpreprod-us.yaml '
+                                sh "echo ${WORKSPACE}"
+                                sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
+                                dir ('sq_microservices_backend') {
+                                    sh 'cp -r commonlib appms'
+                                    dir ('appms') {
+                                        sh "ls *.yaml"
+                                        sh "gcloud app deploy --version=$APP_ENGINE_VERSION --quiet sqpreprod-us.yaml --no-promote"
+                                    }
                                 }
                             } 
                         },
                     dashboardms: {
                             container('gcloud') {
-                                sh 'echo ${WORKSPACE}'
-                                sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
+                                sh "echo ${WORKSPACE}"
+                                sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
 
                                 dir ('sq_microservices_backend') {
                                     sh 'cp -r commonlib dashboardms'
                                     dir ('dashboardms'){
-                                        sh 'ls *.yaml'
-                                        sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet sqpreprod-us.yaml '
+                                        sh "ls *.yaml"
+                                        sh "gcloud app deploy --version=$APP_ENGINE_VERSION --quiet sqpreprod-us.yaml --no-promote"
                                     }                                  
                                 }
                             }
                         },
                     sso_flex: {
                             container('gcloud') {
-                                sh 'echo ${WORKSPACE}'
-                                sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
-                                //add sh 'cp -r commonlib sso_flex'
-                                dir ('sq_microservices_backend/sso_flex') {
-                                    sh 'ls *.yaml'
-                                    sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet app.yaml '
+                                sh "echo ${WORKSPACE}"
+                                sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
+
+                                dir ('sq_microservices_backend') {
+                                    sh 'cp -r commonlib sso_flex'
+                                    dir ('sso_flex') {
+                                        sh "ls *.yaml"
+                                        sh "gcloud app deploy --version=$APP_ENGINE_VERSION --quiet app.yaml --no-promote"
+                                    }
                                 }
                             }
                         }              
