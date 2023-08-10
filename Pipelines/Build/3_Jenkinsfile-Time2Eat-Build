@@ -82,9 +82,9 @@ pipeline {
                     sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
                     dir('time2eatweb') {
                         sh 'ls'
-                        sh 'gcloud storage cp ${WORKSPACE}/time2eatweb/*.yaml gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/Time2Eat/Time2Eat-$VERSION_NUMBER --recursive'
+                        sh 'gcloud storage cp ${WORKSPACE}/time2eatweb/*.yaml gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/time2eat/time2eat-$VERSION_NUMBER --recursive'
                     }
-                    sh 'gcloud storage cp ${WORKSPACE}/time2eatweb/build/* gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/Time2Eat/Time2Eat-$VERSION_NUMBER --recursive'
+                    sh 'gcloud storage cp ${WORKSPACE}/time2eatweb/build/* gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/time2eat/time2eat-$VERSION_NUMBER --recursive'
                 }
             }
         }
