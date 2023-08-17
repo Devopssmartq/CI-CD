@@ -1,4 +1,5 @@
-podTemplate (yaml: '''
+def call(){			
+			'''
 			apiVersion: v1
 			kind: Pod
 			spec:
@@ -17,5 +18,5 @@ podTemplate (yaml: '''
 			args:
 			- 99d
 			tty: true
-'''    
-)  
+			'''    
+}  
