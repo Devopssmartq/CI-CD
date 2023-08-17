@@ -1,0 +1,48 @@
+pipeline {
+  agent {
+    kubernetes {
+      //label 'jenkins-private-cluster-0'
+      defaultContainer 'jnlp'
+      yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: gcloud
+    image: gcr.io/cloud-builders/gcloud
+    command:
+    - sleep
+    args:
+    - 99d
+  - name: native-android
+    image: androidsdk/android-31:latest
+    command:
+    - sleep
+    args:
+    - 99d
+    tty: true 
+    '''
+    }
+  }
+    //environment {
+      //  APP_ENGINE_PROJECT_ID = 'sqinternational-cicd'
+        //APP_ENGINE_SERVICE = 'taskqservice'
+        //APP_ENGINE_VERSION = '1'
+    //}
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                container('native-android') {
+                    sh 'ls -a'
+                    sh './gradlew assembleRelease'
+                }
+            }
+        }    
+    }
+}
