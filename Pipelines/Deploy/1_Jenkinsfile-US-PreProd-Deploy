@@ -46,7 +46,7 @@ pipeline {
         GLOBAL_COUNT = '0'
         VERSION_NUMBER = VersionNumber([
             versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMdd"}-${BUILDS_TODAY}', 
-            versionPrefix: 'v-', 
+            //versionPrefix: 'v-', 
             worstResultForIncrement: 'SUCCESS'
         ])
     }
@@ -353,7 +353,7 @@ pipeline {
                         container('gcloud') {
                             sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                             script {
-                                def APP_NAME = "vendor-dashboard" 
+                                def APP_NAME = "ewallet" 
                                 def STORAGE_OBJECT_SOURCE_PATH = sh (
                                             script: "gcloud storage ls gs://$GCS_BUCKET_NAME/$ENVIRONMENT/${APP_NAME} | sort --ignore-case -rV | head -n 1",
                                             returnStdout: true
@@ -396,7 +396,7 @@ pipeline {
                         container('gcloud') {
                             sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                             script {
-                                def APP_NAME = "vendor-dashboard" 
+                                def APP_NAME = "ewallet" 
                                 def STORAGE_OBJECT_SOURCE_PATH = sh (
                                             script: "gcloud storage ls gs://$GCS_BUCKET_NAME/$ENVIRONMENT/${APP_NAME} | sort --ignore-case -rV | head -n 1",
                                             returnStdout: true
