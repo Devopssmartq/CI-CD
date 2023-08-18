@@ -80,9 +80,9 @@ pipeline {
                     sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
                     dir('webort') {
                         sh 'ls'
-                        sh 'gcloud storage cp ${WORKSPACE}/webort/*.yaml gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/web-ort/web-ort-$VERSION_NUMBER --recursive'
+                        sh 'gcloud storage cp ${WORKSPACE}/webort/*.yaml gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/web-ort/webort-$VERSION_NUMBER --recursive'
                     }
-                    sh 'gcloud storage cp ${WORKSPACE}/webort/build/* gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/web-ort/web-ort-$VERSION_NUMBER/build --recursive'
+                    sh 'gcloud storage cp ${WORKSPACE}/webort/build/* gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/web-ort/webort-$VERSION_NUMBER/build --recursive'
                 }
             }
         }

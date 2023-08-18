@@ -75,7 +75,7 @@ pipeline {
             steps {
                 container('gcloud') {
                     sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'                    
-                    sh 'gcloud storage cp ${WORKSPACE}/generic-admin-dashboard/build/* gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/generic-admin-dashboard/generic-admin-dashboard-$VERSION_NUMBER --recursive'
+                    sh 'gcloud storage cp ${WORKSPACE}/generic-admin-dashboard/build/* gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/generic-admin-dashboard/admindashboard-$VERSION_NUMBER --recursive'
                 }
             }
         }
