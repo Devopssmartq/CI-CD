@@ -1,0 +1,61 @@
+pipeline {
+  agent {
+        kubernetes {
+            yaml '''
+        apiVersion: v1
+        kind: Pod
+        environment:
+            name: "NODE_OPTIONS"
+            value: "--max-old-space-size=4096"
+        spec:
+          containers:
+          - name: jnlp  
+            resources:
+              requests:
+                memory: "2048Mi"
+                cpu: "500m"
+              limits:
+                memory: "4096Mi"
+                cpu: "1000m"
+          - name: native-android
+            image: androidsdk/android-31:latest
+            command:
+            - cat
+            tty: true
+
+          - name: gcloud
+            image: google/cloud-sdk:latest
+            command:
+            - cat
+            tty: true
+        '''        
+        }
+    }
+    //environment {
+      //  APP_ENGINE_PROJECT_ID = 'sqinternational-cicd'
+        //APP_ENGINE_SERVICE = 'taskqservice'
+        //APP_ENGINE_VERSION = '1'
+    //}
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                sh 'ls -a'
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                container('native-android') {
+                    //sh 'ls -a'
+                    sh 'chmod +x gradlew'
+                    sh './gradlew assembleRelease'
+                    sh 'ls'
+                        dir('app/imdind'){
+                            sh 'ls'
+                        }
+                }
+            }
+        }    
+    }
+}
