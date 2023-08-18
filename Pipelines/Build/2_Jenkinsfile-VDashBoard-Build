@@ -40,7 +40,7 @@ pipeline {
         APP_ENGINE_VERSION = 'v1' 
         ENVIRONMENT='MASTER'
         VERSION_NUMBER = VersionNumber([
-            versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMdd"}-${BUILDS_TODAY}', 
+            versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMdd"}.${BUILDS_TODAY}', 
             //versionPrefix: 'v1.0.', 
             worstResultForIncrement: 'SUCCESS'
         ])        

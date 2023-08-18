@@ -45,7 +45,7 @@ pipeline {
         //GOOGLE_APPLICATION_CREDENTIALS = credentials('gcloud-creds')
         GLOBAL_COUNT = '0'
         VERSION_NUMBER = VersionNumber([
-            versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMdd"}-${BUILDS_TODAY}', 
+            versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMdd"}.${BUILDS_TODAY}', 
             //versionPrefix: 'v-', 
             worstResultForIncrement: 'SUCCESS'
         ])
