@@ -87,9 +87,9 @@ pipeline {
                                             returnStdout: true
                                         ).trim()
 
-                                    def APP_VERSION = "${CONTROLDESK_APP_ENGINE_VERSION}".split('@')[1]
+                                    //def APP_VERSION = "${CONTROLDESK_APP_ENGINE_VERSION}".split('@')[1]
 
-                                    CONTROLDESK_APP_ENGINE_VERSION = "controldesk-${APP_VERSION}"
+                                    CONTROLDESK_APP_ENGINE_VERSION = "${CONTROLDESK_APP_ENGINE_VERSION}".split('@')[1]
 
                                     echo "App Engine Version: ${CONTROLDESK_APP_ENGINE_VERSION}"
 
@@ -141,59 +141,22 @@ pipeline {
                                             returnStdout: true
                                         ).trim()
 
-                                    def APP_VERSION = "${TIME2EAT_APP_ENGINE_VERSION}".split('@')[1]
+                                    //def APP_VERSION = "${TIME2EAT_APP_ENGINE_VERSION}".split('@')[1]
 
-                                    TIME2EAT_APP_ENGINE_VERSION = "time2eat-${APP_VERSION}"
+                                    //TIME2EAT_APP_ENGINE_VERSION = "time2eat-${APP_VERSION}"
+                                    TIME2EAT_APP_ENGINE_VERSION = "${TIME2EAT_APP_ENGINE_VERSION}".split('@')[1]
                                     echo "App Engine Version: ${TIME2EAT_APP_ENGINE_VERSION}"
 
-                                    BAWEB_APP_ENGINE_VERSION = "baweb-${APP_VERSION}"
-                                    echo "App Engine Version: ${BAWEB_APP_ENGINE_VERSION}"
+                                    //BAWEB_APP_ENGINE_VERSION = "baweb-${APP_VERSION}"
+                                    //BAWEB_APP_ENGINE_VERSION = "${TIME2EAT_APP_ENGINE_VERSION}".split('@')[1]
+                                    //echo "App Engine Version: ${BAWEB_APP_ENGINE_VERSION}"
 
                                     sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
                                    
                                     dir("${APP_NAME}-latest") {
                                         sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $YAML1 --no-promote"
-                                        sh "gcloud app deploy --version=$BAWEB_APP_ENGINE_VERSION --quiet $YAML2 --no-promote"
-                                    }
-                                    def service_url2 = sh (
-                                        script: "gcloud app browse --service='time2eat' --version=$TIME2EAT_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
-                                        returnStdout: true
-                                    ).trim()
-                                    echo "Service URL: ${service_url2}"
-
-                                    def CHECK_URL_STATUS = "curl --write-out %{http_code} --silent --output /dev/null '${service_url2}/time2eat/main'"
-                                    sh "${CHECK_URL_STATUS} > commandResult"
-                                    env.status = readFile('commandResult').trim()
-                                    sh "echo ${env.status}"  
-
-                                    if (env.status == "200") {
-                                        GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-                                        echo "Global count : ${GLOBAL_COUNT} of 11"                                   
-                                        //sh "gcloud app services set-traffic $APP_NAME --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
-                                    }
-                                    else {  
-                                        echo "Failed with Status Code : ${env.status}"
-                                    }
-
-                                    def service_url3 = sh (
-                                        script: "gcloud app browse --service='baweb' --version=$BAWEB_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
-                                        returnStdout: true
-                                    ).trim()
-                                    echo "Service URL: ${service_url3}"
-
-                                    def CHECK_URL_STATUS2 = "curl --write-out %{http_code} --silent --output /dev/null '${service_url3}/baweb/main'"
-                                    sh "${CHECK_URL_STATUS2} > commandResult"
-                                    env.status = readFile('commandResult').trim()
-                                    sh "echo ${env.status}"  
-
-                                    if (env.status == "200") {
-                                        GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-                                        echo "Global count : ${GLOBAL_COUNT} of 11"                                    
-                                        //sh "gcloud app services set-traffic 'baweb' --splits $BAWEB_APP_ENGINE_VERSION=1 --quiet"
-                                    }
-                                    else {  
-                                        echo "Failed with Status Code : ${env.status}"
-                                    }
+                                        sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $YAML2 --no-promote"
+                                    }                                    
                             }
                         }
                     },
@@ -216,9 +179,9 @@ pipeline {
                                             returnStdout: true
                                         ).trim()
 
-                                def APP_VERSION = "${WEBORT_APP_ENGINE_VERSION}".split('@')[1]
+                                //def APP_VERSION = "${WEBORT_APP_ENGINE_VERSION}".split('@')[1]
 
-                                WEBORT_APP_ENGINE_VERSION = "webort-${APP_VERSION}"
+                                WEBORT_APP_ENGINE_VERSION = "${WEBORT_APP_ENGINE_VERSION}".split('@')[1]
 
                                 echo "App Engine Version: ${WEBORT_APP_ENGINE_VERSION}"
 
@@ -253,7 +216,64 @@ pipeline {
                     }
                 ) 
             }
-        }    
+        }
+        stage ('URL Status - Time2Eat')  {
+            steps {
+                container('gcloud') {
+                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
+                    script { 
+                        def service_url2 = sh (
+                            script: "gcloud app browse --service='time2eat' --version=$TIME2EAT_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
+                            returnStdout: true
+                        ).trim()
+
+                        echo "Service URL: ${service_url2}"
+
+                        def CHECK_URL_STATUS = "curl --write-out %{http_code} --silent --output /dev/null '${service_url2}/time2eat/main'"
+                        sh "${CHECK_URL_STATUS} > commandResult"
+                        env.status = readFile('commandResult').trim()
+                        sh "echo ${env.status}"  
+
+                        if (env.status == "200") {
+                            GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
+                            echo "Global count : ${GLOBAL_COUNT} of 11"                                   
+                            //sh "gcloud app services set-traffic $APP_NAME --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
+                        }
+                        else {  
+                            echo "Failed with Status Code : ${env.status}"
+                        }
+                    }
+                }
+             }
+        }
+        stage ('URL Status - BaWeb')  {
+            steps {
+                container('gcloud') {
+                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
+                    script {
+                            def service_url3 = sh (
+                                script: "gcloud app browse --service='baweb' --version=$TIME2EAT_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
+                                returnStdout: true
+                            ).trim()
+
+                            echo "Service URL: ${service_url3}"
+                            def CHECK_URL_STATUS2 = "curl --write-out %{http_code} --silent --output /dev/null '${service_url3}/baweb/main'"
+                            sh "${CHECK_URL_STATUS2} > commandResult"
+                            env.status = readFile('commandResult').trim()
+                            sh "echo ${env.status}"  
+
+                            if (env.status == "200") {
+                                GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
+                                echo "Global count : ${GLOBAL_COUNT} of 11"                                    
+                                //sh "gcloud app services set-traffic 'baweb' --splits $BAWEB_APP_ENGINE_VERSION=1 --quiet"
+                            }
+                            else {  
+                                echo "Failed with Status Code : ${env.status}"
+                            }
+                    }             
+                }
+            }
+        }
         stage('Clone smartq-backend') { 
             steps { 
                 sh "mkdir -p smartq-cloud-backend"
@@ -349,9 +369,9 @@ pipeline {
                                                 returnStdout: true
                                             ).trim()
                                                                         
-                                    def APP_VERSION = "${APPSERVICE_APP_ENGINE_VERSION}".split('@')[1]
+                                    //def APP_VERSION = "${APPSERVICE_APP_ENGINE_VERSION}".split('@')[1]
 
-                                    APPSERVICE_APP_ENGINE_VERSION = "appservice-${APP_VERSION}"
+                                    APPSERVICE_APP_ENGINE_VERSION = "${APPSERVICE_APP_ENGINE_VERSION}".split('@')[1]
 
                                     echo "App Engine Version: $APPSERVICE_APP_ENGINE_VERSION"
 
@@ -398,8 +418,8 @@ pipeline {
                                                 returnStdout: true
                                             ).trim()
 
-                                def APP_VERSION = "${BACKGROUND_APP_ENGINE_VERSION}".split('@')[1]
-                                BACKGROUND_APP_ENGINE_VERSION = "background-${APP_VERSION}"
+                                //def APP_VERSION = "${BACKGROUND_APP_ENGINE_VERSION}".split('@')[1]
+                                BACKGROUND_APP_ENGINE_VERSION = "${BACKGROUND_APP_ENGINE_VERSION}".split('@')[1]
 
                                 echo "App Engine Version: $BACKGROUND_APP_ENGINE_VERSION"
                                 dir ('smartq-cloud-backend'){
@@ -444,8 +464,8 @@ pipeline {
                                                 returnStdout: true
                                             ).trim()
 
-                                def APP_VERSION = "${TASKQSERVICE_APP_ENGINE_VERSION}".split('@')[1]
-                                TASKQSERVICE_APP_ENGINE_VERSION = "taskqservic-${APP_VERSION}"
+                                //def APP_VERSION = "${TASKQSERVICE_APP_ENGINE_VERSION}".split('@')[1]
+                                TASKQSERVICE_APP_ENGINE_VERSION = "${TASKQSERVICE_APP_ENGINE_VERSION}".split('@')[1]
 
                                 echo "App Engine Version: $TASKQSERVICE_APP_ENGINE_VERSION"
                                 dir ('smartq-cloud-backend'){
@@ -494,8 +514,8 @@ pipeline {
                             returnStdout: true
                         ).trim()                        
 
-                        def APP_VERSION = "${BQREPORTS_APP_ENGINE_VERSION}".split('@')[1]
-                        BQREPORTS_APP_ENGINE_VERSION = "bqreports-${APP_VERSION}"
+                        //def APP_VERSION = "${BQREPORTS_APP_ENGINE_VERSION}".split('@')[1]
+                        BQREPORTS_APP_ENGINE_VERSION = "${BQREPORTS_APP_ENGINE_VERSION}".split('@')[1]
 
                         echo "App Engine Version: $BQREPORTS_APP_ENGINE_VERSION"
 
@@ -701,5 +721,5 @@ pipeline {
                 }               
             }  
         }      
-    }
+    } 
 }
