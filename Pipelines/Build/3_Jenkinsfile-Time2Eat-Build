@@ -84,7 +84,7 @@ pipeline {
                         sh 'ls'
                         sh 'gcloud storage cp ${WORKSPACE}/time2eatweb/*.yaml gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/time2eat/time2eat@$VERSION_NUMBER --recursive'
                     }
-                    sh 'gcloud storage cp ${WORKSPACE}/time2eatweb/build/* gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/time2eat/time2eat@$VERSION_NUMBER --recursive'
+                    sh 'gcloud storage cp ${WORKSPACE}/time2eatweb/build/* gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/time2eat/time2eat@$VERSION_NUMBER/build --recursive'
                 }
             }
         }
