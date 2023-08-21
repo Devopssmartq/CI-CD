@@ -39,7 +39,7 @@ pipeline {
         APP_ENGINE_PROJECT_ID = 'sqpreprod-us'
         ENVIRONMENT='MASTER'
         VERSION_NUMBER = VersionNumber([
-            versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMdd"}.${BUILDS_TODAY}', 
+            versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMdd"}-${BUILDS_TODAY}', 
             //versionPrefix: 'v1.0.', 
             worstResultForIncrement: 'SUCCESS'
         ])
@@ -75,7 +75,7 @@ pipeline {
             steps {
                 container('gcloud') {
                     sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'                    
-                    sh 'gcloud storage cp ${WORKSPACE}/ewallet/build/* gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/ewallet/ewallet-$VERSION_NUMBER --recursive'
+                    sh 'gcloud storage cp ${WORKSPACE}/ewallet/build/* gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/ewallet/ewallet@$VERSION_NUMBER --recursive'
                 }
             }
         }
