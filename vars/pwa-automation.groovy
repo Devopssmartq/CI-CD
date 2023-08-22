@@ -1,4 +1,5 @@
-pipeline {
+def call() {
+    pipeline {
     agent {
     kubernetes {
       yaml '''
@@ -72,4 +73,6 @@ pipeline {
         //     }
         // }
     }
+    }
+
 }
