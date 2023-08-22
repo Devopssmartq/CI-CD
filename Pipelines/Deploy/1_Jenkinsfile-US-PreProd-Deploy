@@ -1,5 +1,28 @@
 /* groovylint-disable CompileStatic */
 // Uses Declarative syntax to run commands inside a container.
+def getURL_Status(Map args) {
+    echo "service name is ${args.service_name}, version name is ${args.version_name}, app name is ${args.url_suffix}"
+
+    def service_url = sh (
+                script: "gcloud app browse --service=${args.service_name} --version=${args.version_name} --no-launch-browser --format='value(url)'",
+                returnStdout: true
+    ).trim()
+
+    echo "Service URL: ${service_url}"
+
+    def CHECK_URL_STATUS = "curl --retry 2 -f --retry-all-errors --retry-delay 5 --write-out %{http_code} --silent --output /dev/null '${service_url}/${args.url_suffix}'"
+    sh "${CHECK_URL_STATUS} > commandResult"
+    env.status = readFile('commandResult').trim()
+    sh "echo ${env.status}"  
+
+    if (env.status == "200") {
+        GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
+        echo "Global count : ${GLOBAL_COUNT} of 11"                                   
+    }
+    else {  
+            echo "Failed with Status Code : ${env.status}"
+    }
+}
 pipeline {
     agent {
         kubernetes {
@@ -38,31 +61,23 @@ pipeline {
     environment {
         APP_ENGINE_PROJECT_ID = 'sqpreprod-us'
         GCS_BUCKET_NAME = 'sqinternational-cicd.appspot.com'
-        ENVIRONMENT = 'MASTER'
-        YAML = 'app.yaml'
-        YAML1 = 'time2eat.yaml'
-        YAML2 = 'baweb.yaml'
+        ENVIRONMENT = 'MASTER'        
+        
         //GOOGLE_APPLICATION_CREDENTIALS = credentials('gcloud-creds')
         GLOBAL_COUNT = '0'
-        VERSION_NUMBER = VersionNumber([
-            versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMdd"}-${BUILDS_TODAY}', 
-            //versionPrefix: 'v-', 
-            worstResultForIncrement: 'SUCCESS'
-        ])
-        
-        CONTROLDESK_APP_ENGINE_VERSION = 'controldesk-v1'
-        TIME2EAT_APP_ENGINE_VERSION = 'time2eat-v1'
-        BAWEB_APP_ENGINE_VERSION = 'baweb-v1'
-        WEBORT_APP_ENGINE_VERSION = 'webort-v1'
+        CONTROLDESK_APP_ENGINE_VERSION = '20230821-2'
+        TIME2EAT_APP_ENGINE_VERSION = '20230821-4'
+        //BAWEB_APP_ENGINE_VERSION = 'baweb-v1'
+        WEBORT_APP_ENGINE_VERSION = '20230821-2'
 
-        APPSERVICE_APP_ENGINE_VERSION = 'ewallet-v1'
-        BACKGROUND_APP_ENGINE_VERSION = 'background-v1'
-        TASKQSERVICE_APP_ENGINE_VERSION = 'taskq-v1'
-        BQREPORTS_APP_ENGINE_VERSION = 'bqreports-v1'
+        APPSERVICE_APP_ENGINE_VERSION = '20230822-1'
+        BACKGROUND_APP_ENGINE_VERSION = '20230822-1'
+        TASKQSERVICE_APP_ENGINE_VERSION = '20230822-1'
+        BQREPORTS_APP_ENGINE_VERSION = '20230821-2'
 
-        DEFAULT_APP_ENGINE_VERSION = 'default-v1'
-        DASHBOARD_APP_ENGINE_VERSION = 'dashboard-v1'
-        SSO_APP_ENGINE_VERSION = 'sso-v1'
+        DEFAULT_APP_ENGINE_VERSION = '20230822-3'
+        DASHBOARD_APP_ENGINE_VERSION = '20230822-3'
+        //SSO_APP_ENGINE_VERSION = '20230822-3'
     }
    
     stages {  
@@ -92,30 +107,11 @@ pipeline {
                                     echo "App Engine Version: ${CONTROLDESK_APP_ENGINE_VERSION}"
 
                                     sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest/ --recursive"
-                                   
+                                    
+                                    def YAML = 'app.yaml'
                                     dir("${APP_NAME}-latest") {
                                         sh "gcloud app deploy --version=$CONTROLDESK_APP_ENGINE_VERSION --quiet $YAML --no-promote"
-                                    }
-
-                                    def service_url = sh (
-                                        script: "gcloud app browse --service=$APP_NAME --version=$CONTROLDESK_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
-                                        returnStdout: true
-                                    ).trim()
-                                    echo "Service URL: ${service_url}"
-
-                                    def CHECK_URL_STATUS = "curl --write-out %{http_code} --silent --output /dev/null '${service_url}/control-desk/login'"
-                                    sh "${CHECK_URL_STATUS} > commandResult"
-                                    env.status = readFile('commandResult').trim()
-                                    sh "echo ${env.status}"  
-
-                                    if (env.status == "200") {
-                                        GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-                                        echo "Global count : ${GLOBAL_COUNT} of 11"                                   
-                                        //sh "gcloud app services set-traffic $APP_NAME --splits $CONTROLDESK_APP_ENGINE_VERSION=1 --quiet"
-                                    }
-                                    else {  
-                                        echo "Failed with Status Code : ${env.status}"
-                                    }
+                                    }                                    
                                 }
                             }
                         },
@@ -143,10 +139,13 @@ pipeline {
                                     echo "App Engine Version: ${TIME2EAT_APP_ENGINE_VERSION}"
 
                                     sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
-                                   
+                                    
+                                    def YAML1 = 'time2eat.yaml'
+                                    def YAML2 = 'baweb.yaml'
+
                                     dir("${APP_NAME}-latest") {
-                                        sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $YAML1 --no-promote"
-                                        sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $YAML2 --no-promote"
+                                        sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet ${YAML1} --no-promote"
+                                        sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet ${YAML2} --no-promote"
                                     }                                    
                             }
                         }
@@ -175,94 +174,17 @@ pipeline {
                                 echo "App Engine Version: ${WEBORT_APP_ENGINE_VERSION}"
 
                                 sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
-                                   
+                                
+                                def YAML = 'app.yaml'   
                                 dir("${APP_NAME}-latest") {
                                     sh "gcloud app deploy --version=$WEBORT_APP_ENGINE_VERSION --quiet $YAML --no-promote"
-                                }
-
-                                def service_url4 = sh (
-                                        script: "gcloud app browse --service=$APP_NAME --version=$WEBORT_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
-                                        returnStdout: true
-                                    ).trim()
-
-                                echo "Service URL: ${service_url4}"
-
-                                def CHECK_URL_STATUS = "curl --write-out %{http_code} --silent --output /dev/null '${service_url4}/$APP_NAME/main'"
-                                sh "${CHECK_URL_STATUS} > commandResult"
-                                env.status = readFile('commandResult').trim()
-                                sh "echo ${env.status}"  
-
-                                if (env.status == "200") {
-                                    GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-                                    echo "Global count : ${GLOBAL_COUNT} of 11"                                   
-                                    //sh "gcloud app services set-traffic $APP_NAME --splits $WEBORT_APP_ENGINE_VERSION=1 --quiet"
-                                }
-                                else {  
-                                    echo "Failed with Status Code : ${env.status}"
-                                }                                
+                                }                                            
                             }
                         }
                     }
                 ) 
             }
-        }
-        stage ('URL Status - Time2Eat')  {
-            steps {
-                container('gcloud') {
-                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
-                    script { 
-                        def service_url2 = sh (
-                            script: "gcloud app browse --service='time2eat' --version=$TIME2EAT_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
-                            returnStdout: true
-                        ).trim()
-
-                        echo "Service URL: ${service_url2}"
-
-                        def CHECK_URL_STATUS = "curl --write-out %{http_code} --silent --output /dev/null '${service_url2}/time2eat/main'"
-                        sh "${CHECK_URL_STATUS} > commandResult"
-                        env.status = readFile('commandResult').trim()
-                        sh "echo ${env.status}"  
-
-                        if (env.status == "200") {
-                            GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-                            echo "Global count : ${GLOBAL_COUNT} of 11"                                   
-                            //sh "gcloud app services set-traffic $APP_NAME --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
-                        }
-                        else {  
-                            echo "Failed with Status Code : ${env.status}"
-                        }
-                    }
-                }
-             }
-        }
-        stage ('URL Status - BaWeb')  {
-            steps {
-                container('gcloud') {
-                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
-                    script {
-                            def service_url3 = sh (
-                                script: "gcloud app browse --service='baweb' --version=$TIME2EAT_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
-                                returnStdout: true
-                            ).trim()
-
-                            echo "Service URL: ${service_url3}"
-                            def CHECK_URL_STATUS2 = "curl --write-out %{http_code} --silent --output /dev/null '${service_url3}/baweb/main'"
-                            sh "${CHECK_URL_STATUS2} > commandResult"
-                            env.status = readFile('commandResult').trim()
-                            sh "echo ${env.status}"  
-
-                            if (env.status == "200") {
-                                GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-                                echo "Global count : ${GLOBAL_COUNT} of 11"                                    
-                                //sh "gcloud app services set-traffic 'baweb' --splits $BAWEB_APP_ENGINE_VERSION=1 --quiet"
-                            }
-                            else {  
-                                echo "Failed with Status Code : ${env.status}"
-                            }
-                    }             
-                }
-            }
-        }
+        }       
         stage('Clone smartq-backend') { 
             steps { 
                 sh "mkdir -p smartq-cloud-backend"
@@ -342,10 +264,10 @@ pipeline {
         stage('Deploy Smartq Backend') {
             steps {
                 parallel (
-                    ewallet: {
+                    appservice: {
                         container('gcloud') {
                             sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
-                            script {    
+                            script { 
                                     def APP_NAME = "ewallet" 
                                     def STORAGE_OBJECT_SOURCE_PATH = sh (
                                             script: "gcloud storage ls gs://$GCS_BUCKET_NAME/$ENVIRONMENT/${APP_NAME} | sort --ignore-case -rV | head -n 1",
@@ -366,26 +288,6 @@ pipeline {
                                         sh "ls *.yaml"
                                         sh "gcloud app deploy --version=$APPSERVICE_APP_ENGINE_VERSION --quiet time2eat_appservice.yaml --no-promote"
                                     }
-                                
-                                    def service_url5 = sh (
-                                        script: "gcloud app browse --service='appservice' --version=$APPSERVICE_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
-                                        returnStdout: true
-                                    ).trim()
-                                    echo "Service URL: ${service_url5}"
-
-                                    def CHECK_URL_STATUS = "curl --retry 4 -f --retry-all-errors --retry-delay 5 --write-out %{http_code} --silent --output /dev/null '${service_url5}/eWallet/transactions'"
-                                    sh "${CHECK_URL_STATUS} > commandResult"
-                                    env.status = readFile('commandResult').trim()
-                                    sh "echo ${env.status}"  
-
-                                    if (env.status == "200") {
-                                        GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-                                        echo "Global count : ${GLOBAL_COUNT} of 11"                                   
-                                        //sh "gcloud app services set-traffic 'appservice' --splits $APPSERVICE_APP_ENGINE_VERSION=1 --quiet"
-                                    }
-                                    else {  
-                                        echo "Failed with Status Code : ${env.status}"
-                                    }
                                 }                                
                             }
                         },
@@ -393,7 +295,7 @@ pipeline {
                         container('gcloud') {
                             sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                             script {
-                                def APP_NAME = "ewallet" 
+                                def APP_NAME = "smartq-cloud-backend" 
                                 def STORAGE_OBJECT_SOURCE_PATH = sh (
                                             script: "gcloud storage ls gs://$GCS_BUCKET_NAME/$ENVIRONMENT/${APP_NAME} | sort --ignore-case -rV | head -n 1",
                                             returnStdout: true
@@ -412,33 +314,14 @@ pipeline {
                                     sh "gcloud app deploy --version=$BACKGROUND_APP_ENGINE_VERSION --quiet background.yaml --no-promote"
                                 }
                                 
-                                def service_url6 = sh (
-                                        script: "gcloud app browse --service='backgroundtasks' --version=$BACKGROUND_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
-                                        returnStdout: true
-                                    ).trim()
-                                    echo "Service URL: ${service_url6}"
-
-                                    def CHECK_URL_STATUS = "curl --retry 4 -f --retry-all-errors --retry-delay 5 --write-out %{http_code} --silent --output /dev/null '${service_url6}/dummycheckupload'"
-                                    sh "${CHECK_URL_STATUS} > commandResult_background"
-                                    env.status = readFile('commandResult_background').trim()
-                                    sh "echo ${env.status}"  
-
-                                    if (env.status == "200") {
-                                        GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-                                        echo "Global count : ${GLOBAL_COUNT} of 11"                                   
-                                        //sh "gcloud app services set-traffic 'backgroundtasks' --splits $BACKGROUND_APP_ENGINE_VERSION=1 --quiet"
-                                    }
-                                    else {  
-                                        echo "Failed with Status Code : ${env.status}"
-                                    }
-                                }               
-                            }
-                        },
+                            }               
+                        }
+                    },
                     taskqservice: {
                         container('gcloud') {
                             sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                             script {
-                                def APP_NAME = "ewallet" 
+                                def APP_NAME = "smartq-cloud-backend" 
                                 def STORAGE_OBJECT_SOURCE_PATH = sh (
                                             script: "gcloud storage ls gs://$GCS_BUCKET_NAME/$ENVIRONMENT/${APP_NAME} | sort --ignore-case -rV | head -n 1",
                                             returnStdout: true
@@ -455,30 +338,11 @@ pipeline {
                                 echo "App Engine Version: $TASKQSERVICE_APP_ENGINE_VERSION"
                                 dir ('smartq-cloud-backend'){
                                     sh "gcloud app deploy --version=$TASKQSERVICE_APP_ENGINE_VERSION --quiet taskqservice.yaml --no-promote"
-                                }
-                                                            
-                                    def service_url7 = sh (
-                                        script: "gcloud app browse --service='taskqservice' --version=$TASKQSERVICE_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
-                                        returnStdout: true
-                                    ).trim()
-                                    echo "Service URL: ${service_url7}"
-
-                                    def CHECK_URL_STATUS = "curl --retry 4 -f --retry-all-errors --retry-delay 5 --write-out %{http_code} --silent --output /dev/null '${service_url7}/dummycheckupload'"
-                                    sh "${CHECK_URL_STATUS} > commandResult_taskq"
-                                    env.status = readFile('commandResult_taskq').trim()
-                                    sh "echo ${env.status}"  
-
-                                    if (env.status == "200") {
-                                        GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-                                        echo "Global count : ${GLOBAL_COUNT} of 11"                                   
-                                        //sh "gcloud app services set-traffic 'taskqservice' --splits $TASKQSERVICE_APP_ENGINE_VERSION=1 --quiet"
-                                    }
-                                    else {  
-                                        echo "Failed with Status Code : ${env.status}"
-                                    }
-                                }      
-                            }
-                        }   
+                                }                                                           
+                                    
+                            }      
+                        }
+                    }   
                 )
             }
         }
@@ -508,27 +372,7 @@ pipeline {
                                 sh "ls *.yaml"
                                 sh "gcloud app deploy --version=$BQREPORTS_APP_ENGINE_VERSION --quiet bqreports.yaml --no-promote"
                             }
-                        }
-
-                        def service_url9 = sh (
-                            script: "gcloud app browse --service='bqreports' --version=$BQREPORTS_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
-                            returnStdout: true
-                        ).trim()
-                        echo "Service URL: ${service_url9}"
-
-                        def CHECK_URL_STATUS = "curl --retry 4 -f --retry-all-errors --retry-delay 5 --write-out %{http_code} --silent --output /dev/null '${service_url9}'"
-                        sh "${CHECK_URL_STATUS} > commandResult"
-                        env.status = readFile('commandResult').trim()
-                        sh "echo ${env.status}"  
-
-                        if (env.status == "200") {
-                            GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-                            echo "Global count : ${GLOBAL_COUNT} of 11"                                   
-                            //sh "gcloud app services set-traffic 'bqreports' --splits $BQREPORTS_APP_ENGINE_VERSION=1 --quiet"
-                        }
-                        else {  
-                            echo "Failed with Status Code : ${env.status}"
-                        }
+                        }                        
                     }
                 }               
             }
@@ -553,7 +397,20 @@ pipeline {
                             sh "echo ${WORKSPACE}"
                             sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                             script {                                        
-                                DEFAULT_APP_ENGINE_VERSION  = sh(script: "echo ${env.VERSION_NUMBER}", returnStdout: true).trim()
+                                def APP_NAME = "sq_microservices_backend" 
+                                def STORAGE_OBJECT_SOURCE_PATH = sh (
+                                    script: "gcloud storage ls gs://$GCS_BUCKET_NAME/$ENVIRONMENT/${APP_NAME} | sort --ignore-case -rV | head -n 1",
+                                    returnStdout: true
+                                ).trim()
+                                echo "Storage Object Source Path: ${STORAGE_OBJECT_SOURCE_PATH}"
+                                                
+                                DEFAULT_APP_ENGINE_VERSION = sh (
+                                    script: "basename ${STORAGE_OBJECT_SOURCE_PATH}",
+                                    returnStdout: true
+                                ).trim()                        
+
+                                DEFAULT_APP_ENGINE_VERSION = "${DEFAULT_APP_ENGINE_VERSION}".split('@')[1]
+
                                 echo "App Engine Version: $DEFAULT_APP_ENGINE_VERSION"
                                 
                                 dir ('sq_microservices_backend') {
@@ -562,27 +419,7 @@ pipeline {
                                         sh "ls *.yaml"
                                         sh "gcloud app deploy --version=$DEFAULT_APP_ENGINE_VERSION --quiet sqpreprod-us.yaml --no-promote"
                                     }
-                                }
-
-                                def service_url10 = sh (
-                                        script: "gcloud app browse --service='default' --version=$DEFAULT_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
-                                        returnStdout: true
-                                ).trim()
-                                echo "Service URL: ${service_url10}"
-
-                                def CHECK_URL_STATUS = "curl --write-out %{http_code} --silent --output /dev/null '${service_url10}'"
-                                sh "${CHECK_URL_STATUS} > commandResult"
-                                env.status = readFile('commandResult').trim()
-                                sh "echo ${env.status}"  
-
-                                if (env.status == "200") {
-                                        GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-                                        echo "Global count : ${GLOBAL_COUNT} of 11"                                   
-                                        //sh "gcloud app services set-traffic 'default' --splits $DEFAULT_APP_ENGINE_VERSION=1 --quiet"
-                                }
-                                else {  
-                                        echo "Failed with Status Code : ${env.status}"
-                                }
+                                }                                
                             }
                         } 
                     },
@@ -591,7 +428,20 @@ pipeline {
                             sh "echo ${WORKSPACE}"
                             sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                             script {
-                                DASHBOARD_APP_ENGINE_VERSION  = sh(script: "echo ${env.VERSION_NUMBER}", returnStdout: true).trim()
+                                def APP_NAME = "sq_microservices_backend" 
+                                def STORAGE_OBJECT_SOURCE_PATH = sh (
+                                    script: "gcloud storage ls gs://$GCS_BUCKET_NAME/$ENVIRONMENT/${APP_NAME} | sort --ignore-case -rV | head -n 1",
+                                    returnStdout: true
+                                ).trim()
+                                echo "Storage Object Source Path: ${STORAGE_OBJECT_SOURCE_PATH}"
+                                                
+                                DASHBOARD_APP_ENGINE_VERSION = sh (
+                                    script: "basename ${STORAGE_OBJECT_SOURCE_PATH}",
+                                    returnStdout: true
+                                ).trim()                        
+
+                                DASHBOARD_APP_ENGINE_VERSION = "${DASHBOARD_APP_ENGINE_VERSION}".split('@')[1]
+                                
                                 echo "App Engine Version: $DASHBOARD_APP_ENGINE_VERSION"
                                 
                                 dir ('sq_microservices_backend') {
@@ -600,36 +450,30 @@ pipeline {
                                         sh "ls *.yaml"
                                         sh "gcloud app deploy --version=$DASHBOARD_APP_ENGINE_VERSION --quiet sqpreprod-us.yaml --no-promote"
                                     }                                  
-                                }                               
-                                def service_url11 = sh (
-                                        script: "gcloud app browse --service='dashboard' --version=$DASHBOARD_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
-                                        returnStdout: true
-                                ).trim()
-                                echo "Service URL: ${service_url11}"
-
-                                def CHECK_URL_STATUS = "curl --write-out %{http_code} --silent --output /dev/null '${service_url11}/v2/bck/dummy'"
-                                sh "${CHECK_URL_STATUS} > commandResult"
-                                env.status = readFile('commandResult').trim()
-                                sh "echo ${env.status}"  
-
-                                if (env.status == "200") {
-                                    GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-                                    echo "Global count : ${GLOBAL_COUNT} of 11"                                   
-                                    //sh "gcloud app services set-traffic 'dashboard' --splits $DASHBOARD_APP_ENGINE_VERSION=1 --quiet"
-                                }
-                                else {  
-                                    echo "Failed with Status Code : ${env.status}"
-                                }
+                                }                              
+                                
                             }
                         }
-                    }//,
+                    },
                     // sso_flex: {
                     //     container('gcloud') {
                     //         sh "echo ${WORKSPACE}"
                     //         sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
-                    //         script {                        
-                    //          SSO_APP_ENGINE_VERSION  = sh(script: "echo sso-${env.VERSION_NUMBER}", returnStdout: true).trim()
-                    //          echo "App Engine Version: $SSO_APP_ENGINE_VERSION"
+                    //         script {
+                    //             def APP_NAME = "sq_microservices_backend" 
+                    //             def STORAGE_OBJECT_SOURCE_PATH = sh (
+                    //                     script: "gcloud storage ls gs://$GCS_BUCKET_NAME/$ENVIRONMENT/${APP_NAME} | sort --ignore-case -rV | head -n 1",
+                    //                     returnStdout: true
+                    //                 ).trim()
+                    //             echo "Storage Object Source Path: ${STORAGE_OBJECT_SOURCE_PATH}"
+                                                
+                    //             SSO_APP_ENGINE_VERSION = sh (
+                    //                 script: "basename ${STORAGE_OBJECT_SOURCE_PATH}",
+                    //                 returnStdout: true
+                    //             ).trim()                        
+
+                    //             SSO_APP_ENGINE_VERSION = "${SSO_APP_ENGINE_VERSION}".split('@')[1]                            
+                    //             echo "App Engine Version: $SSO_APP_ENGINE_VERSION"
 
                     //             dir ('sq_microservices_backend') {
                     //                 sh 'cp -r commonlib sso_flex'
@@ -637,33 +481,37 @@ pipeline {
                     //                     sh "ls *.yaml"
                     //                     sh "gcloud app deploy --version=$SSO_APP_ENGINE_VERSION --quiet app.yaml --no-promote"
                     //                 }
-                    //             }
-
-                    //             def service_url12 = sh (
-                    //                 script: "gcloud app browse --service='sso' --version=$SSO_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
-                    //                 returnStdout: true
-                    //             ).trim()
-                    //             echo "Service URL: ${service_url12}"
-
-                    //             def CHECK_URL_STATUS = "curl --write-out %{http_code} --silent --output /dev/null '${service_url12}'"
-                    //             sh "${CHECK_URL_STATUS} > commandResult"
-                    //             env.status = readFile('commandResult').trim()
-                    //             sh "echo ${env.status}"  
-
-                    //             if (env.status == "200") {
-                    //                 GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-                    //                 echo "Global count : ${GLOBAL_COUNT} of 11"                                   
-                    //                 //sh "gcloud app services set-traffic 'sso' --splits $SSO_APP_ENGINE_VERSION=1 --quiet"
-                    //             }
-                    //             else {  
-                    //                 echo "Failed with Status Code : ${env.status}"
-                    //             }
+                    //             }                   
                     //            }
                     //         }
                     //     }              
                 )
             }
         }
+        stage ('URL Status')  {
+            steps {
+                container('gcloud') {
+                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
+                    script { 
+                        
+                        getURL_Status(service_name: 'controldesk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login')
+                        getURL_Status(service_name: 'time2eat', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'time2eat/main')
+                        getURL_Status(service_name: 'baweb', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'baweb/main')                        
+                        getURL_Status(service_name: 'web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main')                        
+                        
+                        getURL_Status(service_name: 'appservice', version_name: "$APPSERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions')                        
+                        getURL_Status(service_name: 'backgroundtasks', version_name: "$BACKGROUND_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
+                        getURL_Status(service_name: 'taskqservice', version_name: "$TASKQSERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
+                        getURL_Status(service_name: 'bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: '')
+
+                        getURL_Status(service_name: 'default', version_name: "$DEFAULT_APP_ENGINE_VERSION", url_suffix: '')                        
+                        getURL_Status(service_name: 'dashboard', version_name: "$DASHBOARD_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
+                        //getURL_Status(service_name: 'sso', version_name: "$SSO_APP_ENGINE_VERSION", url_suffix: '')                        
+
+                    }
+                }
+             }
+        }       
         stage('Promote') {
            steps {
                 container('gcloud') {
@@ -677,8 +525,8 @@ pipeline {
                             sh "gcloud app services set-traffic 'controldesk' --splits $CONTROLDESK_APP_ENGINE_VERSION=1 --quiet" 
                             echo "migrating traffic to $TIME2EAT_APP_ENGINE_VERSION of time2eat"                            
                             sh "gcloud app services set-traffic 'time2eat' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
-                            echo "migrating traffic to $BAWEB_APP_ENGINE_VERSION of baweb"
-                            sh "gcloud app services set-traffic 'baweb' --splits $BAWEB_APP_ENGINE_VERSION=1 --quiet"
+                            echo "migrating traffic to $TIME2EAT_APP_ENGINE_VERSION of baweb"
+                            sh "gcloud app services set-traffic 'baweb' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
                             echo "migrating traffic to $WEBORT_APP_ENGINE_VERSION of web-ort"
                             sh "gcloud app services set-traffic 'web-ort' --splits $WEBORT_APP_ENGINE_VERSION=1 --quiet"
                             
