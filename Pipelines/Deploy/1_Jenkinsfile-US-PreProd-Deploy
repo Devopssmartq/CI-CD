@@ -184,64 +184,7 @@ pipeline {
                     }
                 ) 
             }
-        }
-        stage ('URL Status - Time2Eat')  {
-            steps {
-                container('gcloud') {
-                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
-                    script { 
-                        def service_url2 = sh (
-                            script: "gcloud app browse --service='time2eat' --version=$TIME2EAT_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
-                            returnStdout: true
-                        ).trim()
-
-                        echo "Service URL: ${service_url2}"
-
-                        def CHECK_URL_STATUS = "curl --write-out %{http_code} --silent --output /dev/null '${service_url2}/time2eat/main'"
-                        sh "${CHECK_URL_STATUS} > commandResult"
-                        env.status = readFile('commandResult').trim()
-                        sh "echo ${env.status}"  
-
-                        if (env.status == "200") {
-                            GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-                            echo "Global count : ${GLOBAL_COUNT} of 11"                                   
-                            //sh "gcloud app services set-traffic $APP_NAME --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
-                        }
-                        else {  
-                            echo "Failed with Status Code : ${env.status}"
-                        }
-                    }
-                }
-             }
-        }
-        stage ('URL Status - BaWeb')  {
-            steps {
-                container('gcloud') {
-                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
-                    script {
-                            def service_url3 = sh (
-                                script: "gcloud app browse --service='baweb' --version=$TIME2EAT_APP_ENGINE_VERSION --no-launch-browser --format='value(url)'",
-                                returnStdout: true
-                            ).trim()
-
-                            echo "Service URL: ${service_url3}"
-                            def CHECK_URL_STATUS2 = "curl --write-out %{http_code} --silent --output /dev/null '${service_url3}/baweb/main'"
-                            sh "${CHECK_URL_STATUS2} > commandResult"
-                            env.status = readFile('commandResult').trim()
-                            sh "echo ${env.status}"  
-
-                            if (env.status == "200") {
-                                GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-                                echo "Global count : ${GLOBAL_COUNT} of 11"                                    
-                                //sh "gcloud app services set-traffic 'baweb' --splits $BAWEB_APP_ENGINE_VERSION=1 --quiet"
-                            }
-                            else {  
-                                echo "Failed with Status Code : ${env.status}"
-                            }
-                    }             
-                }
-            }
-        }
+        }       
         stage('Clone smartq-backend') { 
             steps { 
                 sh "mkdir -p smartq-cloud-backend"
@@ -545,6 +488,30 @@ pipeline {
                 )
             }
         }
+        stage ('URL Status')  {
+            steps {
+                container('gcloud') {
+                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
+                    script { 
+                        
+                        getURL_Status(service_name: 'controldesk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login')
+                        getURL_Status(service_name: 'time2eat', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'time2eat/main')
+                        getURL_Status(service_name: 'baweb', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'baweb/main')                        
+                        getURL_Status(service_name: 'web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main')                        
+                        
+                        getURL_Status(service_name: 'appservice', version_name: "$APPSERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions')                        
+                        getURL_Status(service_name: 'backgroundtasks', version_name: "$BACKGROUND_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
+                        getURL_Status(service_name: 'taskqservice', version_name: "$TASKQSERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
+                        getURL_Status(service_name: 'bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: '')
+
+                        getURL_Status(service_name: 'default', version_name: "$DEFAULT_APP_ENGINE_VERSION", url_suffix: '')                        
+                        getURL_Status(service_name: 'dashboard', version_name: "$DASHBOARD_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
+                        //getURL_Status(service_name: 'sso', version_name: "$SSO_APP_ENGINE_VERSION", url_suffix: '')                        
+
+                    }
+                }
+             }
+        }       
         stage('Promote') {
            steps {
                 container('gcloud') {
