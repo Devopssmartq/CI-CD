@@ -23,7 +23,7 @@ def getURL_Status(Map args) {
 
 def get_Storage_Object_Source_Path(Map args) { 
     def source_path = sh (
-        script: "gcloud storage ls gs://$GCS_BUCKET_NAME/$ENVIRONMENT/${args.app_name} | sort --ignore-case -rV | head -n 1",
+        script: "gcloud storage ls gs://${GCS_BUCKET_NAME}/${ENVIRONMENT}/${args.app_name} | sort --ignore-case -rV | head -n 1",
         returnStdout: true
     ).trim()
 
@@ -32,7 +32,7 @@ def get_Storage_Object_Source_Path(Map args) {
 
 def get_AppEngine_Version(Map args) {
         def STORAGE_OBJECT_SOURCE_PATH = sh (
-                script: "gcloud storage ls gs://$GCS_BUCKET_NAME/$ENVIRONMENT/${args.app_name} | sort --ignore-case -rV | head -n 1",
+                script: "gcloud storage ls gs://${GCS_BUCKET_NAME}/${ENVIRONMENT}/${args.app_name} | sort --ignore-case -rV | head -n 1",
                 returnStdout: true
         ).trim()
                                            
@@ -81,11 +81,6 @@ pipeline {
     }
 
     environment {
-        APP_ENGINE_PROJECT_ID = 'sqpreprod-us'
-        GCS_BUCKET_NAME = 'sqinternational-cicd.appspot.com'
-        ENVIRONMENT = 'MASTER'        
-        
-        //GOOGLE_APPLICATION_CREDENTIALS = credentials('gcloud-creds')
         GLOBAL_COUNT = '0'
 
         CONTROLDESK_APP_ENGINE_VERSION = ''
@@ -102,7 +97,19 @@ pipeline {
         SSO_APP_ENGINE_VERSION = ''
     }
    
-    stages {  
+    stages {
+        stage('Get Environment Specific Variables') {
+            steps {
+                configFileProvider([configFile(fileId: 'env_vars.groovy', variable: 'GroovyScript')]) {
+                    script {
+                        load("$GroovyScript").setProperties()
+                        echo "${APP_ENGINE_PROJECT_ID}"
+                        echo "${GCS_BUCKET_NAME}"
+                        echo "${ENVIRONMENT}"
+                    }
+                }
+            }
+        }  
         stage('Deploy NodeJS Apps') {
             steps {
                 parallel (
@@ -123,7 +130,7 @@ pipeline {
                                     }                                    
                                 }
                             }
-                        },
+                    },
                     time2eat: {
                         container('gcloud') {                           
                             script {
