@@ -369,7 +369,7 @@ pipeline {
                         getURL_Status(service_name: 'appservice', version_name: "$APPSERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions')                        
                         getURL_Status(service_name: 'backgroundtasks', version_name: "$BACKGROUND_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
                         getURL_Status(service_name: 'taskqservice', version_name: "$TASKQSERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
-                        getURL_Status(service_name: 'bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: '')
+                        getURL_Status(service_name: 'bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/')
 
                         getURL_Status(service_name: 'default', version_name: "$DEFAULT_APP_ENGINE_VERSION", url_suffix: '')                        
                         getURL_Status(service_name: 'dashboard', version_name: "$DASHBOARD_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
