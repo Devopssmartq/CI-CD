@@ -1,23 +1,18 @@
 /* groovylint-disable CompileStatic */
 // Uses Declarative syntax to run commands inside a container.
 def getURL_Status(Map args) {
-    def service_url = sh (
-                script: "gcloud app browse --service=${args.service_name} --version=${args.version_name} --no-launch-browser --format='value(url)'",
-                returnStdout: true
-    ).trim()
+    script {
+        def service_url = sh(script: "gcloud app browse --service=${args.service_name} --version=${args.version_name} --no-launch-browser --format='value(url)'", returnStdout: true).trim()
+        // must call trim() to remove the default trailing newline
+        final status_code = sh(script: "curl --write-out %{http_code} --silent --output /dev/null '${service_url}/${args.url_suffix}'", returnStdout: true).trim()
+        echo status_code
 
-    def CHECK_URL_STATUS = "curl --retry 2 -f --retry-all-errors --retry-delay 5 --write-out %{http_code} --silent --output /dev/null '${service_url}/${args.url_suffix}'"
-    sh "${CHECK_URL_STATUS} > commandResult"
-    env.status = readFile('commandResult').trim()
-
-    sh "echo ${env.status}"  
-
-    if (env.status == "200") {
-        GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-        echo "Global count : ${GLOBAL_COUNT} of 11"                                   
-    }
-    else {  
-            echo "Failed with Status Code : ${env.status}"
+        if (status_code == "200") {
+            GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
+            echo "Global count : ${GLOBAL_COUNT} of 11"                                   
+        }
+        else { echo "Failed with Status Code : ${status_code}" 
+        }
     }
 }
 
