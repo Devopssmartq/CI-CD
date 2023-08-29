@@ -169,7 +169,6 @@ pipeline {
                 ) 
             }
         }
-       
         stage('Clone smartq-backend') { 
             steps { 
                 sh "mkdir -p smartq-cloud-backend"
@@ -333,22 +332,22 @@ pipeline {
                             }
                         }
                     },
-                    // sso_flex: {
-                    //     container('gcloud') {
-                    //         sh "echo ${WORKSPACE}"
-                    //         sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
-                    //         script {
-                    //             SSO_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
-                    //             dir ('sq_microservices_backend') {
-                    //                 sh 'cp -r commonlib sso_flex'
-                    //                 dir ('sso_flex') {
-                    //                     sh "ls *.yaml"
-                    //                     sh "gcloud app deploy --version=$SSO_APP_ENGINE_VERSION --quiet app.yaml --no-promote"
-                    //                 }
-                    //             }                   
-                    //         }
-                    //     }
-                    // }              
+                    sso_flex: {
+                        container('gcloud') {
+                            sh "echo ${WORKSPACE}"
+                            sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
+                            script {
+                                SSO_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                                dir ('sq_microservices_backend') {
+                                    sh 'cp -r commonlib sso_flex'
+                                    dir ('sso_flex') {
+                                        sh "ls *.yaml"
+                                        sh "gcloud app deploy --version=$SSO_APP_ENGINE_VERSION --quiet app.yaml --no-promote"
+                                    }
+                                }                   
+                            }
+                        }
+                    }              
                 )
             }
         }
@@ -369,7 +368,7 @@ pipeline {
 
                         getURL_Status(service_name: 'default', version_name: "$DEFAULT_APP_ENGINE_VERSION", url_suffix: '')                        
                         getURL_Status(service_name: 'dashboard', version_name: "$DASHBOARD_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
-                        //getURL_Status(service_name: 'sso', version_name: "$SSO_APP_ENGINE_VERSION", url_suffix: '')                        
+                        getURL_Status(service_name: 'sso', version_name: "$SSO_APP_ENGINE_VERSION", url_suffix: '')                        
                     }
                 }
              }
@@ -381,7 +380,7 @@ pipeline {
                     script { 
                         env.count = GLOBAL_COUNT.toInteger().toString()
                         echo "Global count : ${env.count}"                  
-                        if (env.count == "10") { //11, enable sso
+                        if (env.count == "11") { //11, enable sso
                             sh "gcloud app services set-traffic 'controldesk' --splits $CONTROLDESK_APP_ENGINE_VERSION=1 --quiet" 
                             sh "gcloud app services set-traffic 'time2eat' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'baweb' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
@@ -394,10 +393,10 @@ pipeline {
 
                             sh "gcloud app services set-traffic 'default' --splits $DEFAULT_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'dashboard' --splits $DASHBOARD_APP_ENGINE_VERSION=1 --quiet"
-                            // sh "gcloud app services set-traffic 'sso' --splits $SSO_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'sso' --splits $SSO_APP_ENGINE_VERSION=1 --quiet"
                         }
                         else {  
-                            echo "Promote halted.."
+                            error('Promote halted....')
                         }
                    }
                 }               
