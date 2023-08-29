@@ -93,6 +93,7 @@ pipeline {
     }
    
     stages {
+        //You should have a reference to env_vars.groovy, in Dashboard -> Manage Jenkins -> Managed files
         stage('Get Environment Specific Variables') {
             steps {
                 configFileProvider([configFile(fileId: 'env_vars.groovy', variable: 'GroovyScript')]) {
