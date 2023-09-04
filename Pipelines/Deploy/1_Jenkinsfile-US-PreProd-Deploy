@@ -105,14 +105,20 @@ pipeline {
                     }
                 }
             }
-        }  
+        }
+        stage('Set GCloud ProjectID') {
+           steps {
+                container('gcloud') {
+                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
+                }               
+            }  
+        }      
         stage('Deploy NodeJS Apps') {
             steps {
                 parallel (
                     controldesk: {
                             container('gcloud') {
                                 script {
-                                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                                     def APP_NAME = "controldesk"
                                     sh "mkdir -p ${APP_NAME}-latest" 
 
@@ -130,8 +136,6 @@ pipeline {
                     time2eat: {
                         container('gcloud') {                           
                             script {
-                                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
-
                                     def APP_NAME = "time2eat"
                                     sh "mkdir -p ${APP_NAME}-latest"
 
@@ -151,7 +155,6 @@ pipeline {
                     webORT: {
                         container('gcloud') {                            
                             script {
-                                sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                                 def APP_NAME = "web-ort"
                                 sh "mkdir -p ${APP_NAME}-latest"                                
                                 
@@ -195,8 +198,6 @@ pipeline {
                 dir ('smartq-cloud-backend') {
                     container('gcloud') {
                         sh "echo ${WORKSPACE}"
-                        sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
-                      
                         script {  
                                 def APP_NAME = "generic-admin-dashboard" 
                                 def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
@@ -233,7 +234,6 @@ pipeline {
                 parallel (
                     appservice: {
                         container('gcloud') {
-                            sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                             script {
                                 APPSERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ewallet')                                
                                 dir ('smartq-cloud-backend'){
@@ -245,7 +245,6 @@ pipeline {
                     },
                     backgroundtasks: {
                         container('gcloud') {
-                            sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                             script {
                                 BACKGROUND_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
                                 dir ('smartq-cloud-backend') {
@@ -256,7 +255,6 @@ pipeline {
                     },
                     taskqservice: {
                         container('gcloud') {
-                            sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                             script {
                                 TASKQSERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
                                 dir ('smartq-cloud-backend'){
@@ -272,7 +270,6 @@ pipeline {
         stage('Deploy to BQ Reports') {
             steps {
                 container('gcloud') {
-                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                     script {
                         BQREPORTS_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'vendor-dashboard')                                
                         dir ('smartq-cloud-backend') {
@@ -303,7 +300,6 @@ pipeline {
                     appms: {
                         container('gcloud') {
                             sh "echo ${WORKSPACE}"
-                            sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                             script {
                                 DEFAULT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
                                 dir ('sq_microservices_backend') {
@@ -319,7 +315,6 @@ pipeline {
                     dashboardms: {
                         container('gcloud') {
                             sh "echo ${WORKSPACE}"
-                            sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                             script {
                                 DASHBOARD_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
                                 dir ('sq_microservices_backend') {
@@ -335,7 +330,6 @@ pipeline {
                     sso_flex: {
                         container('gcloud') {
                             sh "echo ${WORKSPACE}"
-                            sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                             script {
                                 SSO_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
                                 dir ('sq_microservices_backend') {
@@ -354,7 +348,6 @@ pipeline {
         stage ('Check URL Status')  {
             steps {
                 container('gcloud') {
-                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                     script {
                         getURL_Status(service_name: 'controldesk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login')
                         getURL_Status(service_name: 'time2eat', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'time2eat/main')
@@ -368,7 +361,7 @@ pipeline {
 
                         getURL_Status(service_name: 'default', version_name: "$DEFAULT_APP_ENGINE_VERSION", url_suffix: '')                        
                         getURL_Status(service_name: 'dashboard', version_name: "$DASHBOARD_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
-                        getURL_Status(service_name: 'sso', version_name: "$SSO_APP_ENGINE_VERSION", url_suffix: '')                        
+                        getURL_Status(service_name: 'sso', version_name: "$SSO_APP_ENGINE_VERSION", url_suffix: 'v2/app/sso/_health_check')                        
                     }
                 }
              }
@@ -376,7 +369,6 @@ pipeline {
         stage('Promote') {
            steps {
                 container('gcloud') {
-                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                     script { 
                         env.count = GLOBAL_COUNT.toInteger().toString()
                         echo "Global count : ${env.count}"                  
