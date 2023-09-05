@@ -67,7 +67,6 @@ pipeline {
                         dir ('${WORKSPACE}/webort/build') {
                             sh 'ls'
                             sh 'echo changing to directory'
-                            sh 'echo webhook is trigered'
                         }
                   }
                 }             
