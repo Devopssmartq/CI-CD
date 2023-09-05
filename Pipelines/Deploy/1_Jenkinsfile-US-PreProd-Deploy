@@ -8,10 +8,11 @@ def getURL_Status(Map args) {
         echo status_code
 
         if (status_code == "200") {
-            GLOBAL_COUNT = (GLOBAL_COUNT.toInteger() + 1).toString()
-            echo "Global count : ${GLOBAL_COUNT} of 11"                                   
+            echo "Success with Status Code : ${status_code}" 
         }
-        else { echo "Failed with Status Code : ${status_code}" 
+        else { 
+            FAILED_URL_STATUS_COUNT = (FAILED_URL_STATUS_COUNT.toInteger() + 1).toString()
+            echo "Failed URL count : ${FAILED_URL_STATUS_COUNT}"
         }
     }
 }
@@ -76,7 +77,7 @@ pipeline {
     }
 
     environment {
-        GLOBAL_COUNT = '0'
+        FAILED_URL_STATUS_COUNT = '0'
 
         CONTROLDESK_APP_ENGINE_VERSION = ''
         TIME2EAT_APP_ENGINE_VERSION = ''
@@ -156,8 +157,7 @@ pipeline {
                         container('gcloud') {                            
                             script {
                                 def APP_NAME = "web-ort"
-                                sh "mkdir -p ${APP_NAME}-latest"                                
-                                
+                                sh "mkdir -p ${APP_NAME}-latest" 
                                 def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
                                 sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
                                 
@@ -300,6 +300,7 @@ pipeline {
                     appms: {
                         container('gcloud') {
                             sh "echo ${WORKSPACE}"
+                            
                             script {
                                 DEFAULT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
                                 dir ('sq_microservices_backend') {
@@ -329,7 +330,7 @@ pipeline {
                     },
                     sso_flex: {
                         container('gcloud') {
-                            sh "echo ${WORKSPACE}"
+                            sh "echo ${WORKSPACE}"              
                             script {
                                 SSO_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
                                 dir ('sq_microservices_backend') {
@@ -347,7 +348,7 @@ pipeline {
         }
         stage ('Check URL Status')  {
             steps {
-                container('gcloud') {
+                container('gcloud') {                    
                     script {
                         getURL_Status(service_name: 'controldesk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login')
                         getURL_Status(service_name: 'time2eat', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'time2eat/main')
@@ -368,11 +369,11 @@ pipeline {
         }       
         stage('Promote') {
            steps {
-                container('gcloud') {
+                container('gcloud') {                    
                     script { 
-                        env.count = GLOBAL_COUNT.toInteger().toString()
-                        echo "Global count : ${env.count}"                  
-                        if (env.count == "11") { //11, enable sso
+                        env.failed_url_count = FAILED_URL_STATUS_COUNT.toInteger().toString()
+                        echo "Failed URL count : ${env.failed_url_count}"                  
+                        if (env.failed_url_count == "0") { 
                             sh "gcloud app services set-traffic 'controldesk' --splits $CONTROLDESK_APP_ENGINE_VERSION=1 --quiet" 
                             sh "gcloud app services set-traffic 'time2eat' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'baweb' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
