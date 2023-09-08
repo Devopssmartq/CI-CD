@@ -398,20 +398,32 @@ pipeline {
             steps {
                 container('gcloud') {                    
                     script {
-                        //To-DO: need to add urls for all the services
+                        //To-DO: need to add url suffix for all the services
                         getURL_Status(service_name: 'controldesk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login')
-                        getURL_Status(service_name: 'time2eat', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'time2eat/main')
-                        getURL_Status(service_name: 'baweb', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'baweb/main')                        
+                        getURL_Status(service_name: 'betaapp-control-desk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'betaapp-control-desk/login')
+                        getURL_Status(service_name: 'foodbook-web', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'foodbook-web/main')
+                        getURL_Status(service_name: 'smartq-pwa', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'smartq-pwa/main')                        
+                        getURL_Status(service_name: 'betaapp-smartq-pwa', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'betaapp-smartq-pwa/main')                        
                         getURL_Status(service_name: 'web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main')                        
+                        getURL_Status(service_name: 'betaapp-web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'betaapp-web-ort/main')                        
                         
-                        getURL_Status(service_name: 'appservice', version_name: "$APPSERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions')                        
-                        getURL_Status(service_name: 'backgroundtasks', version_name: "$BACKGROUND_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
+                        getURL_Status(service_name: 'appservice', version_name: "$APPSERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions')
+                        getURL_Status(service_name: 'default', version_name: "$BACKGROUND_APP_ENGINE_VERSION", url_suffix: '')
+                        getURL_Status(service_name: 'betaapp-default', version_name: "$BACKGROUND_APP_ENGINE_VERSION", url_suffix: '')
+                        getURL_Status(service_name: 'backgroundtasks', version_name: "$BACKGROUND_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')
+                        getURL_Status(service_name: 'betaapp-backgroundtasks', version_name: "$BACKGROUND_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')
                         getURL_Status(service_name: 'taskqservice', version_name: "$TASKQSERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
+                        getURL_Status(service_name: 'betaapp-taskqservice', version_name: "$TASKQSERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
+                        //reports ---what is the service name, i did not found it in yaml?
                         getURL_Status(service_name: 'bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/')
-
-                        getURL_Status(service_name: 'default', version_name: "$DEFAULT_APP_ENGINE_VERSION", url_suffix: '')                        
+                        getURL_Status(service_name: 'betaapp-bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/')
+                        
+                        getURL_Status(service_name: 'app', version_name: "$DASHBOARD_APP_ENGINE_VERSION", url_suffix: '')                        
+                        getURL_Status(service_name: 'betaapp-app', version_name: "$DASHBOARD_APP_ENGINE_VERSION", url_suffix: '')                        
                         getURL_Status(service_name: 'dashboard', version_name: "$DASHBOARD_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
-                        getURL_Status(service_name: 'sso', version_name: "$SSO_APP_ENGINE_VERSION", url_suffix: 'v2/app/sso/_health_check')                        
+                        getURL_Status(service_name: 'betaapp-dashboard', version_name: "$DASHBOARD_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
+                        getURL_Status(service_name: 'sso', version_name: "$SSO_APP_ENGINE_VERSION", url_suffix: 'v2/app/sso/_health_check')
+                        getURL_Status(service_name: 'pricebook', version_name: "$SSO_APP_ENGINE_VERSION", url_suffix: '/v1/pricebook/_health_check')
                     }
                 }
              }
@@ -425,18 +437,30 @@ pipeline {
                         if (env.failed_url_count == "0") { 
                             //To-Do: update the below code to include all the services
                             sh "gcloud app services set-traffic 'controldesk' --splits $CONTROLDESK_APP_ENGINE_VERSION=1 --quiet" 
-                            sh "gcloud app services set-traffic 'time2eat' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'baweb' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'betaapp-control-desk' --splits $CONTROLDESK_APP_ENGINE_VERSION=1 --quiet" 
+                            sh "gcloud app services set-traffic 'foodbook-web' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'smartq-pwa' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'betaapp-smartq-pwa' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'web-ort' --splits $WEBORT_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'betaapp-web-ort' --splits $WEBORT_APP_ENGINE_VERSION=1 --quiet"
                             
                             sh "gcloud app services set-traffic 'appservice' --splits $APPSERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'taskqservice' --splits $TASKQSERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'default' --splits $BACKGROUND_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'betaapp-default' --splits $BACKGROUND_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'backgroundtasks' --splits $BACKGROUND_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'betaapp-backgroundtasks' --splits $BACKGROUND_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'taskqservice' --splits $TASKQSERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'betaapp-taskqservice' --splits $TASKQSERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            //reports ---may need to add reports here?
                             sh "gcloud app services set-traffic 'bqreports' --splits $BQREPORTS_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'betaapp-bqreports' --splits $BQREPORTS_APP_ENGINE_VERSION=1 --quiet"
 
-                            sh "gcloud app services set-traffic 'default' --splits $DEFAULT_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'app' --splits $DASHBOARD_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'betaapp-app' --splits $DASHBOARD_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'dashboard' --splits $DASHBOARD_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'betaapp-dashboard' --splits $DASHBOARD_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'sso' --splits $SSO_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'pricebook' --splits $SSO_APP_ENGINE_VERSION=1 --quiet"
                         }
                         else {  
                             error('Promote halted....')
