@@ -1,4 +1,4 @@
-def call(){
+def Map = [:]{
     containerTemplate {
         name 'gcloud'
         image 'google/cloud-sdk:latest'
