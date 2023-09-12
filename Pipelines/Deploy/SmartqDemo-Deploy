@@ -83,14 +83,11 @@ pipeline {
         TIME2EAT_APP_ENGINE_VERSION = ''
         WEBORT_APP_ENGINE_VERSION = ''
 
-        APPSERVICE_APP_ENGINE_VERSION = ''
-        BACKGROUND_APP_ENGINE_VERSION = ''
-        TASKQSERVICE_APP_ENGINE_VERSION = ''
+        APP_SERVICE_APP_ENGINE_VERSION = ''
+        PY2_SERVICE_APP_ENGINE_VERSION = ''
         BQREPORTS_APP_ENGINE_VERSION = ''
 
-        DEFAULT_APP_ENGINE_VERSION = ''
-        DASHBOARD_APP_ENGINE_VERSION = ''
-        SSO_APP_ENGINE_VERSION = ''
+        PY3_SERVICE_APP_ENGINE_VERSION = ''
     }
    
     stages {
@@ -242,10 +239,10 @@ pipeline {
                     appservice: {
                         container('gcloud') {
                             script {
-                                APPSERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ewallet')                                
+                                APP_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ewallet')                                
                                 dir ('smartq-cloud-backend'){
                                     sh "ls *.yaml"
-                                    sh "gcloud app deploy --version=$APPSERVICE_APP_ENGINE_VERSION --quiet time2eat_appservice.yaml --no-promote"
+                                    sh "gcloud app deploy --version=$APP_SERVICE_APP_ENGINE_VERSION --quiet time2eat_appservice.yaml --no-promote"
                                 }
                             }                                
                         }
@@ -253,11 +250,11 @@ pipeline {
                     defaultservice: {
                         container('gcloud') {
                             script {
-                                BACKGROUND_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
+                                PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
                                 dir ('smartq-cloud-backend'){
                                     sh "ls *.yaml"
-                                    sh "gcloud app deploy --version=$BACKGROUND_APP_ENGINE_VERSION --quiet app.yaml --no-promote"
-                                    sh "gcloud app deploy --version=$BACKGROUND_APP_ENGINE_VERSION --quiet app_betaapp.yaml --no-promote"
+                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet app.yaml --no-promote"
+                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet app_betaapp.yaml --no-promote"
                                 }
                             }                                
                         }
@@ -265,10 +262,10 @@ pipeline {
                     backgroundtasks: {
                         container('gcloud') {
                             script {
-                                BACKGROUND_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
+                                PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
                                 dir ('smartq-cloud-backend') {
-                                    sh "gcloud app deploy --version=$BACKGROUND_APP_ENGINE_VERSION --quiet background.yaml --no-promote"
-                                    sh "gcloud app deploy --version=$BACKGROUND_APP_ENGINE_VERSION --quiet background_betaapp.yaml --no-promote"
+                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet background.yaml --no-promote"
+                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet background_betaapp.yaml --no-promote"
                                 }                                
                             }               
                         }
@@ -276,10 +273,10 @@ pipeline {
                     taskqservice: {
                         container('gcloud') {
                             script {
-                                TASKQSERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
+                                PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
                                 dir ('smartq-cloud-backend'){
-                                    sh "gcloud app deploy --version=$TASKQSERVICE_APP_ENGINE_VERSION --quiet taskqservice.yaml --no-promote"
-                                    sh "gcloud app deploy --version=$TASKQSERVICE_APP_ENGINE_VERSION --quiet taskqservice_betaapp.yaml --no-promote"
+                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet taskqservice.yaml --no-promote"
+                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet taskqservice_betaapp.yaml --no-promote"
                                 }  
                             }      
                         }
@@ -287,10 +284,10 @@ pipeline {
                     reports: {
                         container('gcloud') {
                             script {
-                                BACKGROUND_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
+                                PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
                                 dir ('smartq-cloud-backend'){
                                     sh "ls *.yaml"
-                                    sh "gcloud app deploy --version=$BACKGROUND_APP_ENGINE_VERSION --quiet reports.yaml --no-promote"
+                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet reports.yaml --no-promote"
                                 }
                             }                                
                         }
@@ -333,13 +330,13 @@ pipeline {
                         container('gcloud') {
                             sh "echo ${WORKSPACE}"
                             script {
-                                DEFAULT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                                PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
                                 dir ('sq_microservices_backend') {
                                     sh 'cp -r commonlib appms'
                                     dir ('appms') {
                                         sh "ls *.yaml"
-                                        sh "gcloud app deploy --version=$DEFAULT_APP_ENGINE_VERSION --quiet smartqdemo.yaml --no-promote"
-                                        sh "gcloud app deploy --version=$DEFAULT_APP_ENGINE_VERSION --quiet beta-india-smartqdemo.yaml --no-promote"
+                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet smartqdemo.yaml --no-promote"
+                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet beta-india-smartqdemo.yaml --no-promote"
                                     }
                                 }                                
                             }
@@ -349,13 +346,13 @@ pipeline {
                         container('gcloud') {
                             sh "echo ${WORKSPACE}"
                             script {
-                                DASHBOARD_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                                PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
                                 dir ('sq_microservices_backend') {
                                     sh 'cp -r commonlib dashboardms'
                                     dir ('dashboardms') {
                                         sh "ls *.yaml"
-                                        sh "gcloud app deploy --version=$DASHBOARD_APP_ENGINE_VERSION --quiet smartqdemo.yaml --no-promote"
-                                        sh "gcloud app deploy --version=$DASHBOARD_APP_ENGINE_VERSION --quiet betaapp-smartqdemo.yaml --no-promote"
+                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet smartqdemo.yaml --no-promote"
+                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet betaapp-smartqdemo.yaml --no-promote"
                                     }                                  
                                 }
                             }
@@ -365,12 +362,12 @@ pipeline {
                         container('gcloud') {
                             sh "echo ${WORKSPACE}"              
                             script {
-                                SSO_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                                PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
                                 dir ('sq_microservices_backend') {
                                     sh 'cp -r commonlib sso_flex'
                                     dir ('sso_flex') {
                                         sh "ls *.yaml"
-                                        sh "gcloud app deploy --version=$SSO_APP_ENGINE_VERSION --quiet app.yaml --no-promote"
+                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet app.yaml --no-promote"
                                     }
                                 }                   
                             }
@@ -380,12 +377,12 @@ pipeline {
                         container('gcloud') {
                             sh "echo ${WORKSPACE}"
                             script {
-                                DASHBOARD_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                                PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
                                 dir ('sq_microservices_backend') {
                                     sh 'cp -r commonlib dashboardms'
                                     dir ('pricebook') {
                                         sh "ls *.yaml"
-                                        sh "gcloud app deploy --version=$DASHBOARD_APP_ENGINE_VERSION --quiet app_db_demo.yaml --no-promote"
+                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet app_db_demo.yaml --no-promote"
                                     }                                  
                                 }
                             }
@@ -399,6 +396,7 @@ pipeline {
                 container('gcloud') {                    
                     script {
                         //To-DO: need to add url suffix for all the services
+                        //nodeJs apps
                         getURL_Status(service_name: 'controldesk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login')
                         getURL_Status(service_name: 'betaapp-control-desk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'betaapp-control-desk/login')
                         getURL_Status(service_name: 'foodbook-web', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'foodbook-web/main')
@@ -406,24 +404,25 @@ pipeline {
                         getURL_Status(service_name: 'betaapp-smartq-pwa', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'betaapp-smartq-pwa/main')                        
                         getURL_Status(service_name: 'web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main')                        
                         getURL_Status(service_name: 'betaapp-web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'betaapp-web-ort/main')                        
-                        
-                        getURL_Status(service_name: 'appservice', version_name: "$APPSERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions')
-                        getURL_Status(service_name: 'default', version_name: "$BACKGROUND_APP_ENGINE_VERSION", url_suffix: '')
-                        getURL_Status(service_name: 'betaapp-default', version_name: "$BACKGROUND_APP_ENGINE_VERSION", url_suffix: '')
-                        getURL_Status(service_name: 'backgroundtasks', version_name: "$BACKGROUND_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')
-                        getURL_Status(service_name: 'betaapp-backgroundtasks', version_name: "$BACKGROUND_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')
-                        getURL_Status(service_name: 'taskqservice', version_name: "$TASKQSERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
-                        getURL_Status(service_name: 'betaapp-taskqservice', version_name: "$TASKQSERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
-                        //reports ---what is the service name, i did not found it in yaml?
+                        //py2 services
+                        getURL_Status(service_name: 'appservice', version_name: "$APP_SERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions')
+                        getURL_Status(service_name: 'default', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: '')
+                        getURL_Status(service_name: 'betaapp-default', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: '')
+                        getURL_Status(service_name: 'backgroundtasks', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')
+                        getURL_Status(service_name: 'betaapp-backgroundtasks', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')
+                        getURL_Status(service_name: 'taskqservice', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
+                        getURL_Status(service_name: 'betaapp-taskqservice', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
+                        getURL_Status(service_name: 'reports', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
+                        //bqreports
                         getURL_Status(service_name: 'bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/')
                         getURL_Status(service_name: 'betaapp-bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/')
-                        
-                        getURL_Status(service_name: 'app', version_name: "$DASHBOARD_APP_ENGINE_VERSION", url_suffix: '')                        
-                        getURL_Status(service_name: 'betaapp-app', version_name: "$DASHBOARD_APP_ENGINE_VERSION", url_suffix: '')                        
-                        getURL_Status(service_name: 'dashboard', version_name: "$DASHBOARD_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
-                        getURL_Status(service_name: 'betaapp-dashboard', version_name: "$DASHBOARD_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
-                        getURL_Status(service_name: 'sso', version_name: "$SSO_APP_ENGINE_VERSION", url_suffix: 'v2/app/sso/_health_check')
-                        getURL_Status(service_name: 'pricebook', version_name: "$SSO_APP_ENGINE_VERSION", url_suffix: '/v1/pricebook/_health_check')
+                        //py3 services
+                        getURL_Status(service_name: 'app', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '')                        
+                        getURL_Status(service_name: 'betaapp-app', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '')                        
+                        getURL_Status(service_name: 'dashboard', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
+                        getURL_Status(service_name: 'betaapp-dashboard', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
+                        getURL_Status(service_name: 'sso', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/app/sso/_health_check')
+                        getURL_Status(service_name: 'pricebook', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '/v1/pricebook/_health_check')
                     }
                 }
              }
@@ -435,7 +434,7 @@ pipeline {
                         env.failed_url_count = FAILED_URL_STATUS_COUNT.toInteger().toString()
                         echo "Failed URL count : ${env.failed_url_count}"                  
                         if (env.failed_url_count == "0") { 
-                            //To-Do: update the below code to include all the services
+                            //node js apps
                             sh "gcloud app services set-traffic 'controldesk' --splits $CONTROLDESK_APP_ENGINE_VERSION=1 --quiet" 
                             sh "gcloud app services set-traffic 'betaapp-control-desk' --splits $CONTROLDESK_APP_ENGINE_VERSION=1 --quiet" 
                             sh "gcloud app services set-traffic 'foodbook-web' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
@@ -443,24 +442,25 @@ pipeline {
                             sh "gcloud app services set-traffic 'betaapp-smartq-pwa' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'web-ort' --splits $WEBORT_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'betaapp-web-ort' --splits $WEBORT_APP_ENGINE_VERSION=1 --quiet"
-                            
-                            sh "gcloud app services set-traffic 'appservice' --splits $APPSERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'default' --splits $BACKGROUND_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'betaapp-default' --splits $BACKGROUND_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'backgroundtasks' --splits $BACKGROUND_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'betaapp-backgroundtasks' --splits $BACKGROUND_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'taskqservice' --splits $TASKQSERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'betaapp-taskqservice' --splits $TASKQSERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            //reports ---may need to add reports here?
+                            //py2 services
+                            sh "gcloud app services set-traffic 'appservice' --splits $APP_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'default' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'betaapp-default' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'backgroundtasks' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'betaapp-backgroundtasks' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'taskqservice' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'betaapp-taskqservice' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'reports' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            //bq reports
                             sh "gcloud app services set-traffic 'bqreports' --splits $BQREPORTS_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'betaapp-bqreports' --splits $BQREPORTS_APP_ENGINE_VERSION=1 --quiet"
-
-                            sh "gcloud app services set-traffic 'app' --splits $DASHBOARD_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'betaapp-app' --splits $DASHBOARD_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'dashboard' --splits $DASHBOARD_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'betaapp-dashboard' --splits $DASHBOARD_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'sso' --splits $SSO_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'pricebook' --splits $SSO_APP_ENGINE_VERSION=1 --quiet"
+                            //py3 services
+                            sh "gcloud app services set-traffic 'app' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'betaapp-app' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'dashboard' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'betaapp-dashboard' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'sso' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            sh "gcloud app services set-traffic 'pricebook' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                         }
                         else {  
                             error('Promote halted....')
