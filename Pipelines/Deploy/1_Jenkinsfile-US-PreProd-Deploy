@@ -60,13 +60,7 @@ pipeline {
               limits:
                 memory: "4096Mi"
                 cpu: "1000m"
-                
-          - name: nodejs
-            image: node:18-alpine
-            command:
-            - cat
-            tty: true
-
+       
           - name: gcloud
             image: google/cloud-sdk:latest
             command:
@@ -97,7 +91,7 @@ pipeline {
         //You should have a reference to env_vars.groovy, in Dashboard -> Manage Jenkins -> Managed files
         stage('Get Environment Specific Variables') {
             steps {
-                configFileProvider([configFile(fileId: 'env_vars.groovy', variable: 'GroovyScript')]) {
+                configFileProvider([configFile(fileId: 'env-vars-sqpreprod-us', variable: 'GroovyScript')]) {
                     script {
                         load("$GroovyScript").setProperties()
                         echo "${APP_ENGINE_PROJECT_ID}"
@@ -176,7 +170,7 @@ pipeline {
             steps { 
                 sh "mkdir -p smartq-cloud-backend"
                 dir('smartq-cloud-backend') {                        
-                    git branch: 'preprodindia',
+                    git branch: 'preprodsetup-uk',
                     credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
                     url: 'https://vrp63531@bitbucket.org/bottlelabtech/smartq-cloud-backend.git'
 
@@ -368,7 +362,7 @@ pipeline {
              }
         }       
         stage('Promote') {
-           steps {
+          steps {
                 container('gcloud') {                    
                     script { 
                         env.failed_url_count = FAILED_URL_STATUS_COUNT.toInteger().toString()
@@ -391,7 +385,7 @@ pipeline {
                         else {  
                             error('Promote halted....')
                         }
-                   }
+                  }
                 }               
             }  
         }      
