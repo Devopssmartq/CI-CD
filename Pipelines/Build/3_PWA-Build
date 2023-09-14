@@ -36,34 +36,37 @@ pipeline {
     }
 
     environment {
-        APP_ENGINE_PROJECT_ID = 'sqpreprod-us'
         ENVIRONMENT='MASTER'
         VERSION_NUMBER = VersionNumber([
             versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMdd"}-${BUILDS_TODAY}', 
             //versionPrefix: 'v1.0.', 
             worstResultForIncrement: 'SUCCESS'
-        ])    
+        ])        
     }
      
     stages {  
-        stage('Checkout control-desk') { 
+        stage('Checkout PWA') { 
             steps { 
-                sh "mkdir -p controldesk"
-                dir('controldesk') {
-                    git branch: 'feature/sprapr25-may15alloc/preprodconfig',
+                sh "mkdir -p time2eatweb"
+                dir('time2eatweb') {
+                    git branch: 'feature/sprint-april25lnp/preprod',
                     credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
-                    url: 'https://vrp63531@bitbucket.org/bottlelabtech/control-desk.git'
+                    url: 'https://vrp63531@bitbucket.org/bottlelabtech/time2eatweb.git'
                 }
             }                       
         }
-        stage('Build control-desk') {
+        stage('Build PWA') {
             steps {
                 container('nodejs') {
                  sh 'echo ${WORKSPACE}'
-                   dir('controldesk') {
+                   dir('time2eatweb') {
                         sh 'npm install --force'
-                        sh 'CI=false npm run build'
-                        dir ('${WORKSPACE}/controldesk/build') {
+                        sh 'CI=false npm run build:app1'
+                        sh 'CI=false npm run build:app2'
+                        sh 'CI=false npm run build:app3'
+                        sh 'CI=false npm run build:app4'
+                        sh 'CI=false npm run build:app5'
+                        dir ('${WORKSPACE}/time2eatweb/build') {
                             sh 'echo changing to directory'
                         }
                    }
@@ -74,12 +77,11 @@ pipeline {
         stage('Upload to GCS') {
             steps {
                 container('gcloud') {
-                    sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
-                    dir('controldesk') {
+                    dir('time2eatweb') {
                         sh 'ls'
-                        sh 'gcloud storage cp ${WORKSPACE}/controldesk/*.yaml gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/controldesk/controldesk@$VERSION_NUMBER --recursive'
+                        sh 'gcloud storage cp ${WORKSPACE}/time2eatweb/*.yaml gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/time2eat/time2eat@$VERSION_NUMBER --recursive'
                     }
-                    sh 'gcloud storage cp ${WORKSPACE}/controldesk/build/* gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/controldesk/controldesk@$VERSION_NUMBER/build --recursive'
+                    sh 'gcloud storage cp ${WORKSPACE}/time2eatweb/build/* gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/time2eat/time2eat@$VERSION_NUMBER/build --recursive'
                 }
             }
         }

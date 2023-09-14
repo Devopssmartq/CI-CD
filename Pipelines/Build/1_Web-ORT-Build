@@ -1,0 +1,86 @@
+/* groovylint-disable CompileStatic */
+// Uses Declarative syntax to run commands inside a container.
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+        apiVersion: v1
+        kind: Pod
+        environment:
+            name: "NODE_OPTIONS"
+            value: "--max-old-space-size=4096"
+        spec:
+          containers:
+          - name: jnlp  
+            resources:
+              requests:
+                memory: "2048Mi"
+                cpu: "500m"
+              limits:
+                memory: "4096Mi"
+                cpu: "1000m"
+                
+          - name: nodejs
+            image: node:18-alpine
+            command:
+            - cat
+            tty: true
+
+          - name: gcloud
+            image: google/cloud-sdk:latest
+            command:
+            - cat
+            tty: true
+        '''        
+        }
+    }
+    
+    environment {
+        ENVIRONMENT='MASTER'
+        VERSION_NUMBER = VersionNumber([
+            versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMdd"}-${BUILDS_TODAY}', 
+            //versionPrefix: 'v1.0.', 
+            worstResultForIncrement: 'SUCCESS'
+        ])
+    }
+     
+    stages {  
+        stage('Chekout Web-ORT') { 
+            steps { 
+                sh "mkdir -p webort"
+                dir('webort') {
+                    git branch: 'feature/sprint-25apr15may/preprod-config',
+                    credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
+                    url: 'https://vrp63531@bitbucket.org/bottlelabtech/web-ort.git'
+                }
+            }                       
+        }
+        stage('Build Web-ORT') {
+            steps {
+                container('nodejs') {
+                 sh 'echo ${WORKSPACE}'
+                 sh 'echo $BUILD_NUMBER'
+                  dir('webort') {
+                        sh 'npm install --force'
+                        sh 'CI=false npm run build'
+                        dir ('${WORKSPACE}/webort/build') {
+                            sh 'ls'
+                            sh 'echo changing to directory'
+                        }
+                  }
+                }             
+            }
+        }
+        stage('Upload to GCS') {
+            steps {               
+                container('gcloud') {
+                    dir('webort') {
+                        sh 'ls'
+                        sh 'gcloud storage cp ${WORKSPACE}/webort/*.yaml gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/web-ort/webort@$VERSION_NUMBER --recursive'
+                    }
+                    sh 'gcloud storage cp ${WORKSPACE}/webort/build/* gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/web-ort/webort@$VERSION_NUMBER/build --recursive'
+                }
+            }
+        }
+    }
+}

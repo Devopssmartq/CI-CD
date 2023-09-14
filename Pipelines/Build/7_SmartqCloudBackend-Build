@@ -30,7 +30,6 @@ pipeline {
     }
 
     environment {
-        APP_ENGINE_PROJECT_ID = 'sqpreprod-us'
         ENVIRONMENT='MASTER'
         VERSION_NUMBER = VersionNumber([
             versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMdd"}-${BUILDS_TODAY}', 
@@ -54,7 +53,6 @@ pipeline {
         stage('Upload to GCS') {
             steps {
                 container('gcloud') {
-                    sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'                    
                     sh 'gcloud storage cp ${WORKSPACE}/smartq-cloud-backend/*.yaml gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/smartq-cloud-backend/smartq-cloud-backend@$VERSION_NUMBER --recursive'
                 }
             }
