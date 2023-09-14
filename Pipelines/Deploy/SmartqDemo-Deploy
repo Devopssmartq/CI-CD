@@ -60,12 +60,6 @@ pipeline {
               limits:
                 memory: "4096Mi"
                 cpu: "1000m"
-                
-          - name: nodejs
-            image: node:18-alpine
-            command:
-            - cat
-            tty: true
 
           - name: gcloud
             image: google/cloud-sdk:latest
@@ -165,7 +159,7 @@ pipeline {
                                 
                                 WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'web-ort')                                
                                 def YAML1 = 'app.yaml'
-                                def YAML2 = 'beta-app.yaml'   
+                                def YAML2 = 'beta_app.yaml'   
                                 dir("${APP_NAME}-latest") {
                                     sh "gcloud app deploy --version=$WEBORT_APP_ENGINE_VERSION --quiet $YAML1 --no-promote"
                                     sh "gcloud app deploy --version=$CONTROLDESK_APP_ENGINE_VERSION --quiet $YAML2 --no-promote"
@@ -180,7 +174,7 @@ pipeline {
             steps { 
                 sh "mkdir -p smartq-cloud-backend"
                 dir('smartq-cloud-backend') {                        
-                    git branch: 'preprodindia',
+                    git branch: 'cicd-sprint',
                     credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
                     url: 'https://vrp63531@bitbucket.org/bottlelabtech/smartq-cloud-backend.git'
 
@@ -315,7 +309,7 @@ pipeline {
             steps { 
                 sh "mkdir -p sq_microservices_backend"
                 dir('sq_microservices_backend') {                        
-                    git branch: 'preprodsetup',
+                    git branch: 'cicd-sprint',
                     credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
                     url: 'https://vrp63531@bitbucket.org/bottlelabtech/sq_microservices_backend.git'
                                    
@@ -427,47 +421,47 @@ pipeline {
                 }
              }
         }       
-        stage('Promote') {
-           steps {
-                container('gcloud') {                    
-                    script { 
-                        env.failed_url_count = FAILED_URL_STATUS_COUNT.toInteger().toString()
-                        echo "Failed URL count : ${env.failed_url_count}"                  
-                        if (env.failed_url_count == "0") { 
-                            //node js apps
-                            sh "gcloud app services set-traffic 'controldesk' --splits $CONTROLDESK_APP_ENGINE_VERSION=1 --quiet" 
-                            sh "gcloud app services set-traffic 'betaapp-control-desk' --splits $CONTROLDESK_APP_ENGINE_VERSION=1 --quiet" 
-                            sh "gcloud app services set-traffic 'foodbook-web' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'smartq-pwa' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'betaapp-smartq-pwa' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'web-ort' --splits $WEBORT_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'betaapp-web-ort' --splits $WEBORT_APP_ENGINE_VERSION=1 --quiet"
-                            //py2 services
-                            sh "gcloud app services set-traffic 'appservice' --splits $APP_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'default' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'betaapp-default' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'backgroundtasks' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'betaapp-backgroundtasks' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'taskqservice' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'betaapp-taskqservice' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'reports' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            //bq reports
-                            sh "gcloud app services set-traffic 'bqreports' --splits $BQREPORTS_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'betaapp-bqreports' --splits $BQREPORTS_APP_ENGINE_VERSION=1 --quiet"
-                            //py3 services
-                            sh "gcloud app services set-traffic 'app' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'betaapp-app' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'dashboard' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'betaapp-dashboard' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'sso' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            sh "gcloud app services set-traffic 'pricebook' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                        }
-                        else {  
-                            error('Promote halted....')
-                        }
-                   }
-                }               
-            }  
-        }      
+        // stage('Promote') {
+        //    steps {
+        //         container('gcloud') {                    
+        //             script { 
+        //                 env.failed_url_count = FAILED_URL_STATUS_COUNT.toInteger().toString()
+        //                 echo "Failed URL count : ${env.failed_url_count}"                  
+        //                 if (env.failed_url_count == "0") { 
+        //                     //node js apps
+        //                     sh "gcloud app services set-traffic 'controldesk' --splits $CONTROLDESK_APP_ENGINE_VERSION=1 --quiet" 
+        //                     sh "gcloud app services set-traffic 'betaapp-control-desk' --splits $CONTROLDESK_APP_ENGINE_VERSION=1 --quiet" 
+        //                     sh "gcloud app services set-traffic 'foodbook-web' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'smartq-pwa' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'betaapp-smartq-pwa' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'web-ort' --splits $WEBORT_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'betaapp-web-ort' --splits $WEBORT_APP_ENGINE_VERSION=1 --quiet"
+        //                     //py2 services
+        //                     sh "gcloud app services set-traffic 'appservice' --splits $APP_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'default' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'betaapp-default' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'backgroundtasks' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'betaapp-backgroundtasks' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'taskqservice' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'betaapp-taskqservice' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'reports' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+        //                     //bq reports
+        //                     sh "gcloud app services set-traffic 'bqreports' --splits $BQREPORTS_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'betaapp-bqreports' --splits $BQREPORTS_APP_ENGINE_VERSION=1 --quiet"
+        //                     //py3 services
+        //                     sh "gcloud app services set-traffic 'app' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'betaapp-app' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'dashboard' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'betaapp-dashboard' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'sso' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+        //                     sh "gcloud app services set-traffic 'pricebook' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+        //                 }
+        //                 else {  
+        //                     error('Promote halted....')
+        //                 }
+        //            }
+        //         }               
+        //     }  
+        // }      
     } 
 }
