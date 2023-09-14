@@ -1,0 +1,70 @@
+build 1:
+pipeline {
+    agent any
+    
+    environment {
+        APP_ENGINE_PROJECT_ID = 'sqinternational-cicd'
+        //APP_ENGINE_SERVICE = 'taskqservice'
+        APP_ENGINE_VERSION = '1'
+    }
+    
+    stages {
+        stage('Run Other Jobs') {
+            steps {
+                build job: 'SQCB-taskqservice'
+                build job: 'SQCB-background'
+                // Add more build steps for other jobs as needed
+            }
+        }
+        // stage('Deploy to Google Cloud Engine') {
+        //     steps {
+        //         container('gcloud') {
+        //             //sh 'gcloud auth list'
+        //             sh 'find . -type f -name "*.yaml"'
+        //             sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
+        //             sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet taskqservice.yaml --no-promote'
+        //         }
+        //     }
+        // }
+    }
+}
+
+build 2: 
+pipeline {
+    agent any
+    
+    environment {
+        APP_ENGINE_PROJECT_ID = 'sqinternational-cicd'
+        //APP_ENGINE_SERVICE = 'taskqservice'
+        APP_ENGINE_VERSION = '1'
+    }
+    
+    stages {
+        stage('Run Other Jobs') {
+            steps {
+                script {
+                    def jobsToRun = [:]
+                    jobsToRun['SQCB-taskqservice'] = {
+                        build job: 'SQCB-taskqservice'
+                    }
+                    jobsToRun['SQCB-background'] = {
+                        build job: 'SQCB-background'
+                    }
+                    // Add more jobs to the 'jobsToRun' map as needed
+        
+                    parallel jobsToRun
+                }
+            }
+        }
+        // stage('Deploy to Google Cloud Engine') {
+        //     steps {
+        //         container('gcloud') {
+        //             //sh 'gcloud auth list'
+        //             sh 'find . -type f -name "*.yaml"'
+        //             sh 'gcloud config set project $APP_ENGINE_PROJECT_ID'
+        //             sh 'gcloud app deploy --version=$APP_ENGINE_VERSION --quiet taskqservice.yaml --no-promote'
+        //         }
+        //     }
+        // }
+    }
+}
