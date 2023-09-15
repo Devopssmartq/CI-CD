@@ -3,7 +3,6 @@ import groovy.transform.Field
 @Field def GCS_BUCKET_NAME;  
 @Field def ENVIRONMENT;    
 def setProperties() {
-    APP_ENGINE_PROJECT_ID = "smartqdemo"
     GCS_BUCKET_NAME = "sqinternational-cicd.appspot.com"
     ENVIRONMENT = "SPRINT-DEMO"
 }
