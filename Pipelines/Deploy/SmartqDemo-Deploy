@@ -415,7 +415,7 @@ pipeline {
                         getURL_Status(service_name: 'dashboard', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
                         getURL_Status(service_name: 'betaapp-dashboard', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
                         getURL_Status(service_name: 'sso', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/app/sso/_health_check')
-                        getURL_Status(service_name: 'pricebook', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '/v1/pricebook/_health_check')
+                        getURL_Status(service_name: 'pricebook', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v1/pricebook/category/search?categoryname=1')
                     }
                 }
              }
