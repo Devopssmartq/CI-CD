@@ -146,14 +146,12 @@ pipeline {
             steps {
                 script {                    
                     MY_FILE_ID = "env-vars-${params.RELEASE_SCOPE}"
-                }
-                configFileProvider([configFile(fileId: "$MY_FILE_ID", variable: 'GroovyScript')]) {
-                    script {
+                    configFileProvider([configFile(fileId: "$MY_FILE_ID", variable: 'GroovyScript')]) {
                         load("$GroovyScript").setProperties()
                         echo "${GCS_BUCKET_NAME}"
                         echo "${ENVIRONMENT}"
                     }
-                }
+                }                
             }
         }
         stage('Set GCloud ProjectID') {
