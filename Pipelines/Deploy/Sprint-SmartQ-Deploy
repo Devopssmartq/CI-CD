@@ -45,10 +45,10 @@ properties([
     parameters([
         [$class: 'ChoiceParameter',
             choiceType: 'PT_SINGLE_SELECT',
-            description: 'Select a Release Type',
+            description: 'Select Release Scope',
             filterLength: 1,
             filterable: false,
-            name: 'RELEASE_CATEGORY',
+            name: 'RELEASE_SCOPE',
             script: [
                 $class: 'GroovyScript',
                 fallbackScript: [
@@ -60,7 +60,7 @@ properties([
                     classpath: [],
                     sandbox: false,
                     script: '''
-                        def choices = ['sprint']
+                        def choices = ['sprint:selected']
                         return choices
                     '''
                 ]
@@ -68,11 +68,11 @@ properties([
         ],
         [$class: 'CascadeChoiceParameter',
             choiceType: 'PT_SINGLE_SELECT',
-            description: 'Select an option',
+            description: 'Select the Project_ID',
             filterLength: 1,
             filterable: false,
             name: 'APP_ENGINE_PROJECT_ID',
-            referencedParameters: 'RELEASE_CATEGORY',
+            referencedParameters: 'RELEASE_SCOPE',
             script: [
                 $class: 'GroovyScript',
                 fallbackScript: [
@@ -84,10 +84,10 @@ properties([
                     classpath: [],
                     sandbox: false,
                     script: '''
-                        def category = RELEASE_CATEGORY ?: 'sprint' // Default to 'SPRINT' if not selected
+                        def category = RELEASE_SCOPE ?: 'sprint' // Default to 'SPRINT' if not selected
                         def options = []
                         if (category == "sprint") {
-                            options = ["smartqdemo-au", "smartqdemo-uk", "smartqdemo"]
+                            options = ["smartqdemo-au", "smartqdemo-de", "smartqdemo-hk", "smartqdemo-nz", "smartqdemo-us", "smartqdemo-uk", "smartqdemo"]
                         }
                         return options
                     '''
@@ -144,9 +144,8 @@ pipeline {
         //You should have a reference to env_vars.groovy, in Dashboard -> Manage Jenkins -> Managed files
         stage('Get Environment Specific Variables') {
             steps {
-                script {
-                    echo "Selected APP_ENGINE_PROJECT_ID: ${APP_ENGINE_PROJECT_ID}"
-                    MY_FILE_ID = "env-vars-${params.RELEASE_CATEGORY}"
+                script {                    
+                    MY_FILE_ID = "env-vars-${params.RELEASE_SCOPE}"
                 }
                 configFileProvider([configFile(fileId: "$MY_FILE_ID", variable: 'GroovyScript')]) {
                     script {
@@ -160,325 +159,326 @@ pipeline {
         stage('Set GCloud ProjectID') {
            steps {
                 container('gcloud') {
+                    echo "Selected APP_ENGINE_PROJECT_ID: ${APP_ENGINE_PROJECT_ID}"
                     sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
                 }               
             }  
         }      
-        stage('Deploy NodeJS Apps') {
-            steps {
-                parallel (
-                    controldesk: {
-                            container('gcloud') {
-                                script {
-                                    def APP_NAME = "controldesk"
-                                    sh "mkdir -p ${APP_NAME}-latest" 
+        // stage('Deploy NodeJS Apps') {
+        //     steps {
+        //         parallel (
+        //             controldesk: {
+        //                     container('gcloud') {
+        //                         script {
+        //                             def APP_NAME = "controldesk"
+        //                             sh "mkdir -p ${APP_NAME}-latest" 
 
-                                    def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
-                                    sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest/ --recursive"
+        //                             def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
+        //                             sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest/ --recursive"
                                     
-                                    CONTROLDESK_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldesk')
-                                    def YAML1 = 'app.yaml'
-                                    def YAML2 = 'beta-app.yaml'
-                                    dir("${APP_NAME}-latest") {
-                                        sh "gcloud app deploy --version=$CONTROLDESK_APP_ENGINE_VERSION --quiet $YAML1 --no-promote"
-                                        sh "gcloud app deploy --version=$CONTROLDESK_APP_ENGINE_VERSION --quiet $YAML2 --no-promote"
-                                    }                                    
-                                }
-                            }
-                    },
-                    smartqPWA: {
-                        container('gcloud') {                           
-                            script {
-                                    def APP_NAME = "time2eat"
-                                    sh "mkdir -p ${APP_NAME}-latest"
+        //                             CONTROLDESK_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldesk')
+        //                             def YAML1 = 'app.yaml'
+        //                             def YAML2 = 'beta-app.yaml'
+        //                             dir("${APP_NAME}-latest") {
+        //                                 sh "gcloud app deploy --version=$CONTROLDESK_APP_ENGINE_VERSION --quiet $YAML1 --no-promote"
+        //                                 sh "gcloud app deploy --version=$CONTROLDESK_APP_ENGINE_VERSION --quiet $YAML2 --no-promote"
+        //                             }                                    
+        //                         }
+        //                     }
+        //             },
+        //             smartqPWA: {
+        //                 container('gcloud') {                           
+        //                     script {
+        //                             def APP_NAME = "time2eat"
+        //                             sh "mkdir -p ${APP_NAME}-latest"
 
-                                    def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
-                                    sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
+        //                             def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
+        //                             sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
                                     
-                                    def YAML1 = 'smartq-pwa.yaml'
-                                    def YAML2 = 'foodbook.yaml'
-                                    def YAML3 = 'smartqPWABeta.yaml'
+        //                             def YAML1 = 'smartq-pwa.yaml'
+        //                             def YAML2 = 'foodbook.yaml'
+        //                             def YAML3 = 'smartqPWABeta.yaml'
                                     
-                                    TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
-                                    dir("${APP_NAME}-latest") {
-                                        sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet ${YAML1} --no-promote"
-                                        sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet ${YAML2} --no-promote"
-                                        sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet ${YAML3} --no-promote"
-                                    }                                    
-                            }
-                        }
-                    },
-                    webORT: {
-                        container('gcloud') {                            
-                            script {
-                                def APP_NAME = "web-ort"
-                                sh "mkdir -p ${APP_NAME}-latest" 
-                                def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
-                                sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
+        //                             TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
+        //                             dir("${APP_NAME}-latest") {
+        //                                 sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet ${YAML1} --no-promote"
+        //                                 sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet ${YAML2} --no-promote"
+        //                                 sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet ${YAML3} --no-promote"
+        //                             }                                    
+        //                     }
+        //                 }
+        //             },
+        //             webORT: {
+        //                 container('gcloud') {                            
+        //                     script {
+        //                         def APP_NAME = "web-ort"
+        //                         sh "mkdir -p ${APP_NAME}-latest" 
+        //                         def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
+        //                         sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
                                 
-                                WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'web-ort')                                
-                                def YAML1 = 'app.yaml'
-                                def YAML2 = 'beta_app.yaml'   
-                                dir("${APP_NAME}-latest") {
-                                    sh "gcloud app deploy --version=$WEBORT_APP_ENGINE_VERSION --quiet $YAML1 --no-promote"
-                                    sh "gcloud app deploy --version=$CONTROLDESK_APP_ENGINE_VERSION --quiet $YAML2 --no-promote"
-                                }                                            
-                            }
-                        }
-                    }
-                ) 
-            }
-        }
-        stage('Clone smartq-backend') { 
-            steps { 
-                sh "mkdir -p smartq-cloud-backend"
-                dir('smartq-cloud-backend') {                        
-                    git branch: 'cicd-sprint',
-                    credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
-                    url: 'https://vrp63531@bitbucket.org/bottlelabtech/smartq-cloud-backend.git'
+        //                         WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'web-ort')                                
+        //                         def YAML1 = 'app.yaml'
+        //                         def YAML2 = 'beta_app.yaml'   
+        //                         dir("${APP_NAME}-latest") {
+        //                             sh "gcloud app deploy --version=$WEBORT_APP_ENGINE_VERSION --quiet $YAML1 --no-promote"
+        //                             sh "gcloud app deploy --version=$CONTROLDESK_APP_ENGINE_VERSION --quiet $YAML2 --no-promote"
+        //                         }                                            
+        //                     }
+        //                 }
+        //             }
+        //         ) 
+        //     }
+        // }
+        // stage('Clone smartq-backend') { 
+        //     steps { 
+        //         sh "mkdir -p smartq-cloud-backend"
+        //         dir('smartq-cloud-backend') {                        
+        //             git branch: 'cicd-sprint',
+        //             credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
+        //             url: 'https://vrp63531@bitbucket.org/bottlelabtech/smartq-cloud-backend.git'
 
-                dir ('py3_project/py3_backend/bqreports/admindashboard/'){
-                        sh 'rm -rf ./{*,.*}'
-                    }
-                dir ('py3_project/py3_backend/bqreports/reports/'){
-                        sh 'rm -rf ./{*,.*}'
-                    }
-                dir ('eWallet'){
-                        sh 'rm -rf ./{*,.*}'
-                    }     
-                sh 'ls -lrt'
-                }
-            } 
-        }
-        stage('copy build output - ewallet, admin & vendor dash-board') {
-            steps {                
-                dir ('smartq-cloud-backend') {
-                    container('gcloud') {
-                        sh "echo ${WORKSPACE}"
-                        script {  
-                                def APP_NAME = "generic-admin-dashboard" 
-                                def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
-                                sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/smartq-cloud-backend/py3_project/py3_backend/bqreports/admindashboard --recursive"
-                        }
+        //         dir ('py3_project/py3_backend/bqreports/admindashboard/'){
+        //                 sh 'rm -rf ./{*,.*}'
+        //             }
+        //         dir ('py3_project/py3_backend/bqreports/reports/'){
+        //                 sh 'rm -rf ./{*,.*}'
+        //             }
+        //         dir ('eWallet'){
+        //                 sh 'rm -rf ./{*,.*}'
+        //             }     
+        //         sh 'ls -lrt'
+        //         }
+        //     } 
+        // }
+        // stage('copy build output - ewallet, admin & vendor dash-board') {
+        //     steps {                
+        //         dir ('smartq-cloud-backend') {
+        //             container('gcloud') {
+        //                 sh "echo ${WORKSPACE}"
+        //                 script {  
+        //                         def APP_NAME = "generic-admin-dashboard" 
+        //                         def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
+        //                         sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/smartq-cloud-backend/py3_project/py3_backend/bqreports/admindashboard --recursive"
+        //                 }
                         
-                        script {  
-                                def APP_NAME = "vendor-dashboard" 
-                                def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
-                                sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/smartq-cloud-backend/py3_project/py3_backend/bqreports/reports --recursive"
-                        }
+        //                 script {  
+        //                         def APP_NAME = "vendor-dashboard" 
+        //                         def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
+        //                         sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/smartq-cloud-backend/py3_project/py3_backend/bqreports/reports --recursive"
+        //                 }
 
-                        script {  
-                                def APP_NAME = "ewallet" 
-                                def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
-                                sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/smartq-cloud-backend/eWallet --recursive"
-                        }        
+        //                 script {  
+        //                         def APP_NAME = "ewallet" 
+        //                         def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
+        //                         sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/smartq-cloud-backend/eWallet --recursive"
+        //                 }        
 
-                        dir ('py3_project/py3_backend/bqreports/admindashboard') {
-                            sh 'ls -lrt'
-                        }
-                        dir ('py3_project/py3_backend/bqreports/reports') {
-                            sh 'ls -lrt'
-                        }
-                        dir ('eWallet') {
-                            sh 'ls -lrt'
-                        }
-                    }
-                }
-            }
-        }
-        stage('Deploy Smartq Backend') {
-            steps {
-                parallel (
-                    appservice: {
-                        container('gcloud') {
-                            script {
-                                APP_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ewallet')                                
-                                dir ('smartq-cloud-backend'){
-                                    sh "ls *.yaml"
-                                    sh "gcloud app deploy --version=$APP_SERVICE_APP_ENGINE_VERSION --quiet time2eat_appservice.yaml --no-promote"
-                                }
-                            }                                
-                        }
-                    },
-                    defaultservice: {
-                        container('gcloud') {
-                            script {
-                                PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
-                                dir ('smartq-cloud-backend'){
-                                    sh "ls *.yaml"
-                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet app.yaml --no-promote"
-                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet app_betaapp.yaml --no-promote"
-                                }
-                            }                                
-                        }
-                    },
-                    backgroundtasks: {
-                        container('gcloud') {
-                            script {
-                                PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
-                                dir ('smartq-cloud-backend') {
-                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet background.yaml --no-promote"
-                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet background_betaapp.yaml --no-promote"
-                                }                                
-                            }               
-                        }
-                    },
-                    taskqservice: {
-                        container('gcloud') {
-                            script {
-                                PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
-                                dir ('smartq-cloud-backend'){
-                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet taskqservice.yaml --no-promote"
-                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet taskqservice_betaapp.yaml --no-promote"
-                                }  
-                            }      
-                        }
-                    },
-                    reports: {
-                        container('gcloud') {
-                            script {
-                                PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
-                                dir ('smartq-cloud-backend'){
-                                    sh "ls *.yaml"
-                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet reports.yaml --no-promote"
-                                }
-                            }                                
-                        }
-                    }   
-                )
-            }
-        }
-        stage('Deploy to BQ Reports') {
-            steps {
-                container('gcloud') {
-                    script {
-                        BQREPORTS_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'vendor-dashboard')                                
-                        dir ('smartq-cloud-backend') {
-                            dir ('py3_project') {
-                                sh "ls *.yaml"
-                                sh "gcloud app deploy --version=$BQREPORTS_APP_ENGINE_VERSION --quiet bqreports.yaml --no-promote"
-                                sh "gcloud app deploy --version=$BQREPORTS_APP_ENGINE_VERSION --quiet bqreports_betaapp.yaml --no-promote"
-                            }
-                        }                        
-                    }
-                }               
-            }
-        }
-        stage('Clone sq_microservices_backend') { 
-            steps { 
-                sh "mkdir -p sq_microservices_backend"
-                dir('sq_microservices_backend') {                        
-                    git branch: 'cicd-sprint',
-                    credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
-                    url: 'https://vrp63531@bitbucket.org/bottlelabtech/sq_microservices_backend.git'
+        //                 dir ('py3_project/py3_backend/bqreports/admindashboard') {
+        //                     sh 'ls -lrt'
+        //                 }
+        //                 dir ('py3_project/py3_backend/bqreports/reports') {
+        //                     sh 'ls -lrt'
+        //                 }
+        //                 dir ('eWallet') {
+        //                     sh 'ls -lrt'
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+        // stage('Deploy Smartq Backend') {
+        //     steps {
+        //         parallel (
+        //             appservice: {
+        //                 container('gcloud') {
+        //                     script {
+        //                         APP_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ewallet')                                
+        //                         dir ('smartq-cloud-backend'){
+        //                             sh "ls *.yaml"
+        //                             sh "gcloud app deploy --version=$APP_SERVICE_APP_ENGINE_VERSION --quiet time2eat_appservice.yaml --no-promote"
+        //                         }
+        //                     }                                
+        //                 }
+        //             },
+        //             defaultservice: {
+        //                 container('gcloud') {
+        //                     script {
+        //                         PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
+        //                         dir ('smartq-cloud-backend'){
+        //                             sh "ls *.yaml"
+        //                             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet app.yaml --no-promote"
+        //                             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet app_betaapp.yaml --no-promote"
+        //                         }
+        //                     }                                
+        //                 }
+        //             },
+        //             backgroundtasks: {
+        //                 container('gcloud') {
+        //                     script {
+        //                         PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
+        //                         dir ('smartq-cloud-backend') {
+        //                             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet background.yaml --no-promote"
+        //                             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet background_betaapp.yaml --no-promote"
+        //                         }                                
+        //                     }               
+        //                 }
+        //             },
+        //             taskqservice: {
+        //                 container('gcloud') {
+        //                     script {
+        //                         PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
+        //                         dir ('smartq-cloud-backend'){
+        //                             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet taskqservice.yaml --no-promote"
+        //                             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet taskqservice_betaapp.yaml --no-promote"
+        //                         }  
+        //                     }      
+        //                 }
+        //             },
+        //             reports: {
+        //                 container('gcloud') {
+        //                     script {
+        //                         PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
+        //                         dir ('smartq-cloud-backend'){
+        //                             sh "ls *.yaml"
+        //                             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet reports.yaml --no-promote"
+        //                         }
+        //                     }                                
+        //                 }
+        //             }   
+        //         )
+        //     }
+        // }
+        // stage('Deploy to BQ Reports') {
+        //     steps {
+        //         container('gcloud') {
+        //             script {
+        //                 BQREPORTS_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'vendor-dashboard')                                
+        //                 dir ('smartq-cloud-backend') {
+        //                     dir ('py3_project') {
+        //                         sh "ls *.yaml"
+        //                         sh "gcloud app deploy --version=$BQREPORTS_APP_ENGINE_VERSION --quiet bqreports.yaml --no-promote"
+        //                         sh "gcloud app deploy --version=$BQREPORTS_APP_ENGINE_VERSION --quiet bqreports_betaapp.yaml --no-promote"
+        //                     }
+        //                 }                        
+        //             }
+        //         }               
+        //     }
+        // }
+        // stage('Clone sq_microservices_backend') { 
+        //     steps { 
+        //         sh "mkdir -p sq_microservices_backend"
+        //         dir('sq_microservices_backend') {                        
+        //             git branch: 'cicd-sprint',
+        //             credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
+        //             url: 'https://vrp63531@bitbucket.org/bottlelabtech/sq_microservices_backend.git'
                                    
-                sh 'ls -lrt'
-                }
-            } 
-        }
-        stage('Deploy Microservices') {
-            steps {
-                parallel (
-                    appms: {
-                        container('gcloud') {
-                            sh "echo ${WORKSPACE}"
-                            script {
-                                PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
-                                dir ('sq_microservices_backend') {
-                                    sh 'cp -r commonlib appms'
-                                    dir ('appms') {
-                                        sh "ls *.yaml"
-                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet smartqdemo.yaml --no-promote"
-                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet beta-india-smartqdemo.yaml --no-promote"
-                                    }
-                                }                                
-                            }
-                        } 
-                    },
-                    dashboardms: {
-                        container('gcloud') {
-                            sh "echo ${WORKSPACE}"
-                            script {
-                                PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
-                                dir ('sq_microservices_backend') {
-                                    sh 'cp -r commonlib dashboardms'
-                                    dir ('dashboardms') {
-                                        sh "ls *.yaml"
-                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet smartqdemo.yaml --no-promote"
-                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet betaapp-smartqdemo.yaml --no-promote"
-                                    }                                  
-                                }
-                            }
-                        }
-                    },
-                    sso_flex: {
-                        container('gcloud') {
-                            sh "echo ${WORKSPACE}"              
-                            script {
-                                PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
-                                dir ('sq_microservices_backend') {
-                                    sh 'cp -r commonlib sso_flex'
-                                    dir ('sso_flex') {
-                                        sh "ls *.yaml"
-                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet app.yaml --no-promote"
-                                    }
-                                }                   
-                            }
-                        }
-                    },
-                    pricebook: {
-                        container('gcloud') {
-                            sh "echo ${WORKSPACE}"
-                            script {
-                                PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
-                                dir ('sq_microservices_backend') {
-                                    sh 'cp -r commonlib pricebook'
-                                    dir ('pricebook') {
-                                        sh "ls *.yaml"
-                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet app_db_demo.yaml --no-promote"
-                                    }                                  
-                                }
-                            }
-                        }
-                    },              
-                )
-            }
-        }
-        stage ('Check URL Status')  {
-            steps {
-                container('gcloud') {                    
-                    script {
-                        //nodeJs apps
-                        getURL_Status(service_name: 'controldesk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login')
-                        getURL_Status(service_name: 'betaapp-control-desk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login')
-                        getURL_Status(service_name: 'foodbook-web', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'foodbook-web/main')
-                        getURL_Status(service_name: 'smartq-pwa', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'smartq-pwa/main')                        
-                        getURL_Status(service_name: 'betaapp-smartq-pwa', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'smartq-pwa/main')                        
-                        getURL_Status(service_name: 'web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main')                        
-                        getURL_Status(service_name: 'betaapp-web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main')                        
-                        //py2 services
-                        getURL_Status(service_name: 'appservice', version_name: "$APP_SERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions')
-                        getURL_Status(service_name: 'default', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: '')
-                        getURL_Status(service_name: 'betaapp-default', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: '')
-                        getURL_Status(service_name: 'backgroundtasks', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')
-                        getURL_Status(service_name: 'betaapp-backgroundtasks', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')
-                        getURL_Status(service_name: 'taskqservice', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
-                        getURL_Status(service_name: 'betaapp-taskqservice', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
-                        getURL_Status(service_name: 'reports', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
-                        //bqreports
-                        getURL_Status(service_name: 'bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/')
-                        getURL_Status(service_name: 'betaapp-bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/')
-                        //py3 services
-                        getURL_Status(service_name: 'app', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '')                        
-                        getURL_Status(service_name: 'betaapp-app', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '')                        
-                        getURL_Status(service_name: 'dashboard', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
-                        getURL_Status(service_name: 'betaapp-dashboard', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
-                        //getURL_Status(service_name: 'sso', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/app/sso/_health_check')
-                        getURL_Status(service_name: 'pricebook', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v1/pricebook/category/search?categoryname=1')
-                    }
-                }
-             }
-        }       
+        //         sh 'ls -lrt'
+        //         }
+        //     } 
+        // }
+        // stage('Deploy Microservices') {
+        //     steps {
+        //         parallel (
+        //             appms: {
+        //                 container('gcloud') {
+        //                     sh "echo ${WORKSPACE}"
+        //                     script {
+        //                         PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+        //                         dir ('sq_microservices_backend') {
+        //                             sh 'cp -r commonlib appms'
+        //                             dir ('appms') {
+        //                                 sh "ls *.yaml"
+        //                                 sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet smartqdemo.yaml --no-promote"
+        //                                 sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet beta-india-smartqdemo.yaml --no-promote"
+        //                             }
+        //                         }                                
+        //                     }
+        //                 } 
+        //             },
+        //             dashboardms: {
+        //                 container('gcloud') {
+        //                     sh "echo ${WORKSPACE}"
+        //                     script {
+        //                         PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+        //                         dir ('sq_microservices_backend') {
+        //                             sh 'cp -r commonlib dashboardms'
+        //                             dir ('dashboardms') {
+        //                                 sh "ls *.yaml"
+        //                                 sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet smartqdemo.yaml --no-promote"
+        //                                 sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet betaapp-smartqdemo.yaml --no-promote"
+        //                             }                                  
+        //                         }
+        //                     }
+        //                 }
+        //             },
+        //             sso_flex: {
+        //                 container('gcloud') {
+        //                     sh "echo ${WORKSPACE}"              
+        //                     script {
+        //                         PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+        //                         dir ('sq_microservices_backend') {
+        //                             sh 'cp -r commonlib sso_flex'
+        //                             dir ('sso_flex') {
+        //                                 sh "ls *.yaml"
+        //                                 sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet app.yaml --no-promote"
+        //                             }
+        //                         }                   
+        //                     }
+        //                 }
+        //             },
+        //             pricebook: {
+        //                 container('gcloud') {
+        //                     sh "echo ${WORKSPACE}"
+        //                     script {
+        //                         PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+        //                         dir ('sq_microservices_backend') {
+        //                             sh 'cp -r commonlib pricebook'
+        //                             dir ('pricebook') {
+        //                                 sh "ls *.yaml"
+        //                                 sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet app_db_demo.yaml --no-promote"
+        //                             }                                  
+        //                         }
+        //                     }
+        //                 }
+        //             },              
+        //         )
+        //     }
+        // }
+        // stage ('Check URL Status')  {
+        //     steps {
+        //         container('gcloud') {                    
+        //             script {
+        //                 //nodeJs apps
+        //                 getURL_Status(service_name: 'controldesk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login')
+        //                 getURL_Status(service_name: 'betaapp-control-desk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login')
+        //                 getURL_Status(service_name: 'foodbook-web', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'foodbook-web/main')
+        //                 getURL_Status(service_name: 'smartq-pwa', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'smartq-pwa/main')                        
+        //                 getURL_Status(service_name: 'betaapp-smartq-pwa', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'smartq-pwa/main')                        
+        //                 getURL_Status(service_name: 'web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main')                        
+        //                 getURL_Status(service_name: 'betaapp-web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main')                        
+        //                 //py2 services
+        //                 getURL_Status(service_name: 'appservice', version_name: "$APP_SERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions')
+        //                 getURL_Status(service_name: 'default', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: '')
+        //                 getURL_Status(service_name: 'betaapp-default', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: '')
+        //                 getURL_Status(service_name: 'backgroundtasks', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')
+        //                 getURL_Status(service_name: 'betaapp-backgroundtasks', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')
+        //                 getURL_Status(service_name: 'taskqservice', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
+        //                 getURL_Status(service_name: 'betaapp-taskqservice', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
+        //                 getURL_Status(service_name: 'reports', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
+        //                 //bqreports
+        //                 getURL_Status(service_name: 'bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/')
+        //                 getURL_Status(service_name: 'betaapp-bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/')
+        //                 //py3 services
+        //                 getURL_Status(service_name: 'app', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '')                        
+        //                 getURL_Status(service_name: 'betaapp-app', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '')                        
+        //                 getURL_Status(service_name: 'dashboard', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
+        //                 getURL_Status(service_name: 'betaapp-dashboard', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
+        //                 //getURL_Status(service_name: 'sso', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/app/sso/_health_check')
+        //                 getURL_Status(service_name: 'pricebook', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v1/pricebook/category/search?categoryname=1')
+        //             }
+        //         }
+        //      }
+        // }       
         // stage('Promote') {
         //    steps {
         //         container('gcloud') {                    
