@@ -53,12 +53,12 @@ properties([
                 $class: 'GroovyScript',
                 fallbackScript: [
                     classpath: [],
-                    sandbox: false,
+                    sandbox: true,
                     script: 'return ["Error: Script execution is disabled"]'
                 ],
                 script: [
                     classpath: [],
-                    sandbox: false,
+                    sandbox: true,
                     script: '''
                         def choices = ['sprint:selected']
                         return choices
@@ -77,12 +77,12 @@ properties([
                 $class: 'GroovyScript',
                 fallbackScript: [
                     classpath: [],
-                    sandbox: false,
+                    sandbox: true,
                     script: 'return ["Error: Script execution is disabled"]'
                 ],
                 script: [
                     classpath: [],
-                    sandbox: false,
+                    sandbox: true,
                     script: '''
                         def category = RELEASE_SCOPE ?: 'sprint' // Default to 'SPRINT' if not selected
                         def options = []
