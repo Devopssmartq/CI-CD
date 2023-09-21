@@ -176,10 +176,8 @@ pipeline {
                                     
                                     CONTROLDESK_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldesk')
                                     def YAML1 = 'app.yaml'
-                                    //def YAML2 = 'beta-app.yaml'
                                     dir("${APP_NAME}-latest") {
                                         sh "gcloud app deploy --version=$CONTROLDESK_APP_ENGINE_VERSION --quiet $YAML1 --no-promote"
-                                        //sh "gcloud app deploy --version=$CONTROLDESK_APP_ENGINE_VERSION --quiet $YAML2 --no-promote"
                                     }                                    
                                 }
                             }
@@ -195,13 +193,11 @@ pipeline {
                                     
                                     def YAML1 = 'smartq-pwa.yaml'
                                     def YAML2 = 'foodbook.yaml'
-                                    //def YAML3 = 'smartqPWABeta.yaml'
                                     
                                     TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
                                     dir("${APP_NAME}-latest") {
                                         sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet ${YAML1} --no-promote"
                                         sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet ${YAML2} --no-promote"
-                                        //sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet ${YAML3} --no-promote"
                                     }                                    
                             }
                         }
@@ -216,10 +212,8 @@ pipeline {
                                 
                                 WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'web-ort')                                
                                 def YAML1 = 'app.yaml'
-                                //def YAML2 = 'beta_app.yaml'   
                                 dir("${APP_NAME}-latest") {
                                     sh "gcloud app deploy --version=$WEBORT_APP_ENGINE_VERSION --quiet $YAML1 --no-promote"
-                                    //sh "gcloud app deploy --version=$CONTROLDESK_APP_ENGINE_VERSION --quiet $YAML2 --no-promote"
                                 }                                            
                             }
                         }
@@ -305,7 +299,6 @@ pipeline {
                                 dir ('smartq-cloud-backend'){
                                     sh "ls *.yaml"
                                     sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet app.yaml --no-promote"
-                                    //sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet app_betaapp.yaml --no-promote"
                                 }
                             }                                
                         }
@@ -316,7 +309,6 @@ pipeline {
                                 PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
                                 dir ('smartq-cloud-backend') {
                                     sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet background.yaml --no-promote"
-                                    //sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet background_betaapp.yaml --no-promote"
                                 }                                
                             }               
                         }
@@ -327,7 +319,6 @@ pipeline {
                                 PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
                                 dir ('smartq-cloud-backend'){
                                     sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet taskqservice.yaml --no-promote"
-                                    //sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet taskqservice_betaapp.yaml --no-promote"
                                 }  
                             }      
                         }
@@ -355,7 +346,6 @@ pipeline {
                             dir ('py3_project') {
                                 sh "ls *.yaml"
                                 sh "gcloud app deploy --version=$BQREPORTS_APP_ENGINE_VERSION --quiet bqreports.yaml --no-promote"
-                                //sh "gcloud app deploy --version=$BQREPORTS_APP_ENGINE_VERSION --quiet bqreports_betaapp.yaml --no-promote"
                             }
                         }                        
                     }
@@ -387,7 +377,6 @@ pipeline {
                                     dir ('appms') {
                                         sh "ls *.yaml"
                                         sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet ${params.APP_ENGINE_PROJECT_ID}.yaml --no-promote"
-                                        //sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet beta-india-smartqdemo.yaml --no-promote"
                                     }
                                 }                                
                             }
@@ -403,7 +392,6 @@ pipeline {
                                     dir ('dashboardms') {
                                         sh "ls *.yaml"
                                         sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet ${params.APP_ENGINE_PROJECT_ID}.yaml --no-promote"
-                                        //sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet betaapp-smartqdemo.yaml --no-promote"
                                     }                                  
                                 }
                             }
@@ -448,29 +436,20 @@ pipeline {
                     script {
                         //nodeJs apps
                         getURL_Status(service_name: 'controldesk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login')
-                        //getURL_Status(service_name: 'betaapp-control-desk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login')
                         getURL_Status(service_name: 'foodbook-web', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'foodbook-web/main')
                         getURL_Status(service_name: 'smartq-pwa', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'smartq-pwa/main')                        
-                        //getURL_Status(service_name: 'betaapp-smartq-pwa', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'smartq-pwa/main')                        
                         getURL_Status(service_name: 'web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main')                        
-                        //getURL_Status(service_name: 'betaapp-web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main')                        
                         //py2 services
                         getURL_Status(service_name: 'appservice', version_name: "$APP_SERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions')
                         getURL_Status(service_name: 'default', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: '')
-                        //getURL_Status(service_name: 'betaapp-default', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: '')
                         getURL_Status(service_name: 'backgroundtasks', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')
-                        //getURL_Status(service_name: 'betaapp-backgroundtasks', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')
                         getURL_Status(service_name: 'taskqservice', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
-                        //getURL_Status(service_name: 'betaapp-taskqservice', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
                         getURL_Status(service_name: 'reports', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
                         //bqreports
                         getURL_Status(service_name: 'bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/')
-                        //getURL_Status(service_name: 'betaapp-bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/')
                         //py3 services
                         getURL_Status(service_name: 'app', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '')                        
-                        //getURL_Status(service_name: 'betaapp-app', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '')                        
                         getURL_Status(service_name: 'dashboard', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
-                        //getURL_Status(service_name: 'betaapp-dashboard', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
                         //getURL_Status(service_name: 'sso', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/app/sso/_health_check')
                         getURL_Status(service_name: 'pricebook', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v1/pricebook/category/search?categoryname=1')
                     }
@@ -486,29 +465,20 @@ pipeline {
                         if (env.failed_url_count == "0") { 
                             //node js apps
                             sh "gcloud app services set-traffic 'controldesk' --splits $CONTROLDESK_APP_ENGINE_VERSION=1 --quiet" 
-                            //sh "gcloud app services set-traffic 'betaapp-control-desk' --splits $CONTROLDESK_APP_ENGINE_VERSION=1 --quiet" 
                             sh "gcloud app services set-traffic 'foodbook-web' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'smartq-pwa' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
-                            //sh "gcloud app services set-traffic 'betaapp-smartq-pwa' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'web-ort' --splits $WEBORT_APP_ENGINE_VERSION=1 --quiet"
-                            //sh "gcloud app services set-traffic 'betaapp-web-ort' --splits $WEBORT_APP_ENGINE_VERSION=1 --quiet"
                             //py2 services
                             sh "gcloud app services set-traffic 'appservice' --splits $APP_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'default' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            //sh "gcloud app services set-traffic 'betaapp-default' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'backgroundtasks' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            //sh "gcloud app services set-traffic 'betaapp-backgroundtasks' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'taskqservice' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            //sh "gcloud app services set-traffic 'betaapp-taskqservice' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'reports' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                             //bq reports
                             sh "gcloud app services set-traffic 'bqreports' --splits $BQREPORTS_APP_ENGINE_VERSION=1 --quiet"
-                            //sh "gcloud app services set-traffic 'betaapp-bqreports' --splits $BQREPORTS_APP_ENGINE_VERSION=1 --quiet"
                             //py3 services
                             sh "gcloud app services set-traffic 'app' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            //sh "gcloud app services set-traffic 'betaapp-app' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'dashboard' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
-                            //sh "gcloud app services set-traffic 'betaapp-dashboard' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                             //sh "gcloud app services set-traffic 'sso' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'pricebook' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                         }
