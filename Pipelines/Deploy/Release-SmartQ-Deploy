@@ -41,6 +41,86 @@ def get_AppEngine_Version(Map args) {
         return "${APP_ENGINE_VERSION}"
 }
 
+properties([
+    parameters([
+        [$class: 'ChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select Release Scope',
+            filterLength: 1,
+            filterable: false,
+            name: 'RELEASE_SCOPE',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: false,
+                    script: 'return ["Error: Script execution is disabled"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def choices = ["preprod:selected", "beta", "prod"]
+                        return choices
+                    '''
+                ]
+            ]
+        ],
+        [$class: 'CascadeChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select the Project_ID',
+            filterLength: 1,
+            filterable: false,
+            name: 'APP_ENGINE_PROJECT_ID',
+            referencedParameters: 'RELEASE_SCOPE',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: false,
+                    script: 'return ["Error: Script execution is disabled"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def scope = RELEASE_SCOPE ?: "preprod"
+                        def options = []
+                        if (scope == "preprod") {
+                            options = ["sqpreprod-india", "sqpreprod-uk", "sqpreprod-us:selected"]
+                        } else if (scope == "beta") {
+                            options = ["smartqprd-india", "smartqprd-uk", "smartqprd-us:selected"]
+                        } else if (scope == "prod") {
+                            options = [ "smartqprd-au",
+                                        "smartqprd-be",
+                                        "smartqprd-chi",
+                                        "smartqprd-cn",
+                                        "smartqprd-de",
+                                        "smartqprd-es",
+                                        "smartqprd-fi", 
+                                        "smartqprd-hk",
+                                        "smartqprd-ie",
+                                        "smartqprd-india",
+                                        "smartqprd-it",
+                                        "smartqprd-jp",
+                                        "smartqprd-mex",
+                                        "smartqprd-nl",
+                                        "smartqprd-nz",
+                                        "smartqprd-sg",
+                                        "smartqprd-spain",
+                                        "smartqprd-uae",
+                                        "smartqprd-uk",
+                                        "smartqprd-us:selected"
+                                        ]
+                        }
+                        return options
+                    '''
+                ]
+            ]
+        ]
+    ])
+])
+
 pipeline {
     agent {
         kubernetes {
@@ -60,7 +140,7 @@ pipeline {
               limits:
                 memory: "4096Mi"
                 cpu: "1000m"
-       
+
           - name: gcloud
             image: google/cloud-sdk:latest
             command:
@@ -77,24 +157,21 @@ pipeline {
         TIME2EAT_APP_ENGINE_VERSION = ''
         WEBORT_APP_ENGINE_VERSION = ''
 
-        APPSERVICE_APP_ENGINE_VERSION = ''
-        BACKGROUND_APP_ENGINE_VERSION = ''
-        TASKQSERVICE_APP_ENGINE_VERSION = ''
+        APP_SERVICE_APP_ENGINE_VERSION = ''
+        PY2_SERVICE_APP_ENGINE_VERSION = ''
         BQREPORTS_APP_ENGINE_VERSION = ''
 
-        DEFAULT_APP_ENGINE_VERSION = ''
-        DASHBOARD_APP_ENGINE_VERSION = ''
-        SSO_APP_ENGINE_VERSION = ''
+        PY3_SERVICE_APP_ENGINE_VERSION = ''
     }
    
     stages {
         //You should have a reference to env_vars.groovy, in Dashboard -> Manage Jenkins -> Managed files
         stage('Get Environment Specific Variables') {
             steps {
-                configFileProvider([configFile(fileId: 'env-vars-sqpreprod-us', variable: 'GroovyScript')]) {
-                    script {
+                script {                    
+                    MY_FILE_ID = "env-vars-${params.RELEASE_SCOPE}"
+                    configFileProvider([configFile(fileId: "$MY_FILE_ID", variable: 'GroovyScript')]) {
                         load("$GroovyScript").setProperties()
-                        echo "${APP_ENGINE_PROJECT_ID}"
                         echo "${GCS_BUCKET_NAME}"
                         echo "${ENVIRONMENT}"
                     }
@@ -104,10 +181,11 @@ pipeline {
         stage('Set GCloud ProjectID') {
            steps {
                 container('gcloud') {
-                    sh "gcloud config set project $APP_ENGINE_PROJECT_ID"
+                    echo "Selected APP_ENGINE_PROJECT_ID: ${params.APP_ENGINE_PROJECT_ID}"
+                    sh "gcloud config set project ${params.APP_ENGINE_PROJECT_ID}"
                 }               
             }  
-        }      
+        }       
         stage('Deploy NodeJS Apps') {
             steps {
                 parallel (
