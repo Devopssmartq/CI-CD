@@ -140,7 +140,7 @@ pipeline {
               limits:
                 memory: "4096Mi"
                 cpu: "1000m"
-
+       
           - name: gcloud
             image: google/cloud-sdk:latest
             command:
@@ -164,7 +164,7 @@ pipeline {
 
         DEFAULT_APP_ENGINE_VERSION = ''
         DASHBOARD_APP_ENGINE_VERSION = ''
-        SSO_APP_ENGINE_VERSION = '
+        SSO_APP_ENGINE_VERSION = ''
     }
    
     stages {
@@ -255,16 +255,16 @@ pipeline {
                     credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
                     url: 'https://vrp63531@bitbucket.org/bottlelabtech/smartq-cloud-backend.git'
 
-                dir ('py3_project/py3_backend/bqreports/admindashboard/'){
-                        sh 'rm -rf ./{*,.*}'
-                    }
-                dir ('py3_project/py3_backend/bqreports/reports/'){
-                        sh 'rm -rf ./{*,.*}'
-                    }
-                dir ('eWallet'){
-                        sh 'rm -rf ./{*,.*}'
-                    }     
-                sh 'ls -lrt'
+                    dir ('py3_project/py3_backend/bqreports/admindashboard/'){
+                            sh 'rm -rf ./{*,.*}'
+                        }
+                    dir ('py3_project/py3_backend/bqreports/reports/'){
+                            sh 'rm -rf ./{*,.*}'
+                        }
+                    dir ('eWallet'){
+                            sh 'rm -rf ./{*,.*}'
+                        }     
+                    sh 'ls -lrt'
                 }
             } 
         }
