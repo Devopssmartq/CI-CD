@@ -87,7 +87,7 @@ properties([
                         def category = RELEASE_SCOPE ?: 'sprint' // Default to 'SPRINT' if not selected
                         def options = []
                         if (category == "sprint") {
-                            options = ["smartqdemo-au", "smartqdemo-de", "smartqdemo-hk", "smartqdemo-nz", "smartqdemo-us", "smartqdemo-uk", "smartqdemo"]
+                            options = ["smartqdemo-au", "smartqdemo-de", "smartqdemo-hk", "smartqdemo-nz", "smartqdemo-us", "smartqdemo-uk", "smartqdemo:selected"]
                         }
                         return options
                     '''
@@ -128,6 +128,8 @@ pipeline {
 
     environment {
         FAILED_URL_STATUS_COUNT = '0'
+        GCS_BUCKET_NAME = "sqinternational-cicd.appspot.com"
+        ENVIRONMENT = "SPRINT-DEMO"
 
         CONTROLDESK_APP_ENGINE_VERSION = ''
         TIME2EAT_APP_ENGINE_VERSION = ''
@@ -138,18 +140,61 @@ pipeline {
         BQREPORTS_APP_ENGINE_VERSION = ''
 
         PY3_SERVICE_APP_ENGINE_VERSION = ''
+
+         // Initialize a boolean flag
+        INTERNATIONAL_FLAG = false
     }
    
     stages {
-        //You should have a reference to env_vars.groovy, in Dashboard -> Manage Jenkins -> Managed files
-        stage('Get Environment Specific Variables') {
+        stage('Check Deployment Type - India / International ') {
             steps {
-                script {                    
-                    MY_FILE_ID = "env-vars-${params.RELEASE_SCOPE}"
+                script {
+                    // Define a list of items
+                    def lstServers_India = ['smartqdemo', 'sqpreprod-india', 'smartqprd-india']
+                    def itemToCheck = params.APP_ENGINE_PROJECT_ID
+                    // Check if exists in the list
+                    if (lstServers_India.contains(itemToCheck)) {
+                        echo "${itemToCheck} is in the list."
+                        INTERNATIONAL_FLAG = false
+                    } else {
+                        echo "${itemToCheck} is not in the list."
+                        INTERNATIONAL_FLAG = true
+                    }
+                    echo "international_flag : ${INTERNATIONAL_FLAG}"
+                }
+            }
+        }
+        //You should have a reference to env_vars.groovy, in Dashboard -> Manage Jenkins -> Managed files
+        stage('Map YAMLs specific to each Service') {
+            steps {
+                script {
+                    // Get the flag value
+                    env.DEPLOYMENT_TYPE = INTERNATIONAL_FLAG ? "international" : "india" 
+                    echo "releaseType : ${DEPLOYMENT_TYPE}"
+
+                    MY_FILE_ID = "yaml-vars-${DEPLOYMENT_TYPE}"
                     configFileProvider([configFile(fileId: "$MY_FILE_ID", variable: 'GroovyScript')]) {
                         load("$GroovyScript").setProperties()
                         echo "${GCS_BUCKET_NAME}"
                         echo "${ENVIRONMENT}"
+
+                        echo "$CONTROLDESK_YAML"
+                        echo "$PWA_YAML"
+                        echo "$FOODBOOK_YAML"
+                        echo "$WEBORT_YAML"
+
+                        echo "$APP_SERVICE_YAML"
+                        echo "$DEFAULT_SERVICE_YAML" 
+                        echo "$BACKGROUND_YAML"
+                        echo "$TASKQSERVICE_YAML"
+                        echo "$REPORTS_YAML"
+                        echo "$BQREPORTS_YAML"
+
+                        echo "$PY3_APPMS_YAML"
+                        echo "$PY3_DASHBOARD_YAML"
+                        echo "$PY3_SSO_YAML"
+                        echo "$PY3_PRICEBOOK_YAML"
+                        //if beta & india then APP_SERVICE_YAML =  
                     }
                 }                
             }
@@ -175,9 +220,9 @@ pipeline {
                                     sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest/ --recursive"
                                     
                                     CONTROLDESK_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldesk')
-                                    def YAML1 = 'app.yaml'
+                                    
                                     dir("${APP_NAME}-latest") {
-                                        sh "gcloud app deploy --version=$CONTROLDESK_APP_ENGINE_VERSION --quiet $YAML1 --no-promote"
+                                        sh "gcloud app deploy --version=$CONTROLDESK_APP_ENGINE_VERSION --quiet $CONTROLDESK_YAML --no-promote"
                                     }                                    
                                 }
                             }
@@ -191,13 +236,10 @@ pipeline {
                                     def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
                                     sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
                                     
-                                    def YAML1 = 'smartq-pwa.yaml'
-                                    def YAML2 = 'foodbook.yaml'
-                                    
                                     TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
                                     dir("${APP_NAME}-latest") {
-                                        sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet ${YAML1} --no-promote"
-                                        sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet ${YAML2} --no-promote"
+                                        sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $PWA_YAML --no-promote"
+                                        sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $FOODBOOK_YAML --no-promote"
                                     }                                    
                             }
                         }
@@ -211,9 +253,9 @@ pipeline {
                                 sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
                                 
                                 WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'web-ort')                                
-                                def YAML1 = 'app.yaml'
+                               
                                 dir("${APP_NAME}-latest") {
-                                    sh "gcloud app deploy --version=$WEBORT_APP_ENGINE_VERSION --quiet $YAML1 --no-promote"
+                                    sh "gcloud app deploy --version=$WEBORT_APP_ENGINE_VERSION --quiet $WEBORT_YAML --no-promote"
                                 }                                            
                             }
                         }
@@ -287,7 +329,7 @@ pipeline {
                                 APP_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ewallet')                                
                                 dir ('smartq-cloud-backend'){
                                     sh "ls *.yaml"
-                                    sh "gcloud app deploy --version=$APP_SERVICE_APP_ENGINE_VERSION --quiet time2eat_appservice.yaml --no-promote"
+                                    sh "gcloud app deploy --version=$APP_SERVICE_APP_ENGINE_VERSION --quiet $APP_SERVICE_YAML --no-promote"
                                 }
                             }                                
                         }
@@ -298,7 +340,7 @@ pipeline {
                                 PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
                                 dir ('smartq-cloud-backend'){
                                     sh "ls *.yaml"
-                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet app.yaml --no-promote"
+                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $DEFAULT_SERVICE_YAML --no-promote"
                                 }
                             }                                
                         }
@@ -308,7 +350,7 @@ pipeline {
                             script {
                                 PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
                                 dir ('smartq-cloud-backend') {
-                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet background.yaml --no-promote"
+                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $BACKGROUND_YAML --no-promote"
                                 }                                
                             }               
                         }
@@ -318,7 +360,7 @@ pipeline {
                             script {
                                 PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
                                 dir ('smartq-cloud-backend'){
-                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet taskqservice.yaml --no-promote"
+                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $TASKQSERVICE_YAML --no-promote"
                                 }  
                             }      
                         }
@@ -329,7 +371,7 @@ pipeline {
                                 PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
                                 dir ('smartq-cloud-backend'){
                                     sh "ls *.yaml"
-                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet reports.yaml --no-promote"
+                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $REPORTS_YAML --no-promote"
                                 }
                             }                                
                         }
@@ -345,7 +387,7 @@ pipeline {
                         dir ('smartq-cloud-backend') {
                             dir ('py3_project') {
                                 sh "ls *.yaml"
-                                sh "gcloud app deploy --version=$BQREPORTS_APP_ENGINE_VERSION --quiet bqreports.yaml --no-promote"
+                                sh "gcloud app deploy --version=$BQREPORTS_APP_ENGINE_VERSION --quiet $BQREPORTS_YAML --no-promote"
                             }
                         }                        
                     }
@@ -376,7 +418,7 @@ pipeline {
                                     sh 'cp -r commonlib appms'
                                     dir ('appms') {
                                         sh "ls *.yaml"
-                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet ${params.APP_ENGINE_PROJECT_ID}.yaml --no-promote"
+                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_APPMS_YAML --no-promote"
                                     }
                                 }                                
                             }
@@ -391,7 +433,7 @@ pipeline {
                                     sh 'cp -r commonlib dashboardms'
                                     dir ('dashboardms') {
                                         sh "ls *.yaml"
-                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet ${params.APP_ENGINE_PROJECT_ID}.yaml --no-promote"
+                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_DASHBOARD_YAML --no-promote"
                                     }                                  
                                 }
                             }
@@ -406,7 +448,7 @@ pipeline {
                                     sh 'cp -r commonlib sso_flex'
                                     dir ('sso_flex') {
                                         sh "ls *.yaml"
-                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet app.yaml --no-promote"
+                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_SSO_YAML --no-promote"
                                     }
                                 }                   
                             }
@@ -421,7 +463,7 @@ pipeline {
                                     sh 'cp -r commonlib pricebook'
                                     dir ('pricebook') {
                                         sh "ls *.yaml"
-                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet app_db_demo.yaml --no-promote"
+                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_PRICEBOOK_YAML --no-promote"
                                     }                                  
                                 }
                             }
