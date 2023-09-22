@@ -8,8 +8,8 @@ def checkoutWebORT(branch) {
         sh "mkdir -p webort"
         dir('webort') {
             git branch: "${branch}",
-            credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
-            url: 'https://vrp63531@bitbucket.org/bottlelabtech/web-ort.git'
+            credentialsId: 'serviceaccount',
+            url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/web-ort.git'
             sh 'ls'
         }
 }
@@ -33,7 +33,6 @@ def uploadWebOrtToGCS(branch) {
         container('gcloud') {
             dir('webort') {
                 sh 'ls'
-        ENVIRONMENT='SPRINT'
                 sh "gcloud storage cp ${WORKSPACE}/webort/*.yaml gs://sqinternational-cicd.appspot.com/${ENVIRONMENT}/web-ort/webort@$VERSION_NUMBER --recursive"
             }
             sh "gcloud storage cp ${WORKSPACE}/webort/build/* gs://sqinternational-cicd.appspot.com/${ENVIRONMENT}/web-ort/webort@$VERSION_NUMBER/build --recursive"
@@ -47,8 +46,8 @@ def checkoutControlDesk(branch) {
         echo "My Branch ${branch}"
             dir('controldesk') {
                 git branch: "${branch}",
-                credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
-                url: 'https://vrp63531@bitbucket.org/bottlelabtech/control-desk.git'
+                credentialsId: 'serviceaccount',
+                url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/web-ort.git'
                 sh 'ls'
             }
 
@@ -86,8 +85,8 @@ def checkoutEWallet(branch) {
         sh "mkdir -p ewallet"
             dir('ewallet') {
                 git branch: "${branch}",
-                credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556', 
-                url: 'https://vrp63531@bitbucket.org/bottlelabtech/ewallet.git' 
+                credentialsId: 'serviceaccount', 
+                url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/ewallet.git' 
             }
 }
 def buildEWallet() {
@@ -116,9 +115,9 @@ def checkouttime2eatweb(branch) {
     echo "Checkout PWA"
         sh "mkdir -p time2eatweb"
             dir('time2eatweb') {
-                git branch: 'feature/sprint-april25lnp/preprod',
-                credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
-                url: 'https://vrp63531@bitbucket.org/bottlelabtech/time2eatweb.git'
+                git branch: "${branch}",
+                credentialsId: 'serviceaccount',
+                url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/time2eatweb.git'
             }
 
 }
@@ -152,16 +151,14 @@ def uploadtime2eatwebToGCS(branch) {
 }
 
 def checkoutvendordashboard(branch) {
-  //  stage("Build Platform 1") {
- //       steps {
-            sh "mkdir -p unified_webstack"
+    echo "Checkout Vendordashboard"
+        sh "mkdir -p unified_webstack"
             dir('unified_webstack') {
                 git branch: "${branch}",
-                credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
-                url: 'https://vrp63531@bitbucket.org/bottlelabtech/unified_webstack.git'
+                credentialsId: 'serviceaccount',
+                url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/unified_webstack.git'
             }
-  //      }
- //   }
+
 }
 def buildvendordashboard() {
     echo "Buliding Vendordashboard"
@@ -172,10 +169,10 @@ def buildvendordashboard() {
                     sh 'gulp build_vdashboard'
                         dir ('dist/vdashboard/admindashboard'){
                             sh 'ls *'
-                            }
-                        }
-                    }             
-                }      
+                    }
+                }
+            }             
+        }      
 
 }   
 def uploadvendordashboardToGCS(branch) {
@@ -192,8 +189,8 @@ def checkoutgenericadmindashboard(branch) {
         sh "mkdir -p generic-admin-dashboard"                
         dir('generic-admin-dashboard') {
             git branch: "${branch}",
-            credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
-            url: 'https://vrp63531@bitbucket.org/bottlelabtech/generic-admin-dashboard.git' 
+            credentialsId: 'serviceaccount',
+            url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/generic-admin-dashboard.git' 
             sh 'ls'
         }
 }
@@ -222,8 +219,8 @@ def checkoutsmartqcloudbackend(branch) {
         sh "mkdir -p smartq-cloud-backend"
             dir('smartq-cloud-backend') {                        
                 git branch: "${branch}",
-                credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
-                url: 'https://vrp63531@bitbucket.org/bottlelabtech/smartq-cloud-backend.git'
+                credentialsId: 'serviceaccount',
+                url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/smartq-cloud-backend.git'
                 sh 'ls -lrt'
                 sh "touch smartqcloudbackend.txt"
             }
@@ -243,8 +240,8 @@ def checkoutsqmicroservicesbackend(branch) {
     sh "mkdir -p sq_microservices_backend"
         dir('sq_microservices_backend') {                        
             git branch: "${branch}",
-            credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
-            url: 'https://vrp63531@bitbucket.org/bottlelabtech/sq_microservices_backend.git'
+            credentialsId: 'serviceaccount',
+            url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/sq_microservices_backend.git'
             sh 'ls -lrt'
             sh "touch sqmicroservicesbackend.txt"
         }
