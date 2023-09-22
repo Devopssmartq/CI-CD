@@ -23,7 +23,7 @@ import groovy.transform.Field
 
 def setProperties() {
     GCS_BUCKET_NAME = "sqinternational-cicd.appspot.com"
-     ENVIRONMENT = RELEASE_SCOPE == "sprint" ? "SPRINT-DEMO" : RELEASE_SCOPE == "preprod" ? "RELEASE-DEMO" : "MASTER-DEMO"
+     ENVIRONMENT = RELEASE_SCOPE == "sprint" ? "SPRINT-DEMO" : RELEASE_SCOPE == "preprod" ? "RELEASE-DEMO" : "MASTER"
     // To-do : change the following to appropriate branch names, once release brnach is created
     GIT_BRANCH = RELEASE_SCOPE == "sprint" ? "cicd-sprint" : RELEASE_SCOPE == "preprod" ? "cicd-sprint" : "master"
     /***************** INDIA deployment *********/

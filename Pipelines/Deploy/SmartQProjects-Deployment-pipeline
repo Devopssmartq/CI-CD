@@ -154,8 +154,6 @@ pipeline {
 
     environment {
         FAILED_URL_STATUS_COUNT = '0'
-        GCS_BUCKET_NAME = "sqinternational-cicd.appspot.com"
-        ENVIRONMENT = "SPRINT-DEMO"
 
         CONTROLDESK_APP_ENGINE_VERSION = ''
         TIME2EAT_APP_ENGINE_VERSION = ''
@@ -314,7 +312,7 @@ pipeline {
             steps { 
                 sh "mkdir -p smartq-cloud-backend"
                 dir('smartq-cloud-backend') {                        
-                    git branch: 'cicd-sprint',
+                    git branch: "${GIT_BRANCH}",
                     credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
                     url: 'https://vrp63531@bitbucket.org/bottlelabtech/smartq-cloud-backend.git'
 
@@ -449,7 +447,7 @@ pipeline {
             steps { 
                 sh "mkdir -p sq_microservices_backend"
                 dir('sq_microservices_backend') {                        
-                    git branch: 'cicd-sprint',
+                    git branch: "${GIT_BRANCH}",
                     credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
                     url: 'https://vrp63531@bitbucket.org/bottlelabtech/sq_microservices_backend.git'
                                    
