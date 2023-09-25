@@ -177,10 +177,10 @@ pipeline {
                     def itemToCheck = params.APP_ENGINE_PROJECT_ID
                     // Check if exists in the list
                     if (lstServers_India.contains(itemToCheck)) {
-                        echo "${itemToCheck} is in the list."
+                        echo "${itemToCheck} is in india servers list."
                         INTERNATIONAL_FLAG = false
                     } else {
-                        echo "${itemToCheck} is not in the list."
+                        echo "${itemToCheck} is in international servers list."
                         INTERNATIONAL_FLAG = true
                     }
                     echo "international_flag : ${INTERNATIONAL_FLAG}"
@@ -543,20 +543,24 @@ pipeline {
                         //frontend services
                         getURL_Status(service_name: 'controldesk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login')                        
                         getURL_Status(service_name: 'web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main')                        
-                        //py2 services
-                        getURL_Status(service_name: 'appservice', version_name: "$APP_SERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions')
+                        //py2 services                        
                         getURL_Status(service_name: 'backgroundtasks', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')
                         getURL_Status(service_name: 'taskqservice', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')                        
                         //bqreports
                         getURL_Status(service_name: 'bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/')
                         //py3 services
-                        getURL_Status(service_name: 'app', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '')                        
                         getURL_Status(service_name: 'dashboard', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy')                        
                         //getURL_Status(service_name: 'sso', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/app/sso/_health_check')
                         
                         if(INTERNATIONAL_FLAG) { // for INTERNATIONAL 
                             getURL_Status(service_name: 'time2eat', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'time2eat/main')
-                            getURL_Status(service_name: 'baweb', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'baweb/main')                        
+                            if (params.APP_ENGINE_PROJECT_ID.contains("-us")) {
+                                getURL_Status(service_name: 'baweb', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'baweb/main')
+                            }
+                            //py2 services
+                            getURL_Status(service_name: 'appservice', version_name: "$APP_SERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions')
+                            //py3 services
+                            getURL_Status(service_name: 'default', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '')                        
                         } else { // for INDIA
                             //frontend services 
                             getURL_Status(service_name: 'foodbook-web', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'foodbook-web/main')
@@ -565,6 +569,7 @@ pipeline {
                             getURL_Status(service_name: 'default', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: '')
                             getURL_Status(service_name: 'reports', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload')
                             //py3 services
+                            getURL_Status(service_name: 'app', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '')                        
                             getURL_Status(service_name: 'pricebook', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v1/pricebook/category/search?categoryname=1')
                         }                        
                     }
@@ -582,18 +587,22 @@ pipeline {
                             sh "gcloud app services set-traffic 'controldesk' --splits $CONTROLDESK_APP_ENGINE_VERSION=1 --quiet" 
                             sh "gcloud app services set-traffic 'web-ort' --splits $WEBORT_APP_ENGINE_VERSION=1 --quiet"
                             //py2 services
-                            sh "gcloud app services set-traffic 'appservice' --splits $APP_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'backgroundtasks' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                             sh "gcloud app services set-traffic 'taskqservice' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                             //bq reports
                             sh "gcloud app services set-traffic 'bqreports' --splits $BQREPORTS_APP_ENGINE_VERSION=1 --quiet"
-                            //py3 services
-                            sh "gcloud app services set-traffic 'app' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+                            //py3 services                            
                             sh "gcloud app services set-traffic 'dashboard' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                             //sh "gcloud app services set-traffic 'sso' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                             if(INTERNATIONAL_FLAG) { // for INTERNATIONAL 
                                 sh "gcloud app services set-traffic 'time2eat' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
-                                sh "gcloud app services set-traffic 'baweb' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
+                                if (params.APP_ENGINE_PROJECT_ID.contains("-us")) {
+                                    sh "gcloud app services set-traffic 'baweb' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
+                                }
+                                //py2 services
+                                sh "gcloud app services set-traffic 'appservice' --splits $APP_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+                                //py3 services
+                                sh "gcloud app services set-traffic 'default' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                             } else { // for INDIA
                                 //frontend services 
                                 sh "gcloud app services set-traffic 'foodbook-web' --splits $TIME2EAT_APP_ENGINE_VERSION=1 --quiet"
@@ -603,6 +612,7 @@ pipeline {
                                 sh "gcloud app services set-traffic 'reports' --splits $PY2_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                                 //py3 services
                                 sh "gcloud app services set-traffic 'pricebook' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
+                                sh "gcloud app services set-traffic 'app' --splits $PY3_SERVICE_APP_ENGINE_VERSION=1 --quiet"
                             }
                         }
                         else {  
@@ -611,6 +621,6 @@ pipeline {
                    }
                 }               
             }  
-        }      
+        }       
     } 
 }
