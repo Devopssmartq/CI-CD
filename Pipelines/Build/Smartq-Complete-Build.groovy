@@ -333,40 +333,40 @@ pipeline {
                     if (bitBucketProject == 'web-ort') {
                         checkoutWebORT(branch)
                         buildWebORT()
-                        uploadWebOrtToGCS(branch)
+                        uploadWebOrtToGCS(ENVIRONMENT)
                         buildPipeline = true
                     } else if (bitBucketProject == 'control-desk') {
                         checkoutControlDesk(branch)
                         buildControlDesk()
-                        uploadControlDeskToGCS(branch)
+                        uploadControlDeskToGCS(ENVIRONMENT)
                         buildPipeline = true 
                     } else if (bitBucketProject == 'ewallet') {
                         checkoutEWallet(branch)
                         buildEWallet()
-                        uploadEWalletToGCS(branch)
+                        uploadEWalletToGCS(ENVIRONMENT)
                         buildPipeline = true
                     } else if (bitBucketProject == 'time2eatweb') {
                         checkouttime2eatweb(branch)
                         buildtime2eatweb()
-                        uploadtime2eatwebToGCS(branch)
+                        uploadtime2eatwebToGCS(ENVIRONMENT)
                         buildPipeline = true
                     } else if (bitBucketProject == 'vendor-dashboard') {
                         checkoutvendordashboard(branch)
                         buildvendordashboard()
-                        uploadvendordashboardToGCS(branch)
+                        uploadvendordashboardToGCS(ENVIRONMENT)
                         buildPipeline = true
                     } else if (bitBucketProject == 'generic-admin-dashboard') {
                         checkoutgenericadmindashboard(branch)
                         buildgenericadmindashboard()
-                        uploadgenericadmindashboardToGCS(branch)
+                        uploadgenericadmindashboardToGCS(ENVIRONMENT)
                         buildPipeline = true                    
                     }   else if (bitBucketProject == 'smartq-cloud-backend') {
                         checkoutsmartqcloudbackend(branch)
-                        uploadsmartqcloudbackendToGCS(branch)
+                        uploadsmartqcloudbackendToGCS(ENVIRONMENT)
                         buildPipeline = true
                     }  else if (bitBucketProject == 'sq_microservices_backend') {
                         checkoutsqmicroservicesbackend(branch)
-                        uploadsqmicroservicesbackendToGCS(branch)
+                        uploadsqmicroservicesbackendToGCS(ENVIRONMENT)
                         buildPipeline = true
                     }  
                     if (!buildPipeline) {
