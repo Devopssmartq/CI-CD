@@ -283,7 +283,10 @@ pipeline {
                                     TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
                                     dir("${APP_NAME}-latest") {
                                         sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $TIME2EAT_YAML --no-promote"
-                                        sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $BAWEB_YAML --no-promote"
+                                        //enable baweb only for us region servers
+                                        if (params.APP_ENGINE_PROJECT_ID.contains("-us")) {
+                                            sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $BAWEB_YAML --no-promote"
+                                        }
                                     }                            
                                 } 
                             }
