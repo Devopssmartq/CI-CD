@@ -54,7 +54,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["Error: Script execution is disabled"]'
+                    script: 'return ["sprint:selected", "preprod", "beta", "prod"]'
                 ],
                 script: [
                     classpath: [],
@@ -78,7 +78,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["Error: Script execution is disabled"]'
+                    script: 'return ["smartqdemo-au", "smartqdemo-de", "smartqdemo-hk", "smartqdemo-nz", "smartqdemo-us", "smartqdemo-uk", "smartqdemo:selected"]'
                 ],
                 script: [
                     classpath: [],
