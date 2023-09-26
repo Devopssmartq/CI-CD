@@ -390,7 +390,7 @@ pipeline {
                         APP_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ewallet')                                
                         PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
 
-                        if (true) {
+                        if (INTERNATIONAL_FLAG) {
                             parallelJobs[py2_services.find { it.key == 'appservice' }] = {
                                 dir ('smartq-cloud-backend'){
                                     sh "ls *.yaml"
