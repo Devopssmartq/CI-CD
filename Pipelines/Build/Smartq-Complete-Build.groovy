@@ -1,5 +1,5 @@
 
-/* groovylint-disable CompileStatic */
+/* groovylint-disable CompileStatic Author : Ajith Vijayakumar  */
 // Uses Declarative syntax to run commands inside a container.
 
 def checkoutWebORT(branch) {
@@ -28,15 +28,16 @@ def buildWebORT() {
                 }
             }
 }
-def uploadWebOrtToGCS(ENVIRONMENT) {
+def uploadWebOrtToGCS(branch) {
    echo "Upload to GCS"  
-   echo "My ENVIRONMENT ${ENVIRONMENT}"
+   echo "My branch & GCS Bucket name is  ${branch}"
         container('gcloud') {
             dir('webort') {
                 sh 'ls'
-                sh "gcloud storage cp ${WORKSPACE}/webort/*.yaml gs://sqinternational-cicd.appspot.com/${ENVIRONMENT}/web-ort/webort@$VERSION_NUMBER --recursive"
+                sh "gcloud storage cp ${WORKSPACE}/webort/*.yaml gs://sqinternational-cicd.appspot.com/${branch}/web-ort/webort@$VERSION_NUMBER --recursive"
             }
-            sh "gcloud storage cp ${WORKSPACE}/webort/build/* gs://sqinternational-cicd.appspot.com/${ENVIRONMENT}/web-ort/webort@$VERSION_NUMBER/build --recursive"
+            sh "gcloud storage cp ${WORKSPACE}/webort/build/* gs://sqinternational-cicd.appspot.com/${branch}/web-ort/webort@$VERSION_NUMBER/build --recursive"
+            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
 }
 
@@ -70,15 +71,16 @@ def buildControlDesk() {
                 }
     
 }
-def uploadControlDeskToGCS(ENVIRONMENT) {
+def uploadControlDeskToGCS(branch) {
     echo "Upload Control Desk to GCS" 
-    echo "My ENVIRONMENT ${ENVIRONMENT}"
+    echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {
             dir('controldesk') {
                 sh 'ls'
-                sh "gcloud storage cp ${WORKSPACE}/controldesk/*.yaml gs://sqinternational-cicd.appspot.com/${ENVIRONMENT}/controldesk/controldesk@$VERSION_NUMBER --recursive"
+                sh "gcloud storage cp ${WORKSPACE}/controldesk/*.yaml gs://sqinternational-cicd.appspot.com/${branch}/controldesk/controldesk@$VERSION_NUMBER --recursive"
             }
-            sh "gcloud storage cp ${WORKSPACE}/controldesk/build/* gs://sqinternational-cicd.appspot.com/${ENVIRONMENT}/controldesk/controldesk@$VERSION_NUMBER/build --recursive"
+            sh "gcloud storage cp ${WORKSPACE}/controldesk/build/* gs://sqinternational-cicd.appspot.com/${branch}/controldesk/controldesk@$VERSION_NUMBER/build --recursive"
+            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }   
 }
 
@@ -104,11 +106,12 @@ def buildEWallet() {
             }
         }
 }
-def uploadEWalletToGCS(ENVIRONMENT) {
+def uploadEWalletToGCS(branch) {
     echo "Upload eWallet to GCS"
-    echo "My ENVIRONMENT ${ENVIRONMENT}"
+    echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {
-            sh "gcloud storage cp ${WORKSPACE}/ewallet/build/* gs://sqinternational-cicd.appspot.com/${ENVIRONMENT}/ewallet/ewallet@$VERSION_NUMBER --recursive"
+            sh "gcloud storage cp ${WORKSPACE}/ewallet/build/* gs://sqinternational-cicd.appspot.com/${branch}/ewallet/ewallet@$VERSION_NUMBER --recursive"
+            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
 
             
@@ -142,15 +145,16 @@ def buildtime2eatweb() {
                 }
 
 }
-def uploadtime2eatwebToGCS(ENVIRONMENT) {
+def uploadtime2eatwebToGCS(branch) {
     echo "Upload time2eatweb to GCS"
-    echo "My ENVIRONMENT ${ENVIRONMENT}"
+    echo "My branch & GCS Bucket name is ${branch}"
     container('gcloud') {
         dir('time2eatweb') {
             sh 'ls'
-            sh "gcloud storage cp ${WORKSPACE}/time2eatweb/*.yaml gs://sqinternational-cicd.appspot.com/${ENVIRONMENT}/time2eat/time2eat@$VERSION_NUMBER --recursive"
+            sh "gcloud storage cp ${WORKSPACE}/time2eatweb/*.yaml gs://sqinternational-cicd.appspot.com/${branch}/time2eat/time2eat@$VERSION_NUMBER --recursive"
         }
-        sh "gcloud storage cp ${WORKSPACE}/time2eatweb/build/* gs://sqinternational-cicd.appspot.com/${ENVIRONMENT}/time2eat/time2eat@$VERSION_NUMBER/build --recursive"
+        sh "gcloud storage cp ${WORKSPACE}/time2eatweb/build/* gs://sqinternational-cicd.appspot.com/${branch}/time2eat/time2eat@$VERSION_NUMBER/build --recursive"
+        CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
     }
 
 }
@@ -180,11 +184,12 @@ def buildvendordashboard() {
         }      
 
 }   
-def uploadvendordashboardToGCS(ENVIRONMENT) {
+def uploadvendordashboardToGCS(branch) {
     echo "Uploading to GCS Bucket"
-    echo "My ENVIRONMENT ${ENVIRONMENT}"
+    echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {
-            sh "gcloud storage cp ${WORKSPACE}/unified_webstack/frontend/dist/vdashboard/admindashboard/* gs://sqinternational-cicd.appspot.com/$ENVIRONMENT/vendor-dashboard/vdashboard@$VERSION_NUMBER --recursive"
+            sh "gcloud storage cp ${WORKSPACE}/unified_webstack/frontend/dist/vdashboard/admindashboard/* gs://sqinternational-cicd.appspot.com/$branch/vendor-dashboard/vdashboard@$VERSION_NUMBER --recursive"
+            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
 
 }
@@ -213,11 +218,12 @@ def buildgenericadmindashboard() {
             }             
         }
 }
-def uploadgenericadmindashboardToGCS(ENVIRONMENT) {
+def uploadgenericadmindashboardToGCS(branch) {
     echo "Uploading generic-admin-dashboard to GCS Bucket"   
-    echo "My ENVIRONMENT ${ENVIRONMENT}"     
+    echo "My branch & GCS Bucket name is ${branch}"     
     container('gcloud') {
-        sh "gcloud storage cp ${WORKSPACE}/generic-admin-dashboard/build/* gs://sqinternational-cicd.appspot.com/${ENVIRONMENT}/generic-admin-dashboard/admindashboard@$VERSION_NUMBER --recursive"
+        sh "gcloud storage cp ${WORKSPACE}/generic-admin-dashboard/build/* gs://sqinternational-cicd.appspot.com/${branch}/generic-admin-dashboard/admindashboard@$VERSION_NUMBER --recursive"
+        CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
 }
 
@@ -233,11 +239,12 @@ def checkoutsmartqcloudbackend(branch) {
             }
 
 }   
-def uploadsmartqcloudbackendToGCS(ENVIRONMENT) {
+def uploadsmartqcloudbackendToGCS(branch) {
     echo "Uploading smartq-backend to GCS"
-    echo "My ENVIRONMENT ${ENVIRONMENT}"
+    echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {                 
-            sh "gcloud storage cp ${WORKSPACE}/smartq-cloud-backend/smartqcloudbackend.txt gs://sqinternational-cicd.appspot.com/${ENVIRONMENT}/smartq-cloud-backend/smartq-cloud-backend@$VERSION_NUMBER --recursive"
+            sh "gcloud storage cp ${WORKSPACE}/smartq-cloud-backend/smartqcloudbackend.txt gs://sqinternational-cicd.appspot.com/${branch}/smartq-cloud-backend/smartq-cloud-backend@$VERSION_NUMBER --recursive"
+            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
                   
         }
 
@@ -255,15 +262,57 @@ def checkoutsqmicroservicesbackend(branch) {
         }
 
 }
-def uploadsqmicroservicesbackendToGCS(ENVIRONMENT) {
+def uploadsqmicroservicesbackendToGCS(branch) {
     echo "Uploading sq_Microservices_Backend to GCS Bucket"
-    echo "My ENVIRONMENT ${ENVIRONMENT}"
+    echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {                   
-            sh "gcloud storage cp ${WORKSPACE}/sq_microservices_backend/sqmicroservicesbackend.txt gs://sqinternational-cicd.appspot.com/${ENVIRONMENT}/sq_microservices_backend/sq_microservices_backend@$VERSION_NUMBER/default --recursive"
+            sh "gcloud storage cp ${WORKSPACE}/sq_microservices_backend/sqmicroservicesbackend.txt gs://sqinternational-cicd.appspot.com/${branch}/sq_microservices_backend/sq_microservices_backend@$VERSION_NUMBER/default --recursive"
+            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
 
 
         }
 
+}
+
+def checkoutcontroldeskflutter(branch) {
+    echo "Checkout controldeskflutter"
+    echo "${branch}"   
+        sh "mkdir -p controldeskflutter"
+        dir('controldeskflutter') {
+            git branch: "${branch}",
+            credentialsId: 'bitbucket api',
+            url: 'https://yash123devops@bitbucket.org/bottlelabtech/control-desk-flutter.git'
+            sh 'ls'
+        }
+}
+def buildcontroldeskflutter() {
+    container('flutter') {
+        sh 'echo ${WORKSPACE}'
+        sh 'echo $BUILD_NUMBER'
+            dir('controldeskflutter') {
+                sh 'flutter clean'
+                sh 'flutter pub get'
+                sh 'flutter build web --web-renderer canvaskit'
+                sh 'ls'
+                dir ('${WORKSPACE}/build/web') {
+                    sh 'ls'
+                    sh 'pwd'
+                    //sh 'echo changing to directory'
+                }
+            }
+    }
+}
+def uploadcontroldeskflutterToGCS(branch) {
+  echo "Upload to GCS"  
+  echo "My branch & GCS Bucket name is ${branch}"
+        container('gcloud') {
+            dir('controldeskflutter') {
+                sh 'ls'
+                sh "gcloud storage cp ${WORKSPACE}/controldeskflutter/*.yaml gs://sqinternational-cicd.appspot.com/${branch}/controldeskflutter/controldeskflutter@$VERSION_NUMBER --recursive"
+            }
+            sh "gcloud storage cp ${WORKSPACE}/controldeskflutter/build/* gs://sqinternational-cicd.appspot.com/${branch}/controldeskflutter/controldeskflutter@$VERSION_NUMBER/build --recursive"
+            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
+        }
 }
 
 pipeline {
@@ -273,7 +322,7 @@ pipeline {
             yaml '''
         apiVersion: v1
         kind: Pod
-        environment:
+        branch:
             name: "NODE_OPTIONS"
             value: "--max-old-space-size=4096"
         spec:
@@ -298,26 +347,35 @@ pipeline {
             command:
             - cat
             tty: true
+
+          - name: flutter
+            image: instrumentisto/flutter:latest
+            command:
+            - cat
+            tty: true 
         '''        
         }
     }
 
     parameters {
 
-    choice(name: 'BitBucketProject', choices: ['web-ort', 'control-desk', 'ewallet', 'time2eatweb', 'vendor-dashboard','generic-admin-dashboard', 'smartq-cloud-backend', 'sq_microservices_backend'], description: 'Select BitBucket Project')
-    choice(name: 'Branch', choices: ['cicd-sprint','release/release-v1.0','release-v1.0','feature-master', 'master','feature/sprint-25apr15may/preprod-config'], description: 'Select Branch')
-    choice(name: 'ENVIRONMENT', choices: ['SPRINT', 'MASTER', 'RELEASE'], description: 'Select ENVIRONMENT which will copy to the respective folder inside the GCS Bucket')
+    choice(name: 'BitBucketProject', choices: ['web-ort', 'control-desk', 'ewallet', 'time2eatweb', 'vendor-dashboard','generic-admin-dashboard', 'smartq-cloud-backend', 'sq_microservices_backend','controldeskflutter'], description: 'Select BitBucket Project')
+    choice(name: 'Branch', choices: ['cicd-sprint','Release','SPRINT','feature-master', 'master','feature/sprint-25apr15may/preprod-config'], description: 'Select Branch')
+   
     
     }
 
 
         
     environment {
-        //ENVIRONMENT='SPRINT'
+        //environment='SPRINT'
+        //def commitId = 'your-dummy-commit-id'
+        def CLOUD_URL = 'Your_URL'
         VERSION_NUMBER = VersionNumber([
             versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMddhhmmss"}-${BUILDS_TODAY}',  
             worstResultForIncrement: 'SUCCESS'
         ])
+
 }
 
     stages {      
@@ -328,47 +386,54 @@ pipeline {
                     def branch = params.Branch
                     echo "Selected BitBucket Project: ${bitBucketProject}"
                     echo "Selected Branch: ${branch}"
+                    echo "Selected GCS Bucket: ${branch}"
                     def buildPipeline = false
 
                     if (bitBucketProject == 'web-ort') {
                         checkoutWebORT(branch)
                         buildWebORT()
-                        uploadWebOrtToGCS(ENVIRONMENT)
+                        uploadWebOrtToGCS(branch)
                         buildPipeline = true
                     } else if (bitBucketProject == 'control-desk') {
                         checkoutControlDesk(branch)
                         buildControlDesk()
-                        uploadControlDeskToGCS(ENVIRONMENT)
+                        uploadControlDeskToGCS(branch)
                         buildPipeline = true 
                     } else if (bitBucketProject == 'ewallet') {
                         checkoutEWallet(branch)
                         buildEWallet()
-                        uploadEWalletToGCS(ENVIRONMENT)
+                        uploadEWalletToGCS(branch)
                         buildPipeline = true
                     } else if (bitBucketProject == 'time2eatweb') {
                         checkouttime2eatweb(branch)
                         buildtime2eatweb()
-                        uploadtime2eatwebToGCS(ENVIRONMENT)
+                        uploadtime2eatwebToGCS(branch)
                         buildPipeline = true
                     } else if (bitBucketProject == 'vendor-dashboard') {
                         checkoutvendordashboard(branch)
                         buildvendordashboard()
-                        uploadvendordashboardToGCS(ENVIRONMENT)
+                        uploadvendordashboardToGCS(branch)
                         buildPipeline = true
                     } else if (bitBucketProject == 'generic-admin-dashboard') {
                         checkoutgenericadmindashboard(branch)
                         buildgenericadmindashboard()
-                        uploadgenericadmindashboardToGCS(ENVIRONMENT)
+                        uploadgenericadmindashboardToGCS(branch)
                         buildPipeline = true                    
-                    }   else if (bitBucketProject == 'smartq-cloud-backend') {
+                    } else if (bitBucketProject == 'smartq-cloud-backend') {
                         checkoutsmartqcloudbackend(branch)
-                        uploadsmartqcloudbackendToGCS(ENVIRONMENT)
+                        uploadsmartqcloudbackendToGCS(branch)
                         buildPipeline = true
-                    }  else if (bitBucketProject == 'sq_microservices_backend') {
+                    } else if (bitBucketProject == 'sq_microservices_backend') {
                         checkoutsqmicroservicesbackend(branch)
-                        uploadsqmicroservicesbackendToGCS(ENVIRONMENT)
+                        uploadsqmicroservicesbackendToGCS(branch)
                         buildPipeline = true
+                    } else if (bitBucketProject == 'controldeskflutter') {
+                        checkoutcontroldeskflutter(branch)
+                        buildcontroldeskflutter()
+                        uploadcontroldeskflutterToGCS(branch)
+                        buildPipeline = true  
                     }  
+
                     if (!buildPipeline) {
                         error("Invalid combination of BitBucket Project and Branch.")
                     } 
@@ -376,6 +441,30 @@ pipeline {
             }
         }
 
+
+    }
+
+    post{
+
+        always{
+
+            script {
+
+                mail bcc: '', body: "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nApplication  Name: ${bitBucketProject}.\nGCP Cloud URL: ${CLOUD_URL}.\n Version Number: ${VERSION_NUMBER}",
+
+                cc: 'Ajith.Vijayakumar@thesmartq.com, R.Prabhakaran@thesmartq.com , VenkateswaraReddi.P@thesmartq.com , abhijeet@thesmartq.com',
+
+                from: '',
+
+                replyTo: '',
+
+                subject: "Build Status# ${currentBuild.currentResult}",
+
+                to: 'yashwanth.kp@thesmartq.com'
+
+            }
+
+        }
 
     }
 
