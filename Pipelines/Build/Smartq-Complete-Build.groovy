@@ -15,6 +15,7 @@ def checkoutWebORT(branch) {
 }
 def buildWebORT() {
     container('nodejs') {
+
         sh 'echo ${WORKSPACE}'
         sh 'echo $BUILD_NUMBER'
             dir('webort') {
@@ -360,7 +361,8 @@ pipeline {
     parameters {
 
     choice(name: 'BitBucketProject', choices: ['web-ort', 'control-desk', 'ewallet', 'time2eatweb', 'vendor-dashboard','generic-admin-dashboard', 'smartq-cloud-backend', 'sq_microservices_backend','controldeskflutter'], description: 'Select BitBucket Project')
-    choice(name: 'Branch', choices: ['cicd-sprint','Release','SPRINT','feature-master', 'master','feature/sprint-25apr15may/preprod-config'], description: 'Select Branch')
+   // choice(name: 'Branch', choices: ['cicd-sprint','Release','SPRINT','feature-master', 'master','feature/sprint-25apr15may/preprod-config'], description: 'Select Branch')
+    string(name: 'Branch', description: 'Enter the branch name')
    
     
     }
@@ -369,16 +371,30 @@ pipeline {
         
     environment {
         //environment='SPRINT'
-        //def commitId = 'your-dummy-commit-id'
+        def commitId = 'your-dummy-commit-id'
         def CLOUD_URL = 'Your_URL'
         VERSION_NUMBER = VersionNumber([
-            versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMddhhmmss"}-${BUILDS_TODAY}',  
+            versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMddhhmmss"}-${BUILDS_TODAY}-{commitId}',  
             worstResultForIncrement: 'SUCCESS'
         ])
 
 }
 
-    stages {      
+    stages { 
+
+        // stage('Send Email') {
+        //     steps {
+        //         script {
+        //             emailext subject: "Pipeline Started - ${bitBucketProject}", 
+        //                      body: "The pipeline ${bitBucketProject} has started.",
+        //                      from: 'yashwanth.kp@thesmartq.com',
+        //                      to: 'yashwanth.kp@thesmartq.com',
+        //                      cc: 'Ajith.Vijayakumar@thesmartq.com',
+        //                      attachLog: true
+        //         }
+        //     }
+        // }
+    
         stage('Building All Pipeline') {
             steps {
                 script {
@@ -388,6 +404,7 @@ pipeline {
                     echo "Selected Branch: ${branch}"
                     echo "Selected GCS Bucket: ${branch}"
                     def buildPipeline = false
+
 
                     if (bitBucketProject == 'web-ort') {
                         checkoutWebORT(branch)
@@ -442,6 +459,7 @@ pipeline {
         }
 
 
+
     }
 
     post{
@@ -449,7 +467,7 @@ pipeline {
         always{
 
             script {
-
+                
                 mail bcc: '', body: "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nApplication  Name: ${bitBucketProject}.\nGCP Cloud URL: ${CLOUD_URL}.\n Version Number: ${VERSION_NUMBER}",
 
                 cc: 'Ajith.Vijayakumar@thesmartq.com, R.Prabhakaran@thesmartq.com , VenkateswaraReddi.P@thesmartq.com , abhijeet@thesmartq.com',
