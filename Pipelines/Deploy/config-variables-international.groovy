@@ -35,14 +35,14 @@ def setProperties() {
      if (type == "India") {
          options = 'controldesk,web-ort,foodbook-web,smartq-pwa,default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook'
      } else if (type == "International") {
-         options = 'controldesk,web-ort,time2eat,baweb,appservice,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,default'
+         options = 'controldesk,web-ort,time2eat,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,default'
         }
         echo "SERVICE_NAME_LIST updated - $options"
         SERVICE_ARRAY = "$options".split(',')                        
       } else {           
            SERVICE_ARRAY = params.SERVICE_NAME.split(',')
        }
-       
+
   /***************** INTERNATIONAL deployment *********/
 //frontend service  yamls
     CONTROLDESK_YAML = RELEASE_SCOPE == "beta" ? 'beta-app.yaml' : 'app.yaml'
