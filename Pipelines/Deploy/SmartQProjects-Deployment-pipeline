@@ -332,7 +332,7 @@ pipeline {
                 }               
             }  
         }      
-        stage('Deploy NodeJS Apps') { 
+        stage('NodeJs:Deploy Apps') { 
             when {
                 expression { return IS_NODEAPPS_ENABLED } // Check the condition here
             }                    
@@ -430,12 +430,12 @@ pipeline {
                 }
             }
         }
-        stage('Deploy Py2 Backend Services') {
+        stage('Py2:Deploy Backend Services') {
             when {
                 expression { return IS_PY2_ENABLED } // Check the condition here
             }          
             stages {
-                stage('Clone smartq-backend') { 
+                stage('Py2:Clone smartq-backend') { 
                     steps { 
                         script {
                             sh "mkdir -p smartq-cloud-backend"
@@ -458,7 +458,7 @@ pipeline {
                         }
                     } 
                 }
-                stage('copy build output - ewallet, admin & vendor dash-board') {
+                stage('Py2:Copy build output - ewallet, admin & vendor dash-board') {
                     steps {                
                         dir ('smartq-cloud-backend') {
                             container('gcloud') {
@@ -493,7 +493,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Deploy Smartq Backend') {
+                stage('Py2:Deploy Backend Services') {
                     steps {
                         container('gcloud') {
                             script {
@@ -557,7 +557,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Deploy BQ Reports') {
+                stage('Py2:Deploy BQ Reports') {
                     steps {
                         script {
                             container('gcloud') {
@@ -581,12 +581,12 @@ pipeline {
                 }
             }
         }
-        stage('Deploy Py3 Micro Services') {
+        stage('Py3:Deploy Micro Services') {
             when {
                 expression { return IS_PY3_ENABLED } // Check the condition here
             }           
             stages {
-                stage('Clone sq_microservices_backend') { 
+                stage('Py3:Clone') { 
                     steps { 
                         sh "mkdir -p sq_microservices_backend"
                         dir('sq_microservices_backend') {                        
@@ -598,7 +598,7 @@ pipeline {
                         }
                     } 
                 }
-                stage('Deploy Microservices') {
+                stage('Py3:Deploy') {
                     steps {
                         container('gcloud') {
                             script {
