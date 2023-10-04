@@ -27,7 +27,7 @@ def setProperties() {
     ENVIRONMENT = RELEASE_SCOPE == "sprint" ? "SPRINT" : RELEASE_SCOPE == "preprod" ? "RELEASE" : "MASTER"
     // To-do : change the following to appropriate branch names, once release brnach is created
     GIT_BRANCH = RELEASE_SCOPE == "sprint" ? "cicd-sprint" : RELEASE_SCOPE == "preprod" ? "cicd-sprint" : "master"
-  	
+      
     if(params.SERVICE_NAME == "All" || params.SERVICE_NAME.isEmpty())
     {
      def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
@@ -36,7 +36,7 @@ def setProperties() {
          options = 'controldesk,web-ort,foodbook-web,smartq-pwa,default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook'
      } 
      else if (type == "International") {
-         options = 'controldesk,web-ort,time2eat,baweb,appservice,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,default'
+         options = 'controldesk,web-ort,time2eat,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,default'
      }       
       echo "SERVICE_NAME_LIST updated - $options"
       SERVICE_ARRAY = "$options".split(',')                        
