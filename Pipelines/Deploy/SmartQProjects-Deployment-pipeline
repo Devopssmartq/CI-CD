@@ -288,7 +288,7 @@ pipeline {
                         echo "${GCS_BUCKET_NAME}"
                         echo "${ENVIRONMENT}"
 
-                        echo "$SERVICE_ARRAY"
+                        echo "$ARR_SELECTED_SERVICE"
                         echo "$CONTROLDESK_YAML"
                         echo "$PWA_YAML"
                         echo "$FOODBOOK_YAML"                       
@@ -308,15 +308,15 @@ pipeline {
                         echo "$PY3_SSO_YAML"
                         echo "$PY3_PRICEBOOK_YAML"
 
-                        IS_NODEAPPS_ENABLED = SERVICE_ARRAY.any { element1 -> nodeapps.key.contains(element1) }
+                        IS_NODEAPPS_ENABLED = ARR_SELECTED_SERVICE.any { element1 -> nodeapps.key.contains(element1) }
                         echo "IS_NODEAPPS_SELECTED - $IS_NODEAPPS_ENABLED"
 
-                        IS_PY2_ENABLED = SERVICE_ARRAY.any { element2 ->
+                        IS_PY2_ENABLED = ARR_SELECTED_SERVICE.any { element2 ->
                             py2_services.key.contains(element2)
                         }
                         echo "IS_PY2_SELECTED - $IS_PY2_ENABLED"
 
-                        IS_PY3_ENABLED = SERVICE_ARRAY.any { element3 ->
+                        IS_PY3_ENABLED = ARR_SELECTED_SERVICE.any { element3 ->
                             py3_services.key.contains(element3)
                         }
                         echo "IS_PY3_SELECTED - $IS_PY3_ENABLED"
@@ -340,7 +340,7 @@ pipeline {
                 container('gcloud') {
                     script {
                         def PWA_APP_NAME = "time2eat"
-                        if('smartq-pwa' in SERVICE_ARRAY || 'foodbook-web' in SERVICE_ARRAY || 'time2eat' in SERVICE_ARRAY || 'baweb' in SERVICE_ARRAY) {
+                        if('smartq-pwa' in ARR_SELECTED_SERVICE || 'foodbook-web' in ARR_SELECTED_SERVICE || 'time2eat' in ARR_SELECTED_SERVICE || 'baweb' in ARR_SELECTED_SERVICE) {
                             
                             sh "mkdir -p ${PWA_APP_NAME}-latest"
                             def PWA_STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${PWA_APP_NAME}")
@@ -350,7 +350,7 @@ pipeline {
 
                         def parallelJobs = [:]
 
-                        if ('controldesk' in SERVICE_ARRAY) {
+                        if ('controldesk' in ARR_SELECTED_SERVICE) {
                             parallelJobs[nodeapps.find { it.key == 'controldesk' }] = {
                                 def APP_NAME = "controldesk"
                                 sh "mkdir -p ${APP_NAME}-latest" 
@@ -368,7 +368,7 @@ pipeline {
                             }
                         } 
 
-                        if (!INTERNATIONAL_FLAG && 'smartq-pwa' in SERVICE_ARRAY) {
+                        if (!INTERNATIONAL_FLAG && 'smartq-pwa' in ARR_SELECTED_SERVICE) {
                             parallelJobs[nodeapps.find { it.key == 'smartq-pwa' }] = {
                                 dir("${PWA_APP_NAME}-latest") {
                                     sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $PWA_YAML --no-promote"
@@ -377,7 +377,7 @@ pipeline {
                             }
                         }
 
-                        if (!INTERNATIONAL_FLAG && 'foodbook-web' in SERVICE_ARRAY) {
+                        if (!INTERNATIONAL_FLAG && 'foodbook-web' in ARR_SELECTED_SERVICE) {
                             parallelJobs[nodeapps.find { it.key == 'foodbook-web' }] = {
                                 dir("${PWA_APP_NAME}-latest") {
                                     sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $FOODBOOK_YAML --no-promote"
@@ -386,7 +386,7 @@ pipeline {
                             }
                         }
 
-                        if (INTERNATIONAL_FLAG && 'time2eat' in SERVICE_ARRAY) {
+                        if (INTERNATIONAL_FLAG && 'time2eat' in ARR_SELECTED_SERVICE) {
                             parallelJobs[nodeapps.find { it.key == 'time2eat' }] = {
                                 dir("${PWA_APP_NAME}-latest") {
                                     sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $TIME2EAT_YAML --no-promote"
@@ -395,7 +395,7 @@ pipeline {
                             }
                         }
 
-                        if (INTERNATIONAL_FLAG && 'baweb' in SERVICE_ARRAY) {
+                        if (INTERNATIONAL_FLAG && 'baweb' in ARR_SELECTED_SERVICE) {
                             parallelJobs[nodeapps.find { it.key == 'baweb' }] = {
                                 dir("${PWA_APP_NAME}-latest") {
                                     //enable baweb only for us region servers
@@ -409,7 +409,7 @@ pipeline {
                             }
                         }
                         
-                        if ('web-ort' in SERVICE_ARRAY) {
+                        if ('web-ort' in ARR_SELECTED_SERVICE) {
                             parallelJobs[nodeapps.find { it.key == 'web-ort' }] = {                                                           
                                 def APP_NAME = "web-ort"
                                 sh "mkdir -p ${APP_NAME}-latest" 
@@ -502,7 +502,7 @@ pipeline {
                                 APP_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ewallet')                                
                                 PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
 
-                                if (INTERNATIONAL_FLAG && 'appservice' in SERVICE_ARRAY) {
+                                if (INTERNATIONAL_FLAG && 'appservice' in ARR_SELECTED_SERVICE) {
                                     parallelJobs[py2_services.find { it.key == 'appservice' }] = {
                                         dir ('smartq-cloud-backend'){
                                             sh "ls *.yaml"
@@ -512,7 +512,7 @@ pipeline {
                                     }
                                 }
 
-                                if (!INTERNATIONAL_FLAG && 'default' in SERVICE_ARRAY) { // ! For India only - Skip this when the condition is false
+                                if (!INTERNATIONAL_FLAG && 'default' in ARR_SELECTED_SERVICE) { // ! For India only - Skip this when the condition is false
                                     parallelJobs[py2_services.find { it.key == 'default' }] = {
                                         dir ('smartq-cloud-backend') {
                                             sh "ls *.yaml"
@@ -523,7 +523,7 @@ pipeline {
                                     }
                                 }
 
-                                if ('backgroundtasks' in SERVICE_ARRAY) {
+                                if ('backgroundtasks' in ARR_SELECTED_SERVICE) {
                                     parallelJobs[py2_services.find { it.key == 'backgroundtasks' }] = {
                                         dir ('smartq-cloud-backend') {
                                             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $BACKGROUND_YAML --no-promote"
@@ -532,7 +532,7 @@ pipeline {
                                     }
                                 }
 
-                                if ('taskqservice' in SERVICE_ARRAY) {
+                                if ('taskqservice' in ARR_SELECTED_SERVICE) {
                                     parallelJobs[py2_services.find { it.key == 'taskqservice' }] = {
                                         dir ('smartq-cloud-backend'){
                                             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $TASKQSERVICE_YAML --no-promote"
@@ -541,7 +541,7 @@ pipeline {
                                     }
                                 }
 
-                                if (!INTERNATIONAL_FLAG && 'reports' in SERVICE_ARRAY) { // ! For India only - Skip this when the condition is false
+                                if (!INTERNATIONAL_FLAG && 'reports' in ARR_SELECTED_SERVICE) { // ! For India only - Skip this when the condition is false
                                     parallelJobs[py2_services.find { it.key == 'reports' }] = {
                                         dir ('smartq-cloud-backend'){
                                             sh "ls *.yaml"
@@ -563,7 +563,7 @@ pipeline {
                             container('gcloud') {
                                 BQREPORTS_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'vendor-dashboard')
                                 def py2_bqreports = [:]
-                                if ('bqreports' in SERVICE_ARRAY) {
+                                if ('bqreports' in ARR_SELECTED_SERVICE) {
                                     py2_bqreports[py2_services.find { it.key == 'bqreports' }] = {
                                         dir ('smartq-cloud-backend') {
                                             dir ('py3_project') {
@@ -608,7 +608,7 @@ pipeline {
 
                                 PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
 
-                                if ('app' in SERVICE_ARRAY) {
+                                if ('app' in ARR_SELECTED_SERVICE) {
                                     parallelJobs[py3_services.find { it.key == 'app' }] = {
                                         dir ('sq_microservices_backend') {
                                             sh 'cp -r commonlib appms'
@@ -628,7 +628,7 @@ pipeline {
                                     }
                                 }
 
-                                if ('dashboard' in SERVICE_ARRAY) {
+                                if ('dashboard' in ARR_SELECTED_SERVICE) {
                                     parallelJobs[py3_services.find { it.key == 'dashboard' }] = {
                                         dir ('sq_microservices_backend') {
                                             sh 'cp -r commonlib dashboardms'
@@ -642,7 +642,7 @@ pipeline {
                                     }
                                 }
 
-                                if ('sso' in SERVICE_ARRAY) {
+                                if ('sso' in ARR_SELECTED_SERVICE) {
                                     parallelJobs[py3_services.find { it.key == 'sso' }] = {
                                         dir ('sq_microservices_backend') {
                                             sh 'cp -r commonlib sso_flex'
@@ -655,7 +655,7 @@ pipeline {
                                     }
                                 }
 
-                                if(!INTERNATIONAL_FLAG && 'pricebook' in SERVICE_ARRAY) {// ! For India only - Skip this when the condition is false
+                                if(!INTERNATIONAL_FLAG && 'pricebook' in ARR_SELECTED_SERVICE) {// ! For India only - Skip this when the condition is false
                                     parallelJobs[py3_services.find { it.key == 'pricebook' }] = {
                                         dir ('sq_microservices_backend') {
                                             sh 'cp -r commonlib pricebook'
