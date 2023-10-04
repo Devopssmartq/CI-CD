@@ -4,7 +4,7 @@ import groovy.transform.Field
 @Field def IS_NODEAPPS_ENABLED
 @Field def IS_PY2_ENABLED
 @Field def IS_PY3_ENABLED
-@Field def VERIFY_SERVICE_ARRAY = []
+@Field def ARR_VERIFY_SERVICE = []
 
 def getURL_Status(Map args) {
     script {
@@ -364,7 +364,7 @@ pipeline {
                                     sh "gcloud app deploy --version=$CONTROLDESK_APP_ENGINE_VERSION --quiet $CONTROLDESK_YAML --no-promote"
                                 }
 
-                                VERIFY_SERVICE_ARRAY.add([service_name: 'controldesk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login'])
+                                ARR_VERIFY_SERVICE.add([service_name: 'controldesk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login'])
                             }
                         } 
 
@@ -373,7 +373,7 @@ pipeline {
                                 dir("${PWA_APP_NAME}-latest") {
                                     sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $PWA_YAML --no-promote"
                                 }
-                                VERIFY_SERVICE_ARRAY.add([service_name: 'smartq-pwa', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'smartq-pwa/main'])
+                                ARR_VERIFY_SERVICE.add([service_name: 'smartq-pwa', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'smartq-pwa/main'])
                             }
                         }
 
@@ -382,7 +382,7 @@ pipeline {
                                 dir("${PWA_APP_NAME}-latest") {
                                     sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $FOODBOOK_YAML --no-promote"
                                 }
-                                VERIFY_SERVICE_ARRAY.add([service_name: 'foodbook-web', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'foodbook-web/main'])   
+                                ARR_VERIFY_SERVICE.add([service_name: 'foodbook-web', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'foodbook-web/main'])   
                             }
                         }
 
@@ -391,7 +391,7 @@ pipeline {
                                 dir("${PWA_APP_NAME}-latest") {
                                     sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $TIME2EAT_YAML --no-promote"
                                 }
-                                VERIFY_SERVICE_ARRAY.add([service_name: 'time2eat', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'time2eat/main'])   
+                                ARR_VERIFY_SERVICE.add([service_name: 'time2eat', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'time2eat/main'])   
                             }
                         }
 
@@ -403,7 +403,7 @@ pipeline {
                                         sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $BAWEB_YAML --no-promote"
                                     }
                                     if (params.APP_ENGINE_PROJECT_ID.contains("-us")) {
-                                        VERIFY_SERVICE_ARRAY.add([service_name: 'baweb', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'baweb/main'])
+                                        ARR_VERIFY_SERVICE.add([service_name: 'baweb', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'baweb/main'])
                                     }
                                 }   
                             }
@@ -421,7 +421,7 @@ pipeline {
                                 dir("${APP_NAME}-latest") {
                                     sh "gcloud app deploy --version=$WEBORT_APP_ENGINE_VERSION --quiet $WEBORT_YAML --no-promote"
                                 }
-                                VERIFY_SERVICE_ARRAY.add([service_name: 'web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main'])                        
+                                ARR_VERIFY_SERVICE.add([service_name: 'web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main'])                        
                             }
                         }
 
@@ -508,7 +508,7 @@ pipeline {
                                             sh "ls *.yaml"
                                             sh "gcloud app deploy --version=$APP_SERVICE_APP_ENGINE_VERSION --quiet $APP_SERVICE_YAML --no-promote"
                                         }
-                                        VERIFY_SERVICE_ARRAY.add([service_name: 'appservice', version_name: "$APP_SERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions'])  
+                                        ARR_VERIFY_SERVICE.add([service_name: 'appservice', version_name: "$APP_SERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions'])  
                                     }
                                 }
 
@@ -519,7 +519,7 @@ pipeline {
                                             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $DEFAULT_SERVICE_YAML --no-promote"
                                         }
                                         //py2 services - default
-                                        VERIFY_SERVICE_ARRAY.add([service_name: 'default', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])                                       
+                                        ARR_VERIFY_SERVICE.add([service_name: 'default', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])                                       
                                     }
                                 }
 
@@ -528,7 +528,7 @@ pipeline {
                                         dir ('smartq-cloud-backend') {
                                             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $BACKGROUND_YAML --no-promote"
                                         }
-                                        VERIFY_SERVICE_ARRAY.add([service_name: 'backgroundtasks', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload'])  
+                                        ARR_VERIFY_SERVICE.add([service_name: 'backgroundtasks', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload'])  
                                     }
                                 }
 
@@ -537,7 +537,7 @@ pipeline {
                                         dir ('smartq-cloud-backend'){
                                             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $TASKQSERVICE_YAML --no-promote"
                                         }
-                                        VERIFY_SERVICE_ARRAY.add([service_name: 'taskqservice', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload'])                                                              
+                                        ARR_VERIFY_SERVICE.add([service_name: 'taskqservice', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload'])                                                              
                                     }
                                 }
 
@@ -548,7 +548,7 @@ pipeline {
                                             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $REPORTS_YAML --no-promote"
                                         }
                                         //py2 services
-                                        VERIFY_SERVICE_ARRAY.add([service_name: 'reports', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload'])                                        
+                                        ARR_VERIFY_SERVICE.add([service_name: 'reports', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload'])                                        
                                     }
                                 }
 
@@ -570,7 +570,7 @@ pipeline {
                                                 sh "ls *.yaml"
                                                 sh "gcloud app deploy --version=$BQREPORTS_APP_ENGINE_VERSION --quiet $BQREPORTS_YAML --no-promote"
                                             }
-                                            VERIFY_SERVICE_ARRAY.add([service_name: 'bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/'])  
+                                            ARR_VERIFY_SERVICE.add([service_name: 'bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/'])  
                                         }
                                     }
                                 }
@@ -618,11 +618,11 @@ pipeline {
                                             }
                                             if(INTERNATIONAL_FLAG) {
                                                 //py3 -app : international
-                                                VERIFY_SERVICE_ARRAY.add([service_name: 'default', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])  
+                                                ARR_VERIFY_SERVICE.add([service_name: 'default', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])  
                                             }
                                             else {
                                                 //py3 -app : india
-                                                VERIFY_SERVICE_ARRAY.add([service_name: 'app', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])  
+                                                ARR_VERIFY_SERVICE.add([service_name: 'app', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])  
                                             }
                                         }                             
                                     }
@@ -637,7 +637,7 @@ pipeline {
                                                 sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_DASHBOARD_YAML --no-promote"
                                             }
                                             //py3 services
-                                            VERIFY_SERVICE_ARRAY.add([service_name: 'dashboard', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy'])                                                                     
+                                            ARR_VERIFY_SERVICE.add([service_name: 'dashboard', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy'])                                                                     
                                         }                               
                                     }
                                 }
@@ -650,7 +650,7 @@ pipeline {
                                                 sh "ls *.yaml"
                                                 sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_SSO_YAML --no-promote"
                                             }
-                                            VERIFY_SERVICE_ARRAY.add([service_name: 'sso', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/app/sso/_health_check'])  
+                                            ARR_VERIFY_SERVICE.add([service_name: 'sso', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/app/sso/_health_check'])  
                                         }                                 
                                     }
                                 }
@@ -663,7 +663,7 @@ pipeline {
                                                 sh "ls *.yaml"
                                                 sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_PRICEBOOK_YAML --no-promote"
                                             }
-                                            VERIFY_SERVICE_ARRAY.add([service_name: 'pricebook', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v1/pricebook/category/search?categoryname=1'])  
+                                            ARR_VERIFY_SERVICE.add([service_name: 'pricebook', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v1/pricebook/category/search?categoryname=1'])  
                                         }                                    
                                     }
                                 }
@@ -679,7 +679,7 @@ pipeline {
             steps {
                 container('gcloud') {                    
                     script { 
-                        for (item in VERIFY_SERVICE_ARRAY)   
+                        for (item in ARR_VERIFY_SERVICE)   
                         {
                             item.status = getURL_Status(service_name: item.service_name, version_name: item.version_name, url_suffix: item.url_suffix) 
                         }
@@ -691,7 +691,7 @@ pipeline {
            steps {
                 container('gcloud') {                    
                     script {                        
-                        for (item in VERIFY_SERVICE_ARRAY)   
+                        for (item in ARR_VERIFY_SERVICE)   
                         {                           
                             if (item.status == "200") {
                                 echo "promoting - ${item.service_name}"
