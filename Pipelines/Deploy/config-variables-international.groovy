@@ -1,7 +1,7 @@
 import groovy.transform.Field
 @Field def GCS_BUCKET_NAME;  
 @Field def ENVIRONMENT;
-@Field def SERVICE_ARRAY;
+@Field def ARR_SELECTED_SERVICE;
 
 @Field def CONTROLDESK_YAML;  
 @Field def PWA_YAML; 
@@ -38,9 +38,9 @@ def setProperties() {
          options = 'controldesk,web-ort,time2eat,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,default'
         }
         echo "SERVICE_NAME_LIST updated - $options"
-        SERVICE_ARRAY = "$options".split(',')                        
+        ARR_SELECTED_SERVICE = "$options".split(',')                        
       } else {           
-           SERVICE_ARRAY = params.SERVICE_NAME.split(',')
+           ARR_SELECTED_SERVICE = params.SERVICE_NAME.split(',')
        }
 
   /***************** INTERNATIONAL deployment *********/
