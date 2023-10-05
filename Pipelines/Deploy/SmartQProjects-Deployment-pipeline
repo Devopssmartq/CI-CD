@@ -11,15 +11,14 @@ def getURL_Status(Map args) {
         def service_url = sh(script: "gcloud app browse --service=${args.service_name} --version=${args.version_name} --no-launch-browser --format='value(url)'", returnStdout: true).trim()
         // must call trim() to remove the default trailing newline
         final status_code = sh(script: "curl --write-out %{http_code} --silent --output /dev/null '${service_url}/${args.url_suffix}'", returnStdout: true).trim()
-        echo status_code
-
-        if (status_code == "200") {
-            echo "Success with Status Code : ${status_code}" 
-        }
-        else { 
-            FAILED_URL_STATUS_COUNT = (FAILED_URL_STATUS_COUNT.toInteger() + 1).toString()
-            echo "Failed URL count : ${FAILED_URL_STATUS_COUNT}"
-        }
+        
+        // if (status_code == "200") {
+        //     echo "Success with Status Code : ${status_code}" 
+        // }
+        // else { 
+        //     FAILED_URL_STATUS_COUNT = (FAILED_URL_STATUS_COUNT.toInteger() + 1).toString()
+        //     echo "Failed URL count : ${FAILED_URL_STATUS_COUNT}"
+        // }
         return status_code
     }
 }
@@ -209,6 +208,7 @@ properties([
         ]
     ])
 ])
+
 pipeline {
     agent {
         kubernetes {
@@ -238,7 +238,7 @@ pipeline {
         }
     }
     environment {
-        FAILED_URL_STATUS_COUNT = '0'
+        //FAILED_URL_STATUS_COUNT = '0'
 
         CONTROLDESK_APP_ENGINE_VERSION = ''
         TIME2EAT_APP_ENGINE_VERSION = ''
@@ -678,18 +678,12 @@ pipeline {
         stage ('Check URL Status')  {
             steps {
                 container('gcloud') {                    
-                    script { 
-                        //bool isdeploymentsucessful = true
-                        //
+                    script {                        
                         for (item in ARR_VERIFY_SERVICE)   
                         {
-                            item.status = getURL_Status(service_name: item.service_name, version_name: item.version_name, url_suffix: item.url_suffix) 
-                            //if isdeploymentsucessful == true && item.status != "200" 
-                            // {
-                            //     then isdeploymentsucessful == false
-                            // }
+                            item.status = getURL_Status(service_name: "'${item.service_name}'", version_name: "'${item.version_name}'", url_suffix: "'${item.url_suffix}'") 
                         }
-                   }
+                  }
                 }
             }
         }     
@@ -697,11 +691,15 @@ pipeline {
            steps {
                 container('gcloud') {                    
                     script { 
-                        //if isdeploymentsucessful == true 
-                        // {}
-                        env.failed_url_count = FAILED_URL_STATUS_COUNT.toInteger().toString()
-                        echo "Failed URL count : ${env.failed_url_count}"                  
-                        if (env.failed_url_count == "0") {                    
+                        // env.failed_url_count = FAILED_URL_STATUS_COUNT.toInteger().toString()
+                        // echo "Failed URL count : ${env.failed_url_count}" 
+                        
+                        println "services to be promoted: ${ARR_VERIFY_SERVICE}"  
+                        def failed_url_count = ARR_VERIFY_SERVICE.findAll{ row -> row.status != '200'}.size()
+                        echo "failed_url_count - $failed_url_count"
+                       
+                        //if (env.failed_url_count == "0") {
+                        if (failed_url_count == 0) {
                             for (item in ARR_VERIFY_SERVICE)   
                             {                           
                                 if (item.status == "200") {
