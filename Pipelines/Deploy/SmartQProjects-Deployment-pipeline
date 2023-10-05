@@ -11,14 +11,13 @@ def getURL_Status(Map args) {
         def service_url = sh(script: "gcloud app browse --service=${args.service_name} --version=${args.version_name} --no-launch-browser --format='value(url)'", returnStdout: true).trim()
         // must call trim() to remove the default trailing newline
         final status_code = sh(script: "curl --write-out %{http_code} --silent --output /dev/null '${service_url}/${args.url_suffix}'", returnStdout: true).trim()
-        
-        // if (status_code == "200") {
-        //     echo "Success with Status Code : ${status_code}" 
-        // }
-        // else { 
-        //     FAILED_URL_STATUS_COUNT = (FAILED_URL_STATUS_COUNT.toInteger() + 1).toString()
-        //     echo "Failed URL count : ${FAILED_URL_STATUS_COUNT}"
-        // }
+         
+        if (status_code == "200") {
+            echo "Success with Status Code : ${status_code}" 
+        }
+        else { 
+            echo "Failed with Status Code : ${status_code}" 
+        }
         return status_code
     }
 }
@@ -52,6 +51,7 @@ def promote_Service(Map args) {
     return "${PROMOTED_SERVICE}"
 }
 
+//1. initialize the app that needs deployment
 def nodeapps = [
             [key: 'controldesk'],
             [key: 'smartq-pwa'],
@@ -75,6 +75,8 @@ def py3_services = [
             [key: 'pricebook']
         ]
 
+//Parameters that we are passing from jenkins UI
+//To-Do: refactor the script blocks to use from variable definition
 properties([
     parameters([
         [$class: 'ChoiceParameter',
@@ -331,7 +333,8 @@ pipeline {
                     sh "gcloud config set project ${params.APP_ENGINE_PROJECT_ID}"
                 }               
             }  
-        }      
+        }
+        //2. Add new application block       
         stage('NodeJs:Deploy Apps') { 
             when {
                 expression { return IS_NODEAPPS_ENABLED } // Check the condition here
@@ -353,11 +356,12 @@ pipeline {
                         if ('controldesk' in ARR_SELECTED_SERVICE) {
                             parallelJobs[nodeapps.find { it.key == 'controldesk' }] = {
                                 def APP_NAME = "controldesk"
-                                sh "mkdir -p ${APP_NAME}-latest" 
-
+                                sh "mkdir -p ${APP_NAME}-latest"
+                                
+                                // copy the binaries to build agent workspace - making it ready for deployment
                                 def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
                                 sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest/ --recursive"
-                                        
+                                //To-Do: move the get_AppEngine_Version() for all apps different stage/block       
                                 CONTROLDESK_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldesk')
                                         
                                 dir("${APP_NAME}-latest") {
@@ -412,7 +416,8 @@ pipeline {
                         if ('web-ort' in ARR_SELECTED_SERVICE) {
                             parallelJobs[nodeapps.find { it.key == 'web-ort' }] = {                                                           
                                 def APP_NAME = "web-ort"
-                                sh "mkdir -p ${APP_NAME}-latest" 
+                                sh "mkdir -p ${APP_NAME}-latest"
+                                // copy the binaries to build agent workspace - making it ready for deployment 
                                 def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
                                 sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
                                     
@@ -424,6 +429,8 @@ pipeline {
                                 ARR_VERIFY_SERVICE.add([service_name: 'web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main'])                        
                             }
                         }
+
+                        //2.1 Add new application block here
 
                         parallel(parallelJobs)
                     }
@@ -464,17 +471,17 @@ pipeline {
                             container('gcloud') {
                                 script {  
                                     sh "echo ${WORKSPACE}"
-                                    //1. copy generic-admin-dashboard
+                                    //1. copy generic-admin-dashboard - making it ready for deployment
                                     def APP_NAME = "generic-admin-dashboard" 
                                     def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
                                     sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/smartq-cloud-backend/py3_project/py3_backend/bqreports/admindashboard --recursive"
                                     
-                                    //2. copy vendor-dashboard
+                                    //2. copy vendor-dashboard - making it ready for deployment
                                     APP_NAME = "vendor-dashboard" 
                                     STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
                                     sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/smartq-cloud-backend/py3_project/py3_backend/bqreports/reports --recursive"
                                     
-                                    //3.copy ewallet
+                                    //3.copy ewallet - making it ready for deployment
                                     APP_NAME = "ewallet" 
                                     STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
                                     sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/smartq-cloud-backend/eWallet --recursive"
@@ -552,6 +559,7 @@ pipeline {
                                     }
                                 }
 
+                                //2.1 Add new service block here, if there is any to be added
                                 parallel(parallelJobs)
                             }
                         }
@@ -574,6 +582,7 @@ pipeline {
                                         }
                                     }
                                 }
+                                //2.1 Add new service block here, if there is any to be added
                                 parallel(py2_bqreports)                        
                             }               
                         }
@@ -667,7 +676,7 @@ pipeline {
                                         }                                    
                                     }
                                 }
-
+                                //2.1 Add new service block here, if there is any to be added
                                 parallel(parallelJobs)
                             }
                         }
@@ -690,15 +699,9 @@ pipeline {
         stage('Promote') {
            steps {
                 container('gcloud') {                    
-                    script { 
-                        // env.failed_url_count = FAILED_URL_STATUS_COUNT.toInteger().toString()
-                        // echo "Failed URL count : ${env.failed_url_count}" 
-                        
-                        println "services to be promoted: ${ARR_VERIFY_SERVICE}"  
+                    script {                        
                         def failed_url_count = ARR_VERIFY_SERVICE.findAll{ row -> row.status != '200'}.size()
                         echo "failed_url_count - $failed_url_count"
-                       
-                        //if (env.failed_url_count == "0") {
                         if (failed_url_count == 0) {
                             for (item in ARR_VERIFY_SERVICE)   
                             {                           
@@ -710,7 +713,8 @@ pipeline {
                         }
                         else {  
                             error('Promote halted....')
-                        }                        
+                        }
+                        println "result of verify service: ${ARR_VERIFY_SERVICE}"                         
                    }
                 }               
             }  
