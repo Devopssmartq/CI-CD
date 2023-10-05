@@ -284,6 +284,12 @@ def checkoutcontroldeskflutter(branch) {
             credentialsId: 'bitbucket api',
             url: 'https://yash123devops@bitbucket.org/bottlelabtech/control-desk-flutter.git'
             sh 'ls'
+            
+            // Get the commit ID of the current HEAD
+            //def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    
+            // Print the commit ID
+            //echo "Commit ID: ${commitId}"
         }
 }
 def buildcontroldeskflutter() {
@@ -361,24 +367,22 @@ pipeline {
     parameters {
 
     choice(name: 'BitBucketProject', choices: ['web-ort', 'control-desk', 'ewallet', 'time2eatweb', 'vendor-dashboard','generic-admin-dashboard', 'smartq-cloud-backend', 'sq_microservices_backend','controldeskflutter'], description: 'Select BitBucket Project')
-   // choice(name: 'Branch', choices: ['cicd-sprint','Release','SPRINT','feature-master', 'master','feature/sprint-25apr15may/preprod-config'], description: 'Select Branch')
-    string(name: 'Branch', description: 'Enter the branch name')
-   
-    
+    choice(name: 'Branch', choices: ['sprint', 'release', 'master', ''], description: 'Select Branch')
+    string(name: 'Custom_Branch', description: 'Enter the branch name')
+    string(name: 'CommitId', defaultValue:"latest", trim: true, description: 'Enter the commitId')
     }
 
 
         
     environment {
         //environment='SPRINT'
-        def commitId = 'your-dummy-commit-id'
+        def commitid = 'params.CommitId'
         def CLOUD_URL = 'Your_URL'
         VERSION_NUMBER = VersionNumber([
-            versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMddhhmmss"}-${BUILDS_TODAY}-{commitId}',  
+            versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMddhhmmss"}-${BUILDS_TODAY}-${commitId}',  
             worstResultForIncrement: 'SUCCESS'
         ])
-
-}
+    }
 
     stages { 
 
@@ -400,8 +404,16 @@ pipeline {
                 script {
                     def bitBucketProject = params.BitBucketProject.toLowerCase()
                     def branch = params.Branch
+                    def custombranch = params.Custom_Branch
+                    
+                    if (!custombranch.isEmpty()) {
+                        echo "Parameter custombranch is not empty. Its value is: ${custombranch}"
+                        branch="${custombranch}"
+                    }   
+                    
                     echo "Selected BitBucket Project: ${bitBucketProject}"
                     echo "Selected Branch: ${branch}"
+                    echo "Entered Custom_Branch: ${custombranch}"
                     echo "Selected GCS Bucket: ${branch}"
                     def buildPipeline = false
 
@@ -457,34 +469,19 @@ pipeline {
                 }
             }
         }
-
-
-
     }
 
-    post{
-
-        always{
-
-            script {
-                
-                mail bcc: '', body: "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nApplication  Name: ${bitBucketProject}.\nGCP Cloud URL: ${CLOUD_URL}.\n Version Number: ${VERSION_NUMBER}",
-
-                cc: 'Ajith.Vijayakumar@thesmartq.com, R.Prabhakaran@thesmartq.com , VenkateswaraReddi.P@thesmartq.com , abhijeet@thesmartq.com',
-
-                from: '',
-
-                replyTo: '',
-
-                subject: "Build Status# ${currentBuild.currentResult}",
-
-                to: 'yashwanth.kp@thesmartq.com'
-
-            }
-
-        }
-
-    }
-
+    // post{
+    //     always{
+    //         script {
+    //             mail bcc: '', body: "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nApplication  Name: ${bitBucketProject}.\nGCP Cloud URL: ${CLOUD_URL}.\n Version Number: ${VERSION_NUMBER}",
+    //             cc: 'Ajith.Vijayakumar@thesmartq.com, R.Prabhakaran@thesmartq.com , VenkateswaraReddi.P@thesmartq.com , abhijeet@thesmartq.com',
+    //             from: '',
+    //             replyTo: '',
+    //             subject: "Build Status# ${currentBuild.currentResult}",
+    //             to: 'yashwanth.kp@thesmartq.com'
+    //         }
+    //     }
+    // }
 }
 
