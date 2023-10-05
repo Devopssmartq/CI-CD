@@ -54,6 +54,7 @@ def promote_Service(Map args) {
 //1. initialize the app that needs deployment
 def nodeapps = [
             [key: 'controldesk'],
+            [key: 'controldeskflutter'],
             [key: 'smartq-pwa'],
             [key: 'foodbook-web'],
             [key: 'time2eat'],
@@ -144,6 +145,7 @@ properties([
                                         "smartqprd-nl",
                                         "smartqprd-nz",
                                         "smartqprd-sg",
+                                        "smartqprd-sng",
                                         "smartqprd-spain",
                                         "smartqprd-uae",
                                         "smartqprd-uk",
@@ -243,6 +245,7 @@ pipeline {
         //FAILED_URL_STATUS_COUNT = '0'
 
         CONTROLDESK_APP_ENGINE_VERSION = ''
+        CONTROLDESK_FLUTTER_APP_ENGINE_VERSION = ''
         TIME2EAT_APP_ENGINE_VERSION = ''
         WEBORT_APP_ENGINE_VERSION = ''
 
@@ -353,7 +356,7 @@ pipeline {
 
                         def parallelJobs = [:]
 
-                        if ('controldesk' in ARR_SELECTED_SERVICE) {
+                        if ('controldesk' in ARR_SELECTED_SERVICE) { // if controldesk in selected list , then we have to deploy flutter also
                             parallelJobs[nodeapps.find { it.key == 'controldesk' }] = {
                                 def APP_NAME = "controldesk"
                                 sh "mkdir -p ${APP_NAME}-latest"
@@ -369,8 +372,26 @@ pipeline {
                                 }
 
                                 ARR_VERIFY_SERVICE.add([service_name: 'controldesk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login'])
+                            }                           
+                            
+                            parallelJobs[nodeapps.find { it.key == 'controldeskflutter' }] = {
+                                def CONTROLDESK_FLUTTER_YAML = 'control-desk.yaml' //To-Do: need to get it from config variable, as like others
+                                //controldeskflutter
+                                def APP_NAME = "controldeskflutter"
+                                sh "mkdir -p ${APP_NAME}-latest"
+                                // copy the binaries to build agent workspace - making it ready for deployment
+                                def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
+                                sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest/ --recursive"
+                                //To-Do: move the get_AppEngine_Version() for all apps different stage/block       
+                                CONTROLDESK_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldeskflutter')
+                                        
+                                dir("${APP_NAME}-latest") {
+                                    sh "gcloud app deploy --version=$CONTROLDESK_FLUTTER_APP_ENGINE_VERSION --quiet $CONTROLDESK_FLUTTER_YAML --no-promote"
+                                }
+
+                                ARR_VERIFY_SERVICE.add([service_name: 'control-desk-flutter', version_name: "$CONTROLDESK_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'control-desk/login'])
                             }
-                        } 
+                        }  
 
                         if (!INTERNATIONAL_FLAG && 'smartq-pwa' in ARR_SELECTED_SERVICE) {
                             parallelJobs[nodeapps.find { it.key == 'smartq-pwa' }] = {
@@ -690,7 +711,7 @@ pipeline {
                     script {                        
                         for (item in ARR_VERIFY_SERVICE)   
                         {
-                            item.status = getURL_Status(service_name: "'${item.service_name}'", version_name: "'${item.version_name}'", url_suffix: "'${item.url_suffix}'") 
+                            item.status = getURL_Status(service_name: "${item.service_name}", version_name: "${item.version_name}", url_suffix: "${item.url_suffix}") 
                         }
                   }
                 }
