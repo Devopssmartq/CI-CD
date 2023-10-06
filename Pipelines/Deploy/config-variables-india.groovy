@@ -1,50 +1,33 @@
 import groovy.transform.Field
-@Field def GCS_BUCKET_NAME;  
-@Field def ENVIRONMENT;
-@Field def ARR_SELECTED_SERVICE;
+@Field def GCS_BUCKET_NAME  
+@Field def ENVIRONMENT
+@Field def GIT_BRANCH
 
-@Field def CONTROLDESK_YAML;  
-@Field def PWA_YAML; 
-@Field def FOODBOOK_YAML;
-@Field def TIME2EAT_YAML;
-@Field def BAWEB_YAML;  
-@Field def WEBORT_YAML;
+@Field def CONTROLDESK_YAML
+@Field def PWA_YAML 
+@Field def FOODBOOK_YAML
+@Field def TIME2EAT_YAML
+@Field def BAWEB_YAML  
+@Field def WEBORT_YAML
 
-@Field def APP_SERVICE_YAML;  
-@Field def DEFAULT_SERVICE_YAML;
-@Field def BACKGROUND_YAML;  
-@Field def TASKQSERVICE_YAML;
-@Field def REPORTS_YAML;  
-@Field def BQREPORTS_YAML;
+@Field def APP_SERVICE_YAML 
+@Field def DEFAULT_SERVICE_YAML
+@Field def BACKGROUND_YAML  
+@Field def TASKQSERVICE_YAML
+@Field def REPORTS_YAML  
+@Field def BQREPORTS_YAML
 
-@Field def PY3_APPMS_YAML;
-@Field def PY3_DASHBOARD_YAML;
-@Field def PY3_SSO_YAML;
-@Field def PY3_PRICEBOOK_YAML;
+@Field def PY3_APPMS_YAML
+@Field def PY3_DASHBOARD_YAML
+@Field def PY3_SSO_YAML
+@Field def PY3_PRICEBOOK_YAML
 
 def setProperties() {
     GCS_BUCKET_NAME = "sqinternational-cicd.appspot.com"
-    ENVIRONMENT = RELEASE_SCOPE == "sprint" ? "SPRINT" : RELEASE_SCOPE == "preprod" ? "RELEASE" : "MASTER"
+    ENVIRONMENT = (RELEASE_SCOPE == "sprint") ? "SPRINT" : (RELEASE_SCOPE == "preprod") ? "RELEASE" : "MASTER"
     // To-do : change the following to appropriate branch names, once release brnach is created
-    GIT_BRANCH = RELEASE_SCOPE == "sprint" ? "cicd-sprint" : RELEASE_SCOPE == "preprod" ? "cicd-sprint" : "master"
-      
-    if(params.SERVICE_NAME == "All" || params.SERVICE_NAME.isEmpty())
-    {
-     def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
-     def options = 'controldesk,web-ort,foodbook-web,smartq-pwa,default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook'
-     if (type == "India") {
-         options = 'controldesk,web-ort,foodbook-web,smartq-pwa,default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook'
-     } 
-     else if (type == "International") {
-         options = 'controldesk,web-ort,time2eat,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,default'
-     }       
-      echo "SERVICE_NAME_LIST updated - $options"
-      ARR_SELECTED_SERVICE = "$options".split(',')                        
-    } 
-    else {
-      ARR_SELECTED_SERVICE = params.SERVICE_NAME.split(',')
-    }
-  
+    GIT_BRANCH = (RELEASE_SCOPE == "sprint") ? "cicd-sprint" : (RELEASE_SCOPE == "preprod") ? "release" : "master"
+    
   /***************** INDIA deployment *********/
 //frontend service  yamls
     CONTROLDESK_YAML = RELEASE_SCOPE == "beta" ? 'beta-app.yaml' : 'app.yaml'
