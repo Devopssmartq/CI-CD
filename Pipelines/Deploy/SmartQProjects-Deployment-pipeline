@@ -193,7 +193,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["All:selected","controldesk","web-ort","time2eat","baweb","foodbook-web","smartq-pwa","appservice","default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","default","app","pricebook"]'
+                    script: 'return ["All:selected","controldesk","web-ort","foodbook-web","smartq-pwa","default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","app","pricebook"]'
                 ],
                 script: [
                     classpath: [],
@@ -243,8 +243,6 @@ pipeline {
         }
     }
     environment {
-        //FAILED_URL_STATUS_COUNT = '0'
-
         CONTROLDESK_APP_ENGINE_VERSION = ''
         CONTROLDESK_FLUTTER_APP_ENGINE_VERSION = ''
         TIME2EAT_APP_ENGINE_VERSION = ''
