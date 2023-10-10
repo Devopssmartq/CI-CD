@@ -92,18 +92,19 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["sprint:selected", "preprod", "beta", "prod"]'
+                    script: 'return ["sprint:selected", "preprod", "beta", "prod", "hot-fix"]'
                 ],
                 script: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
                     script: '''
-                        def choices = ["sprint:selected", "preprod", "beta", "prod"]
+                        def choices = ["sprint:selected", "preprod", "beta", "prod", "hot-fix"]
                         return choices
                     '''
                 ]
             ]
         ],
+        string(name: 'GIT_BRANCH',defaultValue: '', description: 'hotfix branch name'),
         [$class: 'CascadeChoiceParameter',
             choiceType: 'PT_SINGLE_SELECT',
             description: 'Select the Project_ID',
@@ -151,6 +152,31 @@ properties([
                                         "smartqprd-uae",
                                         "smartqprd-uk",
                                         "smartqprd-us:selected"
+                                        ]
+                        } else if (scope == "hot-fix") {
+                            options = [ "sqpreprod-india", 
+                                        "sqpreprod-uk", 
+                                        "sqpreprod-us:selected"
+                                        "smartqprd-au",
+                                        "smartqprd-be",
+                                        "smartqprd-chi",
+                                        "smartqprd-cn",
+                                        "smartqprd-de",
+                                        "smartqprd-fi", 
+                                        "smartqprd-hk",
+                                        "smartqprd-ie",
+                                        "smartqprd-india",
+                                        "smartqprd-it",
+                                        "smartqprd-jp",
+                                        "smartqprd-mex",
+                                        "smartqprd-nl",
+                                        "smartqprd-nz",
+                                        "smartqprd-sg",
+                                        "smartqprd-sng",
+                                        "smartqprd-spain",
+                                        "smartqprd-uae",
+                                        "smartqprd-uk",
+                                        "smartqprd-us"
                                         ]
                         }
                         return options
@@ -285,6 +311,7 @@ pipeline {
                 script {                    
                     env.RELEASE_SCOPE = params.RELEASE_SCOPE
                     env.APP_ENGINE_PROJECT_ID = params.APP_ENGINE_PROJECT_ID
+                    env.GIT_BRANCH = params.GIT_BRANCH
 
                     if(params.SERVICE_NAME == "All" || params.SERVICE_NAME.isEmpty())
                     {
@@ -324,7 +351,7 @@ pipeline {
                         load("$GroovyScript").setProperties()
                         echo "$GCS_BUCKET_NAME"
                         echo "$ENVIRONMENT"
-                        echo "$GIT_BRANCH"
+                        echo "GIT_BRANCH - $GIT_BRANCH"
 
                         echo "$CONTROLDESK_YAML"
                         echo "$PWA_YAML"
