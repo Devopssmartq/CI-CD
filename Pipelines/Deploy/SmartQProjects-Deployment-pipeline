@@ -87,6 +87,7 @@ def py3_services = [
             [key: 'dashboard'],
             [key: 'sso'],
             [key: 'pricebook']
+            [key: 'integration']
         ]
 
 //Parameters that we are passing from jenkins UI
@@ -240,7 +241,7 @@ properties([
                         if (type == "India") {
                             options = ["All:selected","controldesk","web-ort","foodbook-web","smartq-pwa","default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","app","pricebook"]
                         } else if (type == "International") {
-                            options = ["All:selected","controldesk","web-ort","time2eat","baweb","appservice","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","default"]
+                            options = ["All:selected","controldesk","web-ort","time2eat","baweb","appservice","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","default","integration"]
                         }
                         return options
                     '''
@@ -331,7 +332,7 @@ pipeline {
                             options = 'controldesk,web-ort,foodbook-web,smartq-pwa,default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook'
                         } 
                         else if (type == "International") {
-                            options = 'controldesk,web-ort,time2eat,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,default'
+                            options = 'controldesk,web-ort,time2eat,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,default,integration'
                         }       
                         //echo "SERVICE_NAME_LIST updated - $options"
                         ARR_SELECTED_SERVICE = "$options".split(',')                        
@@ -360,7 +361,7 @@ pipeline {
                     configFileProvider([configFile(fileId: "$MY_FILE_ID", variable: 'GroovyScript')]) {
                         load("$GroovyScript").setProperties()
                         echo "$GCS_BUCKET_NAME"
-                        echo "$ENVIRONMENT"
+                        echo "$ENVIRONMENT"//see if you can get rid of this in all the places & use GIT_BRANCH, as both are same now
                         echo "GIT_BRANCH - $GIT_BRANCH"
 
                         echo "$CONTROLDESK_YAML"
@@ -381,6 +382,7 @@ pipeline {
                         echo "$PY3_DASHBOARD_YAML"
                         echo "$PY3_SSO_YAML"
                         echo "$PY3_PRICEBOOK_YAML"
+                        echo "$PY3_INTEGRATION_YAML"                        
                     }
                 }                
             }
@@ -752,6 +754,19 @@ pipeline {
                                                 sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_PRICEBOOK_YAML --no-promote"
                                             }
                                             ARR_VERIFY_SERVICE.add([service_name: 'pricebook', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v1/pricebook/category/search?categoryname=1'])  
+                                        }                                    
+                                    }
+                                }
+
+                                if(INTERNATIONAL_FLAG && 'integration' in ARR_SELECTED_SERVICE) {// ! For India only - Skip this when the condition is false
+                                    parallelJobs[py3_services.find { it.key == 'integration' }] = {
+                                        dir ('sq_microservices_backend') {
+                                            sh 'cp -r commonlib appms'
+                                            dir ('appms') {
+                                                sh "ls *.yaml"
+                                                sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_INTEGRATION_YAML --no-promote"
+                                            }
+                                            ARR_VERIFY_SERVICE.add([service_name: 'integration', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])  
                                         }                                    
                                     }
                                 }
