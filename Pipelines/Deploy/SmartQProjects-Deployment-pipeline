@@ -64,6 +64,17 @@ def promote_Service(Map args) {
     return "${PROMOTED_SERVICE}"
 }
 
+def Write_To_File() {
+    script {    
+        def filePath = "${env.WORKSPACE}/release-${env.VERSION_NUMBER}.txt"                  
+        def content = ARR_VERIFY_SERVICE.join('\n')
+        writeFile file: filePath, text: content                                            
+        echo "Items written to ${filePath}"
+        def data = readFile(file: "${filePath}")
+        println(data)
+    }
+}
+
 //1. initialize the app that needs deployment
 def nodeapps = [
             [key: 'controldesk'],
@@ -76,7 +87,7 @@ def nodeapps = [
         ]
 def py2_services = [
             [key: 'appservice'],
-            [key: 'default'],
+            [key: 'py2_default'],//india
             [key: 'backgroundtasks'],
             [key: 'taskqservice'],
             [key: 'reports'],
@@ -84,6 +95,7 @@ def py2_services = [
         ]
 def py3_services = [
             [key: 'app'],
+            [key: 'py3_default'], //international           
             [key: 'dashboard'],
             [key: 'sso'],
             [key: 'pricebook'],
@@ -230,7 +242,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["All:selected","controldesk","web-ort","foodbook-web","smartq-pwa","default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","app","pricebook"]'
+                    script: 'return ["All:selected","controldesk","web-ort","foodbook-web","smartq-pwa","py2_default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","app","pricebook"]'
                 ],
                 script: [
                     classpath: [],
@@ -239,9 +251,9 @@ properties([
                         def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
                         def options = []
                         if (type == "India") {
-                            options = ["All:selected","controldesk","web-ort","foodbook-web","smartq-pwa","default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","app","pricebook"]
+                            options = ["All:selected","controldesk","web-ort","foodbook-web","smartq-pwa","py2_default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","app","pricebook"]
                         } else if (type == "International") {
-                            options = ["All:selected","controldesk","web-ort","time2eat","baweb","appservice","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","default","integration"]
+                            options = ["All:selected","controldesk","web-ort","time2eat","baweb","appservice","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","py3_default","integration"]
                         }
                         return options
                     '''
@@ -293,6 +305,11 @@ pipeline {
 
         // Initialize a boolean flag
         INTERNATIONAL_FLAG = false
+        VERSION_NUMBER = VersionNumber([
+            versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMdd"}-${BUILDS_TODAY}', 
+            //versionPrefix: 'v1.0.', 
+            worstResultForIncrement: 'SUCCESS'
+        ])
     }
     stages {
         stage('Check Deployment Type - India / International ') {
@@ -327,12 +344,12 @@ pipeline {
                     if(params.SERVICE_NAME == "All" || params.SERVICE_NAME.isEmpty())
                     {
                         def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
-                        def options = 'controldesk,web-ort,foodbook-web,smartq-pwa,default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook'
+                        def options = 'controldesk,web-ort,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook'
                         if (type == "India") {
-                            options = 'controldesk,web-ort,foodbook-web,smartq-pwa,default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook'
+                            options = 'controldesk,web-ort,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook'
                         } 
                         else if (type == "International") {
-                            options = 'controldesk,web-ort,time2eat,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,default,integration'
+                            options = 'controldesk,web-ort,time2eat,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration'
                         }       
                         //echo "SERVICE_NAME_LIST updated - $options"
                         ARR_SELECTED_SERVICE = "$options".split(',')                        
@@ -587,8 +604,12 @@ pipeline {
                             script {
                                 def parallelJobs = [:]
 
-                                APP_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ewallet')                                
-                                PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')                                
+                                APP_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ewallet')
+                                ADMIN_DASHBOARD_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'generic-admin-dashboard')
+                                VENDOR_DASHBOARD_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'vendor-dashboard')
+                                PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')
+                                //PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend') + "-" + APP_SERVICE_APP_ENGINE_VERSION + "-" +  ADMIN_DASHBOARD_APP_ENGINE_VERSION  + "-" + VENDOR_DASHBOARD_APP_ENGINE_VERSION  //Must not exceed 63 characters.                         
+                                echo "PY2_SERVICE_APP_ENGINE_VERSION : $PY2_SERVICE_APP_ENGINE_VERSION"
 
                                 if (INTERNATIONAL_FLAG && 'appservice' in ARR_SELECTED_SERVICE) {
                                     parallelJobs[py2_services.find { it.key == 'appservice' }] = {
@@ -600,8 +621,8 @@ pipeline {
                                     }
                                 }
 
-                                if (!INTERNATIONAL_FLAG && 'default' in ARR_SELECTED_SERVICE) { // ! For India only - Skip this when the condition is false
-                                    parallelJobs[py2_services.find { it.key == 'default' }] = {
+                                if (!INTERNATIONAL_FLAG && 'py2_default' in ARR_SELECTED_SERVICE) { // ! For India only - Skip this when the condition is false
+                                    parallelJobs[py2_services.find { it.key == 'py2_default' }] = {
                                         dir ('smartq-cloud-backend') {
                                             sh "ls *.yaml"
                                             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $DEFAULT_SERVICE_YAML --no-promote"
@@ -698,22 +719,30 @@ pipeline {
 
                                 PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
 
-                                if ('app' in ARR_SELECTED_SERVICE) {
+                                if (!INTERNATIONAL_FLAG && 'app' in ARR_SELECTED_SERVICE) {
                                     parallelJobs[py3_services.find { it.key == 'app' }] = {
                                         dir ('sq_microservices_backend') {
                                             sh 'cp -r commonlib appms'
                                             dir ('appms') {
                                                 sh "ls *.yaml"
                                                 sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_APPMS_YAML --no-promote"
-                                            }
-                                            if(INTERNATIONAL_FLAG) {
-                                                //py3 -app : international
-                                                ARR_VERIFY_SERVICE.add([service_name: 'default', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])  
-                                            }
-                                            else {
-                                                //py3 -app : india
-                                                ARR_VERIFY_SERVICE.add([service_name: 'app', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])  
-                                            }
+                                            }                                           
+                                            //py3 -app : india
+                                            ARR_VERIFY_SERVICE.add([service_name: 'app', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])  
+                                        }                             
+                                    }
+                                }
+
+                                if (INTERNATIONAL_FLAG && 'py3_default' in ARR_SELECTED_SERVICE) {
+                                    parallelJobs[py3_services.find { it.key == 'py3_default' }] = {
+                                        dir ('sq_microservices_backend') {
+                                            sh 'cp -r commonlib appms'
+                                            dir ('appms') {
+                                                sh "ls *.yaml"
+                                                sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_APPMS_YAML --no-promote"
+                                            }                                           
+                                            //py3 -app : international
+                                            ARR_VERIFY_SERVICE.add([service_name: 'default', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])  
                                         }                             
                                     }
                                 }
@@ -786,6 +815,7 @@ pipeline {
                         {
                             item.status = getURL_Status(service_name: "${item.service_name}", version_name: "${item.version_name}", url_suffix: "${item.url_suffix}") 
                             item.previous_version = get_Previous_Version(service_name: "${item.service_name}") 
+                            item.new_version = "${item.version_name}"
                         }
                     }
                 }
@@ -804,9 +834,10 @@ pipeline {
                                     echo "promoting - ${item.service_name}"
                                     promote_Service(service_name: "${item.service_name}", version_name: "${item.version_name}")
                                     item.new_version = "${item.version_name}"
-                                }
-                                //writeFile(file: 'smartq-release.txt', text: item)                          
+                                }                                                   
                             }
+                            //Add a method/logic to write the array to a file
+                            Write_To_File()
                         }
                         else {  
                             error('Promote halted....')
