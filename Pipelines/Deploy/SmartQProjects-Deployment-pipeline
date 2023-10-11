@@ -86,7 +86,7 @@ def py3_services = [
             [key: 'app'],
             [key: 'dashboard'],
             [key: 'sso'],
-            [key: 'pricebook']
+            [key: 'pricebook'],
             [key: 'integration']
         ]
 
@@ -804,16 +804,17 @@ pipeline {
                                     echo "promoting - ${item.service_name}"
                                     promote_Service(service_name: "${item.service_name}", version_name: "${item.version_name}")
                                     item.new_version = "${item.version_name}"
-                                }                          
+                                }
+                                //writeFile(file: 'smartq-release.txt', text: item)                          
                             }
                         }
                         else {  
                             error('Promote halted....')
                         }
                         println "result of verify service: ${ARR_VERIFY_SERVICE}"                         
-                   }
+                    }
                 }               
             }  
-        }
+        }       
     } 
 }
