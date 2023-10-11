@@ -23,6 +23,18 @@ def getURL_Status(Map args) {
     }
 }
 
+def get_Previous_Version(Map args) {
+    script {    
+        def previous_verison = sh ( 
+            script:"gcloud app versions list --service=${args.service_name} --limit=1 --format='value(VERSION.ID)' --filter='traffic_split>0'", 
+            returnStdout: true
+        ).trim()
+        // must call trim() to remove the default trailing newline
+        
+        return previous_verison
+    }
+}
+
 def get_Storage_Object_Source_Path(Map args) { 
     def source_path = sh (
         script: "gcloud storage ls gs://${GCS_BUCKET_NAME}/${ENVIRONMENT}/${args.app_name} | sort --ignore-case -rV | head -n 1",
@@ -152,11 +164,11 @@ properties([
                                         "smartqprd-uae",
                                         "smartqprd-uk",
                                         "smartqprd-us:selected"
-                                        ]
+                                    ]
                         } else if (scope == "hot-fix") {
                             options = [ "sqpreprod-india", 
                                         "sqpreprod-uk", 
-                                        "sqpreprod-us:selected"
+                                        "sqpreprod-us:selected",
                                         "smartqprd-au",
                                         "smartqprd-be",
                                         "smartqprd-chi",
@@ -183,7 +195,7 @@ properties([
                     '''
                 ]
             ]
-        ],         
+        ],       
         [$class: 'ChoiceParameter',
             choiceType: 'PT_RADIO',
             description: 'Select Deployment Type',
@@ -760,8 +772,9 @@ pipeline {
                         for (item in ARR_VERIFY_SERVICE)   
                         {
                             item.status = getURL_Status(service_name: "${item.service_name}", version_name: "${item.version_name}", url_suffix: "${item.url_suffix}") 
+                            item.previous_version = get_Previous_Version(service_name: "${item.service_name}") 
                         }
-                  }
+                    }
                 }
             }
         }     
@@ -777,6 +790,7 @@ pipeline {
                                 if (item.status == "200") {
                                     echo "promoting - ${item.service_name}"
                                     promote_Service(service_name: "${item.service_name}", version_name: "${item.version_name}")
+                                    item.new_version = "${item.version_name}"
                                 }                          
                             }
                         }
