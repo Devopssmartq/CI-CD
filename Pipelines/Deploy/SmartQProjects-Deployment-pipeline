@@ -24,14 +24,25 @@ def getURL_Status(Map args) {
 }
 
 def get_Previous_Version(Map args) {
-    script {    
+    container('gcloud') {
         def previous_verison = sh ( 
             script:"gcloud app versions list --service=${args.service_name} --limit=1 --format='value(VERSION.ID)' --filter='traffic_split>0'", 
             returnStdout: true
-        ).trim()
-        // must call trim() to remove the default trailing newline
-        
+        ).trim()// must call trim() to remove the default trailing newline
+                
         return previous_verison
+     }
+}
+
+def is_Version_Exists(Map args) {
+    script {       
+        def previous_verison = get_Previous_Version(service_name: "${args.service_name}")
+        def new_version = get_AppEngine_Version(app_name: "${args.app_name}")
+        echo "previous_verison - ${previous_verison}"
+        echo "new_version - ${new_version}"   
+        boolean version_Exists = (previous_verison == new_version) ? true : false
+        echo "version_Exists - $version_Exists, skipping the deployment for ${args.service_name}"
+        return version_Exists
     }
 }
 
@@ -45,6 +56,7 @@ def get_Storage_Object_Source_Path(Map args) {
 }
 
 def get_AppEngine_Version(Map args) {
+     container('gcloud') {
         def STORAGE_OBJECT_SOURCE_PATH = sh (
                 script: "gcloud storage ls gs://${GCS_BUCKET_NAME}/${ENVIRONMENT}/${args.app_name} | sort --ignore-case -rV | head -n 1",
                 returnStdout: true
@@ -57,6 +69,7 @@ def get_AppEngine_Version(Map args) {
 
         echo "App_Engine_Version for ${args.app_name} : ${APP_ENGINE_VERSION}"       
         return "${APP_ENGINE_VERSION}"
+     }
 }
 
 def promote_Service(Map args) {
@@ -404,6 +417,25 @@ pipeline {
                 }                
             }
         }
+        stage('Get the versions to be deployed') {
+            steps {
+                script {
+                    //node app - versions                  
+                    TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')     
+                    CONTROLDESK_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldesk') 
+                    CONTROLDESK_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldeskflutter')
+                    WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'web-ort')
+                    //Py2 serices related versions
+                    APP_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ewallet')
+                    //ADMIN_DASHBOARD_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'generic-admin-dashboard')
+                    BQREPORTS_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'vendor-dashboard')
+                    PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')
+                    //PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend') + "-" + APP_SERVICE_APP_ENGINE_VERSION + "-" +  ADMIN_DASHBOARD_APP_ENGINE_VERSION  + "-" + VENDOR_DASHBOARD_APP_ENGINE_VERSION  //Must not exceed 63 characters.
+                    //py3 micro service- version
+                    PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                }
+            }
+        }
         stage('Set GCloud ProjectID') {
            steps {
                 container('gcloud') {
@@ -426,12 +458,11 @@ pipeline {
                             sh "mkdir -p ${PWA_APP_NAME}-latest"
                             def PWA_STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${PWA_APP_NAME}")
                             sh "gcloud storage cp ${PWA_STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${PWA_APP_NAME}-latest --recursive"
-                            TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
                         }
 
                         def parallelJobs = [:]
 
-                        if ('controldesk' in ARR_SELECTED_SERVICE) { // if controldesk in selected list , then we have to deploy flutter also
+                        if ('controldesk' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'controldesk', app_name: 'controldesk') == false) { // if controldesk in selected list , then we have to deploy flutter also
                             parallelJobs[nodeapps.find { it.key == 'controldesk' }] = {
                                 def APP_NAME = "controldesk"
                                 sh "mkdir -p ${APP_NAME}-latest"
@@ -439,9 +470,7 @@ pipeline {
                                 // copy the binaries to build agent workspace - making it ready for deployment
                                 def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
                                 sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest/ --recursive"
-                                //To-Do: move the get_AppEngine_Version() for all apps different stage/block       
-                                CONTROLDESK_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldesk')
-                                        
+                                                                        
                                 dir("${APP_NAME}-latest") {
                                     sh "gcloud app deploy --version=$CONTROLDESK_APP_ENGINE_VERSION --quiet $CONTROLDESK_YAML --no-promote"
                                 }
@@ -450,27 +479,25 @@ pipeline {
                             }
                         }
 
-                        if ('controldesk' in ARR_SELECTED_SERVICE) { // if controldesk in selected list , then we have to deploy flutter also -- if condition won't change here                           
-                            parallelJobs[nodeapps.find { it.key == 'controldeskflutter' }] = {
-                                def CONTROLDESK_FLUTTER_YAML = 'control-desk.yaml' //To-Do: need to get it from config variable, as like others
-                                //controldeskflutter
-                                def APP_NAME = "controldeskflutter"
-                                sh "mkdir -p ${APP_NAME}-latest"
-                                // copy the binaries to build agent workspace - making it ready for deployment
-                                def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
-                                sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest/ --recursive"
-                                //To-Do: move the get_AppEngine_Version() for all apps different stage/block       
-                                CONTROLDESK_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldeskflutter')
-                                        
-                                dir("${APP_NAME}-latest") {
-                                    sh "gcloud app deploy --version=$CONTROLDESK_FLUTTER_APP_ENGINE_VERSION --quiet $CONTROLDESK_FLUTTER_YAML --no-promote"
-                                }
+                        // if ('controldesk' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'control-desk-flutter', app_name: 'controldeskflutter') == false) { // if controldesk in selected list , then we have to deploy flutter also -- if condition won't change here                           
+                        //     parallelJobs[nodeapps.find { it.key == 'controldeskflutter' }] = {
+                        //         def CONTROLDESK_FLUTTER_YAML = 'control-desk.yaml' //To-Do: need to get it from config variable, as like others
+                        //         //controldeskflutter
+                        //         def APP_NAME = "controldeskflutter"
+                        //         sh "mkdir -p ${APP_NAME}-latest"
+                        //         // copy the binaries to build agent workspace - making it ready for deployment
+                        //         def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
+                        //         sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest/ --recursive"
+                                                                        
+                        //         dir("${APP_NAME}-latest") {
+                        //             sh "gcloud app deploy --version=$CONTROLDESK_FLUTTER_APP_ENGINE_VERSION --quiet $CONTROLDESK_FLUTTER_YAML --no-promote"
+                        //         }
 
-                                ARR_VERIFY_SERVICE.add([service_name: 'control-desk-flutter', version_name: "$CONTROLDESK_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'control-desk-v2/login'])
-                            }
-                        }  
+                        //         ARR_VERIFY_SERVICE.add([service_name: 'control-desk-flutter', version_name: "$CONTROLDESK_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'control-desk-v2/login'])
+                        //     }
+                        // }  
 
-                        if (!INTERNATIONAL_FLAG && 'smartq-pwa' in ARR_SELECTED_SERVICE) {
+                        if (!INTERNATIONAL_FLAG && 'smartq-pwa' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'smartq-pwa', app_name: 'time2eat') == false) {
                             parallelJobs[nodeapps.find { it.key == 'smartq-pwa' }] = {
                                 dir("${PWA_APP_NAME}-latest") {
                                     sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $PWA_YAML --no-promote"
@@ -479,7 +506,7 @@ pipeline {
                             }
                         }
 
-                        if (!INTERNATIONAL_FLAG && 'foodbook-web' in ARR_SELECTED_SERVICE) {
+                        if (!INTERNATIONAL_FLAG && 'foodbook-web' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'foodbook-web', app_name: 'time2eat') == false) {
                             parallelJobs[nodeapps.find { it.key == 'foodbook-web' }] = {
                                 dir("${PWA_APP_NAME}-latest") {
                                     sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $FOODBOOK_YAML --no-promote"
@@ -488,7 +515,7 @@ pipeline {
                             }
                         }
 
-                        if (INTERNATIONAL_FLAG && 'time2eat' in ARR_SELECTED_SERVICE) {
+                        if (INTERNATIONAL_FLAG && 'time2eat' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'time2eat', app_name: 'time2eat') == false) {
                             parallelJobs[nodeapps.find { it.key == 'time2eat' }] = {
                                 dir("${PWA_APP_NAME}-latest") {
                                     sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $TIME2EAT_YAML --no-promote"
@@ -497,7 +524,7 @@ pipeline {
                             }
                         }
 
-                        if (INTERNATIONAL_FLAG && 'baweb' in ARR_SELECTED_SERVICE) {
+                        if (INTERNATIONAL_FLAG && 'baweb' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'baweb', app_name: 'time2eat') == false) {
                             parallelJobs[nodeapps.find { it.key == 'baweb' }] = {
                                 dir("${PWA_APP_NAME}-latest") {
                                     //enable baweb only for us region servers
@@ -511,15 +538,13 @@ pipeline {
                             }
                         }
                         
-                        if ('web-ort' in ARR_SELECTED_SERVICE) {
+                        if ('web-ort' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'web-ort', app_name: 'web-ort') == false) {
                             parallelJobs[nodeapps.find { it.key == 'web-ort' }] = {                                                           
                                 def APP_NAME = "web-ort"
                                 sh "mkdir -p ${APP_NAME}-latest"
                                 // copy the binaries to build agent workspace - making it ready for deployment 
                                 def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
                                 sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
-                                    
-                                WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'web-ort')                                
                                 
                                 dir("${APP_NAME}-latest") {
                                     sh "gcloud app deploy --version=$WEBORT_APP_ENGINE_VERSION --quiet $WEBORT_YAML --no-promote"
@@ -603,15 +628,10 @@ pipeline {
                         container('gcloud') {
                             script {
                                 def parallelJobs = [:]
-
-                                APP_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ewallet')
-                                ADMIN_DASHBOARD_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'generic-admin-dashboard')
-                                VENDOR_DASHBOARD_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'vendor-dashboard')
-                                PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')
-                                //PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend') + "-" + APP_SERVICE_APP_ENGINE_VERSION + "-" +  ADMIN_DASHBOARD_APP_ENGINE_VERSION  + "-" + VENDOR_DASHBOARD_APP_ENGINE_VERSION  //Must not exceed 63 characters.                         
+                                                         
                                 echo "PY2_SERVICE_APP_ENGINE_VERSION : $PY2_SERVICE_APP_ENGINE_VERSION"
 
-                                if (INTERNATIONAL_FLAG && 'appservice' in ARR_SELECTED_SERVICE) {
+                                if (INTERNATIONAL_FLAG && 'appservice' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'appservice', app_name: 'ewallet') == false) {
                                     parallelJobs[py2_services.find { it.key == 'appservice' }] = {
                                         dir ('smartq-cloud-backend'){
                                             sh "ls *.yaml"
@@ -621,7 +641,7 @@ pipeline {
                                     }
                                 }
 
-                                if (!INTERNATIONAL_FLAG && 'py2_default' in ARR_SELECTED_SERVICE) { // ! For India only - Skip this when the condition is false
+                                if (!INTERNATIONAL_FLAG && 'py2_default' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'default', app_name: 'smartq-cloud-backend') == false) { // ! For India only - Skip this when the condition is false
                                     parallelJobs[py2_services.find { it.key == 'py2_default' }] = {
                                         dir ('smartq-cloud-backend') {
                                             sh "ls *.yaml"
@@ -632,7 +652,7 @@ pipeline {
                                     }
                                 }
 
-                                if ('backgroundtasks' in ARR_SELECTED_SERVICE) {
+                                if ('backgroundtasks' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'backgroundtasks', app_name: 'smartq-cloud-backend') == false) {
                                     parallelJobs[py2_services.find { it.key == 'backgroundtasks' }] = {
                                         dir ('smartq-cloud-backend') {
                                             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $BACKGROUND_YAML --no-promote"
@@ -641,7 +661,7 @@ pipeline {
                                     }
                                 }
 
-                                if ('taskqservice' in ARR_SELECTED_SERVICE) {
+                                if ('taskqservice' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'taskqservice', app_name: 'smartq-cloud-backend') == false) {
                                     parallelJobs[py2_services.find { it.key == 'taskqservice' }] = {
                                         dir ('smartq-cloud-backend'){
                                             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $TASKQSERVICE_YAML --no-promote"
@@ -650,7 +670,7 @@ pipeline {
                                     }
                                 }
 
-                                if (!INTERNATIONAL_FLAG && 'reports' in ARR_SELECTED_SERVICE) { // ! For India only - Skip this when the condition is false
+                                if (!INTERNATIONAL_FLAG && 'reports' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'reports', app_name: 'smartq-cloud-backend') == false) { // ! For India only - Skip this when the condition is false
                                     parallelJobs[py2_services.find { it.key == 'reports' }] = {
                                         dir ('smartq-cloud-backend'){
                                             sh "ls *.yaml"
@@ -671,9 +691,8 @@ pipeline {
                     steps {
                         script {
                             container('gcloud') {
-                                BQREPORTS_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'vendor-dashboard')
                                 def py2_bqreports = [:]
-                                if ('bqreports' in ARR_SELECTED_SERVICE) {
+                                if ('bqreports' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'bqreports', app_name: 'vendor-dashboard') == false) {
                                     py2_bqreports[py2_services.find { it.key == 'bqreports' }] = {
                                         dir ('smartq-cloud-backend') {
                                             dir ('py3_project') {
@@ -717,9 +736,7 @@ pipeline {
 
                                 def parallelJobs = [:]
 
-                                PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
-
-                                if (!INTERNATIONAL_FLAG && 'app' in ARR_SELECTED_SERVICE) {
+                                if (!INTERNATIONAL_FLAG && 'app' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'app', app_name: 'sq_microservices_backend') == false) {
                                     parallelJobs[py3_services.find { it.key == 'app' }] = {
                                         dir ('sq_microservices_backend') {
                                             sh 'cp -r commonlib appms'
@@ -733,7 +750,7 @@ pipeline {
                                     }
                                 }
 
-                                if (INTERNATIONAL_FLAG && 'py3_default' in ARR_SELECTED_SERVICE) {
+                                if (INTERNATIONAL_FLAG && 'py3_default' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'default', app_name: 'sq_microservices_backend') == false) {
                                     parallelJobs[py3_services.find { it.key == 'py3_default' }] = {
                                         dir ('sq_microservices_backend') {
                                             sh 'cp -r commonlib appms'
@@ -747,7 +764,7 @@ pipeline {
                                     }
                                 }
 
-                                if ('dashboard' in ARR_SELECTED_SERVICE) {
+                                if ('dashboard' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'dashboard', app_name: 'sq_microservices_backend') == false) {
                                     parallelJobs[py3_services.find { it.key == 'dashboard' }] = {
                                         dir ('sq_microservices_backend') {
                                             sh 'cp -r commonlib dashboardms'
@@ -761,7 +778,7 @@ pipeline {
                                     }
                                 }
 
-                                if ('sso' in ARR_SELECTED_SERVICE) {
+                                if ('sso' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'sso', app_name: 'sq_microservices_backend') == false) {
                                     parallelJobs[py3_services.find { it.key == 'sso' }] = {
                                         dir ('sq_microservices_backend') {
                                             sh 'cp -r commonlib sso_flex'
@@ -774,7 +791,7 @@ pipeline {
                                     }
                                 }
 
-                                if(!INTERNATIONAL_FLAG && 'pricebook' in ARR_SELECTED_SERVICE) {// ! For India only - Skip this when the condition is false
+                                if(!INTERNATIONAL_FLAG && 'pricebook' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'pricebook', app_name: 'sq_microservices_backend') == false) {// ! For India only - Skip this when the condition is false
                                     parallelJobs[py3_services.find { it.key == 'pricebook' }] = {
                                         dir ('sq_microservices_backend') {
                                             sh 'cp -r commonlib pricebook'
@@ -787,7 +804,7 @@ pipeline {
                                     }
                                 }
 
-                                if(INTERNATIONAL_FLAG && 'integration' in ARR_SELECTED_SERVICE) {// ! For India only - Skip this when the condition is false
+                                if(INTERNATIONAL_FLAG && 'integration' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'integration', app_name: 'sq_microservices_backend') == false) {// ! For India only - Skip this when the condition is false
                                     parallelJobs[py3_services.find { it.key == 'integration' }] = {
                                         dir ('sq_microservices_backend') {
                                             sh 'cp -r commonlib appms'
@@ -833,10 +850,9 @@ pipeline {
                                 if (item.status == "200") {
                                     echo "promoting - ${item.service_name}"
                                     promote_Service(service_name: "${item.service_name}", version_name: "${item.version_name}")
-                                    item.new_version = "${item.version_name}"
                                 }                                                   
                             }
-                            //Add a method/logic to write the array to a file
+                            //method/logic to write the array to a file
                             Write_To_File()
                         }
                         else {  
