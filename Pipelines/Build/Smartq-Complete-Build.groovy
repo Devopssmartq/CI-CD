@@ -49,7 +49,7 @@ def checkoutControlDesk(branch) {
     echo "Checkout Controldesk"
         sh "mkdir -p controldesk"
         echo "test controldesk"
-        //echo "My Branch ${branch}"
+        echo "My Branch ${branch}"
             dir('controldesk') {
                 checkout([$class: 'GitSCM', 
                 branches: [[name: branch]], 
@@ -84,7 +84,7 @@ def buildControlDesk() {
 }
 def uploadControlDeskToGCS(bucketname) {
     echo "Upload Control Desk to GCS" 
-    //echo "My branch & GCS Bucket name is ${branch}"
+    echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {
             dir('controldesk') {
                 sh 'ls'
@@ -126,7 +126,7 @@ def buildEWallet() {
 }
 def uploadEWalletToGCS(bucketname) {
     echo "Upload eWallet to GCS"
-    //echo "My branch & GCS Bucket name is ${branch}"
+    echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {
             sh "gcloud storage cp ${WORKSPACE}/ewallet/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/ewallet/ewallet@$VERSION_NUMBER --recursive"
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
@@ -172,7 +172,7 @@ def buildtime2eatweb() {
 }
 def uploadtime2eatwebToGCS(bucketname) {
     echo "Upload time2eatweb to GCS"
-    //echo "My branch & GCS Bucket name is ${branch}"
+    echo "My branch & GCS Bucket name is ${branch}"
     container('gcloud') {
         dir('time2eatweb') {
             sh 'ls'
@@ -218,7 +218,7 @@ def buildvendordashboard() {
 }   
 def uploadvendordashboardToGCS(bucketname) {
     echo "Uploading to GCS Bucket"
-    //echo "My branch & GCS Bucket name is ${branch}"
+    echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {
             sh "gcloud storage cp ${WORKSPACE}/unified_webstack/frontend/dist/vdashboard/admindashboard/* gs://sqinternational-cicd.appspot.com/${bucketname}/vendor-dashboard/vdashboard@$VERSION_NUMBER --recursive"
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
@@ -259,7 +259,7 @@ def buildgenericadmindashboard() {
 }
 def uploadgenericadmindashboardToGCS(bucketname) {
     echo "Uploading generic-admin-dashboard to GCS Bucket"   
-    //echo "My branch & GCS Bucket name is ${branch}"     
+    echo "My branch & GCS Bucket name is ${branch}"     
     container('gcloud') {
         sh "gcloud storage cp ${WORKSPACE}/generic-admin-dashboard/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/generic-admin-dashboard/admindashboard@$VERSION_NUMBER --recursive"
         CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
@@ -288,7 +288,7 @@ def checkoutsmartqcloudbackend(branch) {
 }   
 def uploadsmartqcloudbackendToGCS(bucketname) {
     echo "Uploading smartq-backend to GCS"
-    //echo "My branch & GCS Bucket name is ${branch}"
+    echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {                 
             sh "gcloud storage cp ${WORKSPACE}/smartq-cloud-backend/smartqcloudbackend.txt gs://sqinternational-cicd.appspot.com/${bucketname}/smartq-cloud-backend/smartq-cloud-backend@$VERSION_NUMBER --recursive"
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
@@ -319,7 +319,7 @@ def checkoutsqmicroservicesbackend(branch) {
 }
 def uploadsqmicroservicesbackendToGCS(bucketname) {
     echo "Uploading sq_Microservices_Backend to GCS Bucket"
-    //echo "My branch & GCS Bucket name is ${branch}"
+    echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {                   
             sh "gcloud storage cp ${WORKSPACE}/sq_microservices_backend/sqmicroservicesbackend.txt gs://sqinternational-cicd.appspot.com/${bucketname}/sq_microservices_backend/sq_microservices_backend@$VERSION_NUMBER/default --recursive"
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
@@ -371,8 +371,8 @@ def buildcontroldeskflutter() {
     }
 }
 def uploadcontroldeskflutterToGCS(bucketname) {
-    echo "Upload to GCS"  
-    //echo "My branch & GCS Bucket name is ${branch}"
+  echo "Upload to GCS"  
+  echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {
             dir('controldeskflutter') {
                 sh 'ls'
@@ -428,7 +428,7 @@ pipeline {
     parameters {
 
     choice(name: 'BitBucketProject', choices: ['web-ort', 'control-desk', 'ewallet', 'time2eatweb', 'vendor-dashboard','generic-admin-dashboard', 'smartq-cloud-backend', 'sq_microservices_backend','controldeskflutter'], description: 'Select BitBucket Project')
-    choice(name: 'Branch', choices: ['auto-sprint', 'auto-release', 'master', 'cicd-sprint'], description: 'Select Branch')
+    choice(name: 'Branch', choices: ['auto-sprint', 'auto-release', 'master', 'hotfix'], description: 'Select Branch')
     string(name: 'Hotfix_Branch', description: 'Enter the branch name')
     string(name: 'CommitId', defaultValue:"latest", trim: true, description: 'Enter the commitId')
     }
@@ -469,19 +469,20 @@ pipeline {
                     def commitid = params.CommitId
                     def bucketname = params.Branch
                     
-                    if (!hotfixbranch.isEmpty()) {
-                        echo "Parameter hotfixbranch is not empty. Its value is: ${hotfixbranch}"
-                        bucketname="${hotfixbranch}"
+                    if (Hotfix_Branch != '') {
+                    	bucketname="${hotfixbranch}"
+                    	branch="${hotfixbranch}"
+                    } else if (CommitId != 'latest'){
+                    	branch="${commitId}"
+                    	
+                    } else {
+                        branch = params.Branch
                     }
                     
-                    if (commitid == 'latest') {
-                        if (!branch) {
-                            error('Please provide the Branch parameter when using CommitId as "latest".')
-                        }
-                        branch = params.Branch
-                    } else {
-                        branch = "${commitId}"
+                    if (CommitId != 'latest' && Hotfix_Branch != ''){
+                        branch="${commitId}"
                     }
+                      
                     
                     echo "Selected BitBucket Project: ${bitBucketProject}"
                     echo "Selected Branch: ${branch}"
@@ -543,17 +544,17 @@ pipeline {
         }
     }
 
-    post{
-        always{
-            script {
-                mail bcc: '', body: "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nApplication  Name: ${bitBucketProject}.\nGCP Cloud URL: ${CLOUD_URL}.\n Version Number: ${VERSION_NUMBER}",
-               // cc: 'Ajith.Vijayakumar@thesmartq.com, R.Prabhakaran@thesmartq.com , VenkateswaraReddi.P@thesmartq.com , abhijeet@thesmartq.com',
-                from: '',
-                replyTo: '',
-                subject: "Build Status# ${currentBuild.currentResult}",
-                to: 'yashwanth.kp@thesmartq.com'
-            }
-        }
-    }
+    // post{
+    //     always{
+    //         script {
+    //             mail bcc: '', body: "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nApplication  Name: ${bitBucketProject}.\nGCP Cloud URL: ${CLOUD_URL}.\n Version Number: ${VERSION_NUMBER}",
+    //             cc: 'Ajith.Vijayakumar@thesmartq.com, R.Prabhakaran@thesmartq.com , VenkateswaraReddi.P@thesmartq.com , abhijeet@thesmartq.com',
+    //             from: '',
+    //             replyTo: '',
+    //             subject: "Build Status# ${currentBuild.currentResult}",
+    //             to: 'yashwanth.kp@thesmartq.com'
+    //         }
+    //     }
+    // }
 }
 
