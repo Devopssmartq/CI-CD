@@ -6,6 +6,8 @@ import groovy.transform.Field
 @Field def IS_PY3_ENABLED
 @Field def ARR_SELECTED_SERVICE
 @Field def ARR_VERIFY_SERVICE = []
+@Field def PROMOTED_SERVICES = []
+
 
 def getURL_Status(Map args) {
     script {
@@ -80,7 +82,7 @@ def promote_Service(Map args) {
 def Write_To_File() {
     script {    
         def filePath = "${env.WORKSPACE}/release-${env.VERSION_NUMBER}.txt"                  
-        def content = ARR_VERIFY_SERVICE.join('\n')
+        def content = PROMOTED_SERVICES.join('\n')
         writeFile file: filePath, text: content                                            
         echo "Items written to ${filePath}"
         def data = readFile(file: "${filePath}")
@@ -850,6 +852,7 @@ pipeline {
                                 if (item.status == "200") {
                                     echo "promoting - ${item.service_name}"
                                     promote_Service(service_name: "${item.service_name}", version_name: "${item.version_name}")
+                                    PROMOTED_SERVICES.add(item)
                                 }                                                   
                             }
                             //method/logic to write the array to a file
@@ -863,5 +866,18 @@ pipeline {
                 }               
             }  
         }       
+    }
+    post{
+        always{
+            script {            
+                mail bcc: '', 
+                body: "Build is running.\nJob Name: ${Job_Name}.\n Build Status: ${currentBuild.currentResult}.\n Jenkins Build Number: ${Build_Number}.\n Version Number: ${VERSION_NUMBER}.\n Build Server - ${APP_ENGINE_PROJECT_ID}.\n\n Services Promoted - ${PROMOTED_SERVICES}",
+                cc: 'venkateswarareddi.p@thesmartq.com',
+                from: '',
+                replyTo: '',
+                subject: "Build Status# ${currentBuild.currentResult}",
+                to: 'yashwanth.kp@thesmartq.com'
+            }
+        }
     } 
 }
