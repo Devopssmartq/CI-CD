@@ -87,6 +87,11 @@ def Write_To_File() {
         echo "Items written to ${filePath}"
         def data = readFile(file: "${filePath}")
         println(data)
+        // container('gcloud') {
+        //     dir("${env.WORKSPACE}") {
+        //         sh "gcloud storage cp ${filePath} gs://sqinternational-cicd.appspot.com/release_summary/${APP_ENGINE_PROJECT_ID}/released --recursive"
+        //     }
+        // }
     }
 }
 
@@ -836,6 +841,7 @@ pipeline {
                             item.previous_version = get_Previous_Version(service_name: "${item.service_name}") 
                             item.new_version = "${item.version_name}"
                         }
+                        println "result of verify service: ${ARR_VERIFY_SERVICE}"                         
                     }
                 }
             }
@@ -861,7 +867,6 @@ pipeline {
                         else {  
                             error('Promote halted....')
                         }
-                        println "result of verify service: ${ARR_VERIFY_SERVICE}"                         
                     }
                 }               
             }  
