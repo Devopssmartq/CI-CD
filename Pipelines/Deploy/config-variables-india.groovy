@@ -32,6 +32,7 @@ def setProperties() {
     /***************** INDIA deployment *********/
     //frontend service  yamls
     CONTROLDESK_YAML = RELEASE_SCOPE == "beta" ? 'beta-app.yaml' : 'app.yaml'
+    CONTROLDESK_FLUTTER_YAML = "beta" ? '' : 'control-desk.yaml'
 
     PWA_YAML = RELEASE_SCOPE == "beta" ? 'smartqPWABeta.yaml' : 'smartq-pwa.yaml'
     FOODBOOK_YAML = RELEASE_SCOPE == "beta" ? '' : 'foodbook.yaml'
@@ -51,6 +52,7 @@ def setProperties() {
     PY3_APPMS_YAML = RELEASE_SCOPE == "beta" ? "betaapp-${params.APP_ENGINE_PROJECT_ID}.yaml" : "${params.APP_ENGINE_PROJECT_ID}.yaml"
     PY3_DASHBOARD_YAML = RELEASE_SCOPE == "beta" ? "betaapp-${params.APP_ENGINE_PROJECT_ID}.yaml" : "${params.APP_ENGINE_PROJECT_ID}.yaml"
     PY3_SSO_YAML = RELEASE_SCOPE == "beta" ? '' : 'app.yaml'
-    PY3_PRICEBOOK_YAML = RELEASE_SCOPE == "beta" ? '' : 'app_db_demo.yaml'   
+    PY3_PRICEBOOK_YAML = RELEASE_SCOPE == "beta" ? '' : 'app_db_demo.yaml'
+    PY3_INTEGRATION_YAML = RELEASE_SCOPE == "beta" ? '' :''// not for India. only for international
 }
 return this
