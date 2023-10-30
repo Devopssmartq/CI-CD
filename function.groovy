@@ -1,3 +1,11 @@
+import groovy.transform.Field
+@Field def IS_NODEAPPS_ENABLED
+@Field def IS_PY2_ENABLED
+@Field def IS_PY3_ENABLED
+@Field def ARR_SELECTED_SERVICE
+@Field def ARR_VERIFY_SERVICE = []
+@Field def PROMOTED_SERVICES = []
+
 def getURL_Status(Map args) {
     script {
         def service_url = sh(script: "gcloud app browse --service=${args.service_name} --version=${args.version_name} --no-launch-browser --format='value(url)'", returnStdout: true).trim()
