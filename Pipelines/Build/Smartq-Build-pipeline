@@ -40,7 +40,7 @@ def uploadWebOrtToGCS(bucketname) {
             dir('webort') {
                 sh 'ls'
                 sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
-    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/web-ort --recursive"
+    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/web-ort/ --recursive"
     		    sh "tar -xzvf ${newId}.tar.gz"
                 //sh "gcloud storage cp ${WORKSPACE}/webort/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/web-ort/webort@$VERSION_NUMBER --recursive"
             }
@@ -97,7 +97,7 @@ def uploadControlDeskToGCS(bucketname) {
             dir('controldesk') {
                 sh 'ls'
                 sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
-    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/controldesk --recursive"
+    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/controldesk/ --recursive"
     		    sh "tar -xzvf ${newId}.tar.gz"
                 //sh "gcloud storage cp ${WORKSPACE}/controldesk/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/controldesk/controldesk@$VERSION_NUMBER --recursive"
             }
@@ -146,7 +146,7 @@ def uploadEWalletToGCS(bucketname) {
             dir('ewallet'){
                 sh "tar -czvf ${newId}.tar.gz build/*"
     		    sh 'ls'
-    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/ewallet --recursive"
+    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/ewallet/ --recursive"
     		    sh "tar -xzvf ${newId}.tar.gz" 
             }    
             // sh "gcloud storage cp ${WORKSPACE}/ewallet/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/ewallet/ewallet@$VERSION_NUMBER --recursive"
@@ -201,7 +201,7 @@ def uploadtime2eatwebToGCS(bucketname) {
         dir('time2eatweb') {
             sh 'ls'
             sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
-    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/time2eat --recursive"
+    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/time2eat/ --recursive"
     	    sh "tar -xzvf ${newId}.tar.gz"
             //sh "gcloud storage cp ${WORKSPACE}/time2eatweb/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/time2eat/time2eat@$VERSION_NUMBER --recursive"
         }
@@ -254,7 +254,7 @@ def uploadvendordashboardToGCS(bucketname) {
             dir('unified_webstack/frontend/dist/vdashboard/') {
                 sh "tar -czvf ${newId}.tar.gz admindashboard/*"
         	    sh 'ls'
-        	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/vendor-dashboard --recursive"
+        	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/vendor-dashboard/ --recursive"
         	    sh "tar -xzvf ${newId}.tar.gz"
             }    
             // sh "gcloud storage cp ${WORKSPACE}/unified_webstack/frontend/dist/vdashboard/admindashboard/* gs://sqinternational-cicd.appspot.com/${bucketname}/vendor-dashboard/vdashboard@$VERSION_NUMBER --recursive"
@@ -304,7 +304,7 @@ def uploadgenericadmindashboardToGCS(bucketname) {
         dir('generic-admin-dashboard') { 
             sh 'ls'
             sh "tar -czvf ${newId}.tar.gz build/*"
-    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/generic-admin-dashboard --recursive"
+    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/generic-admin-dashboard/ --recursive"
     	    sh "tar -xzvf ${newId}.tar.gz"
             // sh "gcloud storage cp ${WORKSPACE}/generic-admin-dashboard/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/generic-admin-dashboard/admindashboard@$VERSION_NUMBER --recursive"
         }
@@ -342,7 +342,7 @@ def uploadsmartqcloudbackendToGCS(bucketname) {
             sh "touch smartq-cloud-backend.txt"
             sh "tar -czvf ${newId}.tar.gz smartq-cloud-backend.txt"
     	    sh 'ls'
-    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/smartq-cloud-backend --recursive"
+    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/smartq-cloud-backend/ --recursive"
     	    //sh "tar -xzvf ${newId}.tar.gz"
             //sh "gcloud storage cp ${WORKSPACE}/smartq-cloud-backend/smartqcloudbackend.txt gs://sqinternational-cicd.appspot.com/${bucketname}/smartq-cloud-backend/smartq-cloud-backend@$VERSION_NUMBER --recursive"
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
@@ -381,7 +381,7 @@ def uploadsqmicroservicesbackendToGCS(bucketname) {
             sh "touch sqmicroservicesbackend.txt"
             sh "tar -czvf ${newId}.tar.gz sqmicroservicesbackend.txt"
     	    sh 'ls'
-    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/sq_microservices_backend --recursive"
+    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/sq_microservices_backend/ --recursive"
             //sh "gcloud storage cp ${WORKSPACE}/sq_microservices_backend/sqmicroservicesbackend.txt gs://sqinternational-cicd.appspot.com/${bucketname}/sq_microservices_backend/sq_microservices_backend@$VERSION_NUMBER-${newId}/default --recursive"
            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
@@ -437,7 +437,7 @@ def uploadcontroldeskflutterToGCS(bucketname) {
             dir('controldeskflutter') {
                 sh 'ls'
 		        sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
-                sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/controldeskflutter --recursive"
+                sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/controldeskflutter/  --recursive"
 		        sh "tar -xzvf ${newId}.tar.gz"
             }
             //sh "tar -czvf ${newId}.tar.gz controldeskflutter/*.yaml controldeskflutter/build/*"
