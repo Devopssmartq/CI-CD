@@ -20,7 +20,7 @@ def checkoutWebORT(branch) {
         }
 }
 def buildWebORT() {
-    container('nodejs') {
+    container('node-js') {
 
         sh 'echo ${WORKSPACE}'
         sh 'echo $BUILD_NUMBER'
@@ -399,6 +399,12 @@ pipeline {
             command:
             - cat
             tty: true
+          
+          - name: node-js
+            image: node:14.19.0
+            command:
+            - cat
+            tty: true    
 
           - name: gcloud
             image: google/cloud-sdk:latest
