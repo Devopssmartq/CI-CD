@@ -540,6 +540,7 @@ pipeline {
                     def hotfixbranch = params.Hotfix_Branch //whenever we spcify hotfix parameter please provied commitId parameter because project is pulling from commitid not hotfixbranch
                     def commitid = params.CommitId
                     def bucketname = params.Branch
+                    mail_url = 'https://cpgplc.webhook.office.com/webhookb2/6d5ff299-54f8-4bb3-911b-4ef2d419e335@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/3b95c290077440da9d684a0c498039e1/1b69cb54-bc9e-4431-98fa-5afcb910e9d4'
                     
                     if (Hotfix_Branch != '') {
                     	bucketname="${hotfixbranch}"
@@ -616,17 +617,14 @@ pipeline {
         }
     }
 
-    // post{
-    //     always{
-    //         script {
-    //             mail bcc: '', body: "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nApplication  Name: ${bitBucketProject}.\nGCP Cloud URL: ${CLOUD_URL}.\n Version Number: ${VERSION_NUMBER} ",
-    //             //cc: 'Ajith.Vijayakumar@thesmartq.com, R.Prabhakaran@thesmartq.com , VenkateswaraReddi.P@thesmartq.com , abhijeet@thesmartq.com',
-    //             from: '',
-    //             replyTo: '',
-    //             subject: "Build Status# ${currentBuild.currentResult}",
-    //             to: 'yashwanth.kp@thesmartq.com'
-    //         }
-    //     }
-    // }
+    post{
+        always{
+            script {
+                office365ConnectorSend webhookUrl: "${mail_url}",
+                message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nApplication  Name: ${bitBucketProject}.\nGCP Cloud URL: ${CLOUD_URL}.\n Version Number: ${newId} ",
+                status: "Build Status# ${currentBuild.currentResult}"
+            }
+        }
+    }
 }
 
