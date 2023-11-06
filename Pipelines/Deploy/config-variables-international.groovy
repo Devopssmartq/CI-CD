@@ -31,6 +31,7 @@ def setProperties() {
   /***************** INTERNATIONAL deployment *********/
 //frontend service  yamls
     CONTROLDESK_YAML = RELEASE_SCOPE == "beta" ? 'beta-app.yaml' : 'app.yaml'
+    CONTROLDESK_FLUTTER_YAML = "beta" ? '' : 'control-desk.yaml'
     
     PWA_YAML = ''// not for INTERNATIONAL. for india only
     FOODBOOK_YAML = ''// not for INTERNATIONAL. for india only

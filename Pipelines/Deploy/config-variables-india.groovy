@@ -32,6 +32,7 @@ def setProperties() {
     /***************** INDIA deployment *********/
     //frontend service  yamls
     CONTROLDESK_YAML = RELEASE_SCOPE == "beta" ? 'beta-app.yaml' : 'app.yaml'
+    CONTROLDESK_FLUTTER_YAML = "beta" ? '' : 'control-desk.yaml'
 
     PWA_YAML = RELEASE_SCOPE == "beta" ? 'smartqPWABeta.yaml' : 'smartq-pwa.yaml'
     FOODBOOK_YAML = RELEASE_SCOPE == "beta" ? '' : 'foodbook.yaml'
