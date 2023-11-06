@@ -919,7 +919,7 @@ pipeline {
         always{
             script {
                 office365ConnectorSend webhookUrl: "${mail_url}",
-                message : "Job Name: ${Job_Name}.\n Build Status: ${currentBuild.currentResult}.\n Jenkins Build Number: ${Build_Number}.\n Version Number: ${VERSION_NUMBER}.\n Build Server - ${APP_ENGINE_PROJECT_ID}.\n\n Services Promoted - ${PROMOTED_SERVICES}" ",
+                message : "Job Name: ${Job_Name}.\n Build Status: ${currentBuild.currentResult}.\n Jenkins Build Number: ${Build_Number}.\n Version Number: ${VERSION_NUMBER}.\n Build Server - ${APP_ENGINE_PROJECT_ID}.\n\n Services Promoted - ${PROMOTED_SERVICES}",
                 status: "Deployment Status# ${currentBuild.currentResult}"
             }
         }
