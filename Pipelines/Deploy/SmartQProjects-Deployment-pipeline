@@ -63,7 +63,7 @@ def is_Version_Exists(Map args) {
 }
 def get_Storage_Object_Source_Path(Map args) { 
     def source_path = sh (
-        script: "gcloud storage ls -l  'gs://${GCS_BUCKET_NAME}/${ENVIRONMENT}/${args.app_name}' | cat | sed '/TOTAL/d' | sort -k 2 -r | head -1",
+        script: "gcloud storage ls gs://${GCS_BUCKET_NAME}/${ENVIRONMENT}/${args.app_name} | sort --ignore-case -V  | head -n 1",
         returnStdout: true
     ).trim()
     return "${source_path}"
@@ -73,11 +73,11 @@ def get_AppEngine_Version(Map args) {
     
      container('gcloud') {
         def STORAGE_OBJECT_SOURCE_PATH = sh (
-                script: "gcloud storage ls -l gs://${GCS_BUCKET_NAME}/${ENVIRONMENT}/${args.app_name} | cat | sed '/TOTAL/d' | sort -k 2 -r | head -1",
+                script: "gcloud storage ls gs://${GCS_BUCKET_NAME}/${ENVIRONMENT}/${args.app_name} | sort --ignore-case -V  | head -n 1",
                 returnStdout: true
         ).trim()                                
         APP_ENGINE_VERSION = sh (
-                script: "echo ${STORAGE_OBJECT_SOURCE_PATH} | rev | cut -d'/' -f1 | rev",
+                script: "basename ${STORAGE_OBJECT_SOURCE_PATH}",
                 returnStdout: true
         ).trim()
         echo "App_Engine_Version for ${args.app_name} : ${APP_ENGINE_VERSION}" 
@@ -376,6 +376,7 @@ pipeline {
                             env.RELEASE_SCOPE = params.RELEASE_SCOPE
                             env.APP_ENGINE_PROJECT_ID = params.APP_ENGINE_PROJECT_ID
                             env.GIT_BRANCH = params.GIT_BRANCH
+                            mail_url = 'https://cpgplc.webhook.office.com/webhookb2/6d5ff299-54f8-4bb3-911b-4ef2d419e335@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/3b95c290077440da9d684a0c498039e1/1b69cb54-bc9e-4431-98fa-5afcb910e9d4'
 
                             if(params.SERVICE_NAME == "All" || params.SERVICE_NAME.isEmpty())
                             {
@@ -913,17 +914,14 @@ pipeline {
             }  
         }       
     }
-    // post{
-    //     always{
-    //         script {            
-    //             mail bcc: '', 
-    //             body: "Build is running.\nJob Name: ${Job_Name}.\n Build Status: ${currentBuild.currentResult}.\n Jenkins Build Number: ${Build_Number}.\n Version Number: ${VERSION_NUMBER}.\n Build Server - ${APP_ENGINE_PROJECT_ID}.\n\n Services Promoted - ${PROMOTED_SERVICES}",
-    //             cc: 'venkateswarareddi.p@thesmartq.com',
-    //             from: '',
-    //             replyTo: '',
-    //             subject: "Build Status# ${currentBuild.currentResult}",
-    //             to: 'yashwanth.kp@thesmartq.com'
-    //         }
-    //     }
-    // } 
+    
+    post{
+        always{
+            script {
+                office365ConnectorSend webhookUrl: "${mail_url}",
+                message : "Job Name: ${Job_Name}.\n Build Status: ${currentBuild.currentResult}.\n Jenkins Build Number: ${Build_Number}.\n Version Number: ${VERSION_NUMBER}.\n Build Server - ${APP_ENGINE_PROJECT_ID}.\n\n Services Promoted - ${PROMOTED_SERVICES}" ",
+                status: "Deployment Status# ${currentBuild.currentResult}"
+            }
+        }
+    }
 }
