@@ -39,6 +39,7 @@ def setProperties() {
     BAWEB_YAML = RELEASE_SCOPE == "beta" ? '' : 'baweb.yaml'
 
     WEBORT_YAML = RELEASE_SCOPE == "beta" ? 'beta_app.yaml' : 'app.yaml'
+    TIME2EAT_YAML = RELEASE_SCOPE == "beta" ? '' : 'time2eat.yaml'
 //py2 service yamls
     APP_SERVICE_YAML = RELEASE_SCOPE == "beta" ? '' : 'time2eat_appservice.yaml'
     DEFAULT_SERVICE_YAML = ''// not for INTERNATIONAL. for india only
