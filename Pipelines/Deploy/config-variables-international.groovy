@@ -9,6 +9,7 @@ import groovy.transform.Field
 @Field def TIME2EAT_YAML
 @Field def BAWEB_YAML
 @Field def WEBORT_YAML
+@Field def TIME2EAT_FLUTTER_YAML
 
 @Field def APP_SERVICE_YAML  
 @Field def DEFAULT_SERVICE_YAML
@@ -39,7 +40,7 @@ def setProperties() {
     BAWEB_YAML = RELEASE_SCOPE == "beta" ? '' : 'baweb.yaml'
 
     WEBORT_YAML = RELEASE_SCOPE == "beta" ? 'beta_app.yaml' : 'app.yaml'
-    TIME2EAT_YAML = RELEASE_SCOPE == "beta" ? '' : 'time2eat.yaml'
+    TIME2EAT_FLUTTER_YAML = RELEASE_SCOPE == "beta" ? '' : 'time2eat.yaml'
 //py2 service yamls
     APP_SERVICE_YAML = RELEASE_SCOPE == "beta" ? '' : 'time2eat_appservice.yaml'
     DEFAULT_SERVICE_YAML = ''// not for INTERNATIONAL. for india only
