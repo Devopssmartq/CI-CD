@@ -873,20 +873,21 @@ pipeline {
                                         }
                                         if(INTERNATIONAL_FLAG && 'integration' in ARR_SELECTED_SERVICE && is_Version_Exists(service_name: 'integration', app_name: 'sq_microservices_backend') == false) {// ! For India only - Skip this when the condition is false
                                             parallelJobs[py3_services.find { it.key == 'integration' }] = {
-                                                dir ('sq_microservices_backend') {
-                                                    sh 'cp -r commonlib appms'
-                                                    dir ('appms') {
-                                                        sh "ls *.yaml"
-                                                        
-                                                        //enable only for uk servers
-                                                        if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {
+                                            
+                                                //enable only for uk servers
+                                                if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {
+                                                    dir ('sq_microservices_backend') {
+                                                        sh 'cp -r commonlib appms'
+                                                        dir ('appms') {
+                                                            sh "ls *.yaml"
                                                             sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_INTEGRATION_YAML --no-promote"
                                                         }
-                                                        if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {
-                                                            ARR_VERIFY_SERVICE.add([service_name: 'integration', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])
-                                                        }   
-                                                    }                                    
+                                                    }    
+                                                    
                                                 }
+                                                if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {
+                                                    ARR_VERIFY_SERVICE.add([service_name: 'integration', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])
+                                                }   
                                             }
                                         }    
                                         //2.1 Add new service block here, if there is any to be added
