@@ -475,7 +475,7 @@ def checkouttime2eat_flutter(branch) {
         }
 }
 def buildtime2eat_flutter() {
-    container('flutter') {
+    container('time2eatflutter') {
         sh 'echo ${WORKSPACE}'
         sh 'echo $BUILD_NUMBER'
             dir('time2eat_flutter') {
@@ -548,10 +548,16 @@ pipeline {
             tty: true
 
           - name: flutter
-            image: instrumentisto/flutter:latest
+            image: instrumentisto/flutter:3.10.2
             command:
             - cat
             tty: true 
+            
+          - name: time2eatflutter
+            image: instrumentisto/flutter:latest
+            command:
+            - cat
+            tty: true     
         '''        
         }
     }
