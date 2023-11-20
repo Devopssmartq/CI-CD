@@ -25,9 +25,9 @@ import groovy.transform.Field
 
 def setProperties() {
     GCS_BUCKET_NAME = "sqinternational-cicd.appspot.com"
-    ENVIRONMENT = (RELEASE_SCOPE == "sprint") ? "auto-sprint"  : (RELEASE_SCOPE == "preprod") ? "auto-sprint" : (RELEASE_SCOPE == "hot-fix") ? "${params.GIT_BRANCH}" : "auto-release"
+    ENVIRONMENT = (RELEASE_SCOPE == "sprint") ? "auto-sprint" : (RELEASE_SCOPE == "preprod") ? "auto-sprint" : (RELEASE_SCOPE == "hot-fix") ? "${params.GIT_BRANCH}" : "auto-release"
     // To-do : change the following to appropriate branch names, once release brnach is created
-    GIT_BRANCH = (RELEASE_SCOPE == "sprint") ? "auto-sprint" :  (RELEASE_SCOPE == "hot-fix") ? "${params.GIT_BRANCH}" : "auto-release"
+    GIT_BRANCH = (RELEASE_SCOPE == "sprint") ? "auto-sprint" : (RELEASE_SCOPE == "preprod") ? "auto-sprint" : (RELEASE_SCOPE == "hot-fix") ? "${params.GIT_BRANCH}" : "auto-release"
     
   /***************** INTERNATIONAL deployment *********/
 //frontend service  yamls
@@ -52,7 +52,7 @@ def setProperties() {
     PY3_APPMS_YAML = RELEASE_SCOPE == "beta" ? "betaapp-${params.APP_ENGINE_PROJECT_ID}.yaml" : "${params.APP_ENGINE_PROJECT_ID}.yaml"
     PY3_DASHBOARD_YAML = RELEASE_SCOPE == "beta" ? "betaapp-${params.APP_ENGINE_PROJECT_ID}.yaml" : "${params.APP_ENGINE_PROJECT_ID}.yaml"
     PY3_SSO_YAML = RELEASE_SCOPE == "beta" ? '' : 'app.yaml'
-    PY3_PRICEBOOK_YAML = ''// not for INTERNATIONAL. for india only
+    PY3_PRICEBOOK_YAML = RELEASE_SCOPE == "beta" ? '' : 'app_db_demo.yaml'
     PY3_INTEGRATION_YAML = RELEASE_SCOPE == "beta" ? '' : "${params.APP_ENGINE_PROJECT_ID}-integration.yaml"
 }
 return this
