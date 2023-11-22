@@ -899,7 +899,7 @@ pipeline {
                                                         }                                                        
                                                     } 
                                                 } 
-                                                if (params.APP_ENGINE_PROJECT_ID.contains("-us") && params.APP_ENGINE_PROJECT_ID.contains("-india")) {   
+                                                if (params.APP_ENGINE_PROJECT_ID.contains("-us")) {   
                                                     ARR_VERIFY_SERVICE.add([service_name: 'pricebook', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v1/pricebook/category/search?categoryname=1']) 
                                                 }
                                             }
