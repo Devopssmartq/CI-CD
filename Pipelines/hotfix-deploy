@@ -302,7 +302,7 @@ properties([
                         if (type == "India") {
                             options = ["All:selected","controldesk","web-ort","foodbook-web","smartq-pwa","py2_default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","app","pricebook"]
                         } else if (type == "International") {
-                            options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","baweb","appservice","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","py3_default","integration"]
+                            options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","baweb","appservice","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","py3_default","integration", "pricebook"]
                         }
                         return options
                     '''
@@ -390,7 +390,7 @@ pipeline {
                                 //     options = 'controldesk,web-ort,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook'
                                 // } 
                                 if (type == "International") {
-                                    options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,time2eat-flutter'
+                                    options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,time2eat-flutter,pricebook'
                                 }       
                                 //echo "SERVICE_NAME_LIST updated - $options"
                                 ARR_SELECTED_SERVICE = "$options".split(',')                        
@@ -886,18 +886,22 @@ pipeline {
                                                 }                                 
                                             }
                                         }
-                                        if(!INTERNATIONAL_FLAG && 'pricebook' in ARR_SELECTED_SERVICE ) {// ! For India only - Skip this when the condition is false
-                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                                        if('pricebook' in ARR_SELECTED_SERVICE) {// ! For India only - Skip this when the condition is false
+                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend')
                                             parallelJobs[py3_services.find { it.key == 'pricebook' }] = {
-                                                dir ('sq_microservices_backend') {
-                                                    sh 'cp -r commonlib pricebook'
-                                                    dir ('pricebook') {
-                                                        sh "ls *.yaml"
-                                                        
-                                                        sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_PRICEBOOK_YAML --no-promote"
-                                                    }
-                                                    ARR_VERIFY_SERVICE.add([service_name: 'pricebook', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v1/pricebook/category/search?categoryname=1'])  
-                                                }                                    
+                                                
+                                                if (params.APP_ENGINE_PROJECT_ID.contains("-us")) {
+                                                    dir ('sq_microservices_backend') {
+                                                        sh 'cp -r commonlib pricebook'
+                                                        dir ('pricebook') {
+                                                            sh "ls *.yaml"
+                                                            sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_PRICEBOOK_YAML --no-promote"
+                                                        }                                                        
+                                                    } 
+                                                } 
+                                                if (params.APP_ENGINE_PROJECT_ID.contains("-us") && params.APP_ENGINE_PROJECT_ID.contains("-india")) {   
+                                                    ARR_VERIFY_SERVICE.add([service_name: 'pricebook', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v1/pricebook/category/search?categoryname=1']) 
+                                                }
                                             }
                                         }
                                         if(INTERNATIONAL_FLAG && 'integration' in ARR_SELECTED_SERVICE ) {// ! For India only - Skip this when the condition is false
