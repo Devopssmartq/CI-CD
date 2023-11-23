@@ -719,9 +719,9 @@ pipeline {
                                                 dir ('smartq-cloud-backend'){
                                                     sh "ls *.yaml"
                                                     
-                                                    sh "gcloud app deploy --version=$APP_SERVICE_APP_ENGINE_VERSION --quiet $APP_SERVICE_YAML --no-promote"
+                                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $APP_SERVICE_YAML --no-promote"
                                                 }
-                                                ARR_VERIFY_SERVICE.add([service_name: 'appservice', version_name: "$APP_SERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions'])  
+                                                ARR_VERIFY_SERVICE.add([service_name: 'appservice', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions'])  
                                             }
                                         }
                                         if (!INTERNATIONAL_FLAG && 'py2_default' in ARR_SELECTED_SERVICE ) { // ! For India only - Skip this when the condition is false
@@ -787,9 +787,9 @@ pipeline {
                                                     dir ('py3_project') {
                                                         sh "ls *.yaml"
                                                         
-                                                        sh "gcloud app deploy --version=$BQREPORTS_APP_ENGINE_VERSION --quiet $BQREPORTS_YAML --no-promote"
+                                                        sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $BQREPORTS_YAML --no-promote"
                                                     }
-                                                    ARR_VERIFY_SERVICE.add([service_name: 'bqreports', version_name: "$BQREPORTS_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/'])  
+                                                    ARR_VERIFY_SERVICE.add([service_name: 'bqreports', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/'])  
                                                 }
                                             }
                                         }
