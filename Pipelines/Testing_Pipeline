@@ -315,13 +315,13 @@ properties([
             filterLength: 1,
             filterable: false,
             name: 'AUTOMATION_PIPELINE',
-            referencedParameters: 'APP_ENGINE_PROJECT_ID',
+            referencedParameters: 'APP_ENGINE_PROJECT_ID, RELEASE_SCOPE',
             script: [
                 $class: 'GroovyScript',
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return [APP_ENGINE_PROJECT_ID + "_Critical_Sanity", "none:selected"]'
+                    script: 'return [APP_ENGINE_PROJECT_ID + "_Critical_Sanity", APP_ENGINE_PROJECT_ID + "_ios", "none:selected"]'
                 ],
                 script: [
                     classpath: [],
@@ -329,8 +329,10 @@ properties([
                     script: '''
                         def scope = RELEASE_SCOPE ?: "sprint" // Default to 'SPRINT' if not selected
                         def options = []
-                        if (APP_ENGINE_PROJECT_ID) {
-                            options = [APP_ENGINE_PROJECT_ID + "_Critical_Sanity", "none:selected"]
+                        if (scope == "sprint" || scope == "beta") {
+                            options = []
+                        } else if (APP_ENGINE_PROJECT_ID) {
+                            options = [APP_ENGINE_PROJECT_ID + "_Critical_Sanity", APP_ENGINE_PROJECT_ID + "_ios","none:selected"]
                         } else {
                             options = ['DefaultValue']
                         }    
