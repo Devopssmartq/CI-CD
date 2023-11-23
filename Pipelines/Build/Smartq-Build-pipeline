@@ -18,7 +18,7 @@ def checkoutWebORT(branch) {
         }
 }
 def buildWebORT() {
-    container('node-js') {
+    container('nodejs') {
 
         sh 'echo ${WORKSPACE}'
         sh 'echo $BUILD_NUMBER'
@@ -39,9 +39,13 @@ def uploadWebOrtToGCS(bucketname) {
         container('gcloud') {
             dir('webort') {
                 sh 'ls'
-                sh "gcloud storage cp ${WORKSPACE}/webort/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/web-ort/webort@$VERSION_NUMBER --recursive"
+                sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
+    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/web-ort/ --recursive"
+    		    sh "tar -xzvf ${newId}.tar.gz"
+                //sh "gcloud storage cp ${WORKSPACE}/webort/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/web-ort/webort@$VERSION_NUMBER --recursive"
             }
-            sh "gcloud storage cp ${WORKSPACE}/webort/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/web-ort/webort@$VERSION_NUMBER/build --recursive"
+            
+            // sh "gcloud storage cp ${WORKSPACE}/webort/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/web-ort/webort@$VERSION_NUMBER/build --recursive"
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
 }
@@ -50,7 +54,7 @@ def checkoutControlDesk(branch) {
     echo "Checkout Controldesk"
         sh "mkdir -p controldesk"
         echo "test controldesk"
-        //echo "My Branch ${branch}"
+        echo "My Branch ${branch}"
             dir('controldesk') {
                 checkout([$class: 'GitSCM', 
                 branches: [[name: branch]], 
@@ -59,6 +63,9 @@ def checkoutControlDesk(branch) {
                 userRemoteConfigs: [[url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/control-desk.git', credentialsId: 'serviceaccount',]]])
                     
             sh 'ls -lrt'
+            def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+            sh "echo ${commitId}"
+            newId = "${commitId}"
                 // git branch: "${branch}",
                 // credentialsId: 'serviceaccount',
                 // url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/control-desk.git'
@@ -85,13 +92,17 @@ def buildControlDesk() {
 }
 def uploadControlDeskToGCS(bucketname) {
     echo "Upload Control Desk to GCS" 
-    //echo "My branch & GCS Bucket name is ${branch}"
+    echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {
             dir('controldesk') {
                 sh 'ls'
-                sh "gcloud storage cp ${WORKSPACE}/controldesk/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/controldesk/controldesk@$VERSION_NUMBER --recursive"
+                sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
+    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/controldesk/ --recursive"
+    		    sh "tar -xzvf ${newId}.tar.gz"
+                //sh "gcloud storage cp ${WORKSPACE}/controldesk/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/controldesk/controldesk@$VERSION_NUMBER --recursive"
             }
-            sh "gcloud storage cp ${WORKSPACE}/controldesk/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/controldesk/controldesk@$VERSION_NUMBER/build --recursive"
+            
+            //sh "gcloud storage cp ${WORKSPACE}/controldesk/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/controldesk/controldesk@$VERSION_NUMBER/build --recursive"
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }   
 }
@@ -107,6 +118,9 @@ def checkoutEWallet(branch) {
                 userRemoteConfigs: [[url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/ewallet.git', credentialsId: 'serviceaccount',]]])
                     
             sh 'ls -lrt'
+            def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+            sh "echo ${commitId}"
+            newId = "${commitId}"
                 // git branch: "${branch}",
                 // credentialsId: 'serviceaccount', 
                 // url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/ewallet.git' 
@@ -127,9 +141,15 @@ def buildEWallet() {
 }
 def uploadEWalletToGCS(bucketname) {
     echo "Upload eWallet to GCS"
-    //echo "My branch & GCS Bucket name is ${branch}"
+    echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {
-            sh "gcloud storage cp ${WORKSPACE}/ewallet/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/ewallet/ewallet@$VERSION_NUMBER --recursive"
+            dir('ewallet'){
+                sh "tar -czvf ${newId}.tar.gz build/*"
+    		    sh 'ls'
+    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/ewallet/ --recursive"
+    		    sh "tar -xzvf ${newId}.tar.gz" 
+            }    
+            // sh "gcloud storage cp ${WORKSPACE}/ewallet/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/ewallet/ewallet@$VERSION_NUMBER --recursive"
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
 
@@ -147,6 +167,9 @@ def checkouttime2eatweb(branch) {
                 userRemoteConfigs: [[url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/time2eatweb.git', credentialsId: 'serviceaccount',]]])
                     
             sh 'ls -lrt'
+            def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+            sh "echo ${commitId}"
+            newId = "${commitId}"
                 // git branch: "${branch}",
                 // credentialsId: 'serviceaccount',
                 // url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/time2eatweb.git'
@@ -173,13 +196,17 @@ def buildtime2eatweb() {
 }
 def uploadtime2eatwebToGCS(bucketname) {
     echo "Upload time2eatweb to GCS"
-    //echo "My branch & GCS Bucket name is ${branch}"
+    echo "My branch & GCS Bucket name is ${branch}"
     container('gcloud') {
         dir('time2eatweb') {
             sh 'ls'
-            sh "gcloud storage cp ${WORKSPACE}/time2eatweb/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/time2eat/time2eat@$VERSION_NUMBER --recursive"
+            sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
+    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/time2eat/ --recursive"
+    	    sh "tar -xzvf ${newId}.tar.gz"
+            //sh "gcloud storage cp ${WORKSPACE}/time2eatweb/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/time2eat/time2eat@$VERSION_NUMBER --recursive"
         }
-        sh "gcloud storage cp ${WORKSPACE}/time2eatweb/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/time2eat/time2eat@$VERSION_NUMBER/build --recursive"
+       
+        //sh "gcloud storage cp ${WORKSPACE}/time2eatweb/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/time2eat/time2eat@$VERSION_NUMBER/build --recursive"
         CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
     }
 
@@ -196,6 +223,9 @@ def checkoutvendordashboard(branch) {
                 userRemoteConfigs: [[url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/unified_webstack.git', credentialsId: 'serviceaccount',]]])
                     
             sh 'ls -lrt'
+            def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+            sh "echo ${commitId}"
+            newId = "${commitId}"
                 // git branch: "${branch}",
                 // credentialsId: 'serviceaccount',
                 // url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/unified_webstack.git'
@@ -219,10 +249,16 @@ def buildvendordashboard() {
 }   
 def uploadvendordashboardToGCS(bucketname) {
     echo "Uploading to GCS Bucket"
-    //echo "My branch & GCS Bucket name is ${branch}"
+    echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {
-            sh "gcloud storage cp ${WORKSPACE}/unified_webstack/frontend/dist/vdashboard/admindashboard/* gs://sqinternational-cicd.appspot.com/${bucketname}/vendor-dashboard/vdashboard@$VERSION_NUMBER --recursive"
-            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
+            dir('unified_webstack/frontend/dist/vdashboard/') {
+                sh "tar -czvf ${newId}.tar.gz admindashboard/*"
+        	    sh 'ls'
+        	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/vendor-dashboard/ --recursive"
+        	    sh "tar -xzvf ${newId}.tar.gz"
+            }    
+            // sh "gcloud storage cp ${WORKSPACE}/unified_webstack/frontend/dist/vdashboard/admindashboard/* gs://sqinternational-cicd.appspot.com/${bucketname}/vendor-dashboard/vdashboard@$VERSION_NUMBER --recursive"
+             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
 
 }
@@ -239,6 +275,9 @@ def checkoutgenericadmindashboard(branch) {
                 userRemoteConfigs: [[url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/generic-admin-dashboard.git', credentialsId: 'serviceaccount',]]])
                     
             sh 'ls -lrt'
+            def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+            sh "echo ${commitId}"
+            newId = "${commitId}"
             // git branch: "${branch}",
             // credentialsId: 'serviceaccount',
             // url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/generic-admin-dashboard.git' 
@@ -260,9 +299,15 @@ def buildgenericadmindashboard() {
 }
 def uploadgenericadmindashboardToGCS(bucketname) {
     echo "Uploading generic-admin-dashboard to GCS Bucket"   
-    //echo "My branch & GCS Bucket name is ${branch}"     
+    echo "My branch & GCS Bucket name is ${branch}"     
     container('gcloud') {
-        sh "gcloud storage cp ${WORKSPACE}/generic-admin-dashboard/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/generic-admin-dashboard/admindashboard@$VERSION_NUMBER --recursive"
+        dir('generic-admin-dashboard') { 
+            sh 'ls'
+            sh "tar -czvf ${newId}.tar.gz build/*"
+    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/generic-admin-dashboard/ --recursive"
+    	    sh "tar -xzvf ${newId}.tar.gz"
+            // sh "gcloud storage cp ${WORKSPACE}/generic-admin-dashboard/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/generic-admin-dashboard/admindashboard@$VERSION_NUMBER --recursive"
+        }
         CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
     }    
 }
@@ -279,6 +324,9 @@ def checkoutsmartqcloudbackend(branch) {
                     
             sh 'ls -lrt'
             sh "touch smartqcloudbackend.txt"
+            def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+            sh "echo ${commitId}"
+            newId = "${commitId}"
                 // git branch: "${branch}",
                 // credentialsId: 'serviceaccount',
                 // url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/smartq-cloud-backend.git'
@@ -290,8 +338,13 @@ def checkoutsmartqcloudbackend(branch) {
 def uploadsmartqcloudbackendToGCS(bucketname) {
     echo "Uploading smartq-backend to GCS"
     echo "My branch & GCS Bucket name is ${branch}"
-        container('gcloud') {                 
-            sh "gcloud storage cp ${WORKSPACE}/smartq-cloud-backend/smartqcloudbackend.txt gs://sqinternational-cicd.appspot.com/${bucketname}/smartq-cloud-backend/smartq-cloud-backend@$VERSION_NUMBER --recursive"
+        container('gcloud') {
+            sh "touch smartq-cloud-backend.txt"
+            sh "tar -czvf ${newId}.tar.gz smartq-cloud-backend.txt"
+    	    sh 'ls'
+    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/smartq-cloud-backend/ --recursive"
+    	    //sh "tar -xzvf ${newId}.tar.gz"
+            //sh "gcloud storage cp ${WORKSPACE}/smartq-cloud-backend/smartqcloudbackend.txt gs://sqinternational-cicd.appspot.com/${bucketname}/smartq-cloud-backend/smartq-cloud-backend@$VERSION_NUMBER --recursive"
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
                   
         }
@@ -309,7 +362,10 @@ def checkoutsqmicroservicesbackend(branch) {
                 userRemoteConfigs: [[url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/sq_microservices_backend.git', credentialsId: 'serviceaccount',]]])
                     
             sh 'ls -lrt'
-            sh "touch sqmicroservicesbackend.txt"
+            //sh "touch sqmicroservicesbackend.txt"
+            def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+            sh "echo ${commitId}"
+            newId = "${commitId}"
             // git branch: "${branch}",
             // credentialsId: 'serviceaccount',
             // url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/sq_microservices_backend.git'
@@ -321,11 +377,13 @@ def checkoutsqmicroservicesbackend(branch) {
 def uploadsqmicroservicesbackendToGCS(bucketname) {
     echo "Uploading sq_Microservices_Backend to GCS Bucket"
     echo "My branch & GCS Bucket name is ${branch}"
-        container('gcloud') {                   
-            sh "gcloud storage cp ${WORKSPACE}/sq_microservices_backend/sqmicroservicesbackend.txt gs://sqinternational-cicd.appspot.com/${bucketname}/sq_microservices_backend/sq_microservices_backend@$VERSION_NUMBER/default --recursive"
-            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
-
-
+        container('gcloud') { 
+            sh "touch sqmicroservicesbackend.txt"
+            sh "tar -czvf ${newId}.tar.gz sqmicroservicesbackend.txt"
+    	    sh 'ls'
+    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/sq_microservices_backend/ --recursive"
+            //sh "gcloud storage cp ${WORKSPACE}/sq_microservices_backend/sqmicroservicesbackend.txt gs://sqinternational-cicd.appspot.com/${bucketname}/sq_microservices_backend/sq_microservices_backend@$VERSION_NUMBER-${newId}/default --recursive"
+           CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
 }
 
@@ -347,10 +405,12 @@ def checkoutcontroldeskflutter(branch) {
             // sh 'ls'
             
             // Get the commit ID of the current HEAD
-            //def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+            def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     
             // Print the commit ID
-            //echo "Commit ID: ${commitId}"
+            //echo "CommitId: ${commitId}"
+            sh "echo ${commitId}"
+            newId = "${commitId}"
         }
 }
 def buildcontroldeskflutter() {
@@ -371,14 +431,79 @@ def buildcontroldeskflutter() {
     }
 }
 def uploadcontroldeskflutterToGCS(bucketname) {
-    echo "Upload to GCS"  
-    //echo "My branch & GCS Bucket name is ${branch}"
+  echo "Upload to GCS"  
+  echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {
             dir('controldeskflutter') {
                 sh 'ls'
-                sh "gcloud storage cp ${WORKSPACE}/controldeskflutter/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/controldeskflutter/controldeskflutter@$VERSION_NUMBER --recursive"
+		        sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
+                sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/controldeskflutter/  --recursive"
+		        sh "tar -xzvf ${newId}.tar.gz"
             }
-            sh "gcloud storage cp ${WORKSPACE}/controldeskflutter/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/controldeskflutter/controldeskflutter@$VERSION_NUMBER/build --recursive"
+            //sh "tar -czvf ${newId}.tar.gz controldeskflutter/*.yaml controldeskflutter/build/*"
+		    //sh 'ls'
+		    
+            //sh "gcloud storage cp ${WORKSPACE}/controldeskflutter/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/controldeskflutter/controldeskflutter.tar.gz-${newId} --recursive"
+            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
+        }
+}
+
+def checkouttime2eat_flutter(branch) {
+    echo "Checkout time2eat_flutter"
+    echo "${branch}"   
+        sh "mkdir -p time2eat_flutter"
+        dir('time2eat_flutter') {
+            checkout([$class: 'GitSCM', 
+                branches: [[name: branch]], 
+                doGenerateSubmoduleConfigurations: false, 
+                extensions: [[$class: 'CleanCheckout']], 
+                userRemoteConfigs: [[url: 'https://yash123devops@bitbucket.org/bottlelabtech/smartq.git', credentialsId: 'bitbucket api',]]])
+                    
+            sh 'ls -lrt'
+            // git branch: "${branch}",
+            // credentialsId: 'bitbucket api',
+            // url: 'https://yash123devops@bitbucket.org/bottlelabtech/control-desk-flutter.git'
+            // sh 'ls'
+            
+            // Get the commit ID of the current HEAD
+            def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    
+            // Print the commit ID
+            //echo "CommitId: ${commitId}"
+            sh "echo ${commitId}"
+            newId = "${commitId}"
+        }
+}
+def buildtime2eat_flutter() {
+    container('time2eatflutter') {
+        sh 'echo ${WORKSPACE}'
+        sh 'echo $BUILD_NUMBER'
+            dir('time2eat_flutter') {
+                sh 'flutter clean'
+                sh 'flutter build web'
+                sh 'ls'
+                dir ('${WORKSPACE}/build/web') {
+                    sh 'ls'
+                    sh 'pwd'
+                    //sh 'echo changing to directory'
+                }
+            }
+    }
+}
+def uploadtime2eat_flutterToGCS(bucketname) {
+  echo "Upload to GCS"  
+  echo "My branch & GCS Bucket name is ${branch}"
+        container('gcloud') {
+            dir('time2eat_flutter') {
+                sh 'ls'
+		        sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
+                sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/time2eat-flutter/  --recursive"
+		        sh "tar -xzvf ${newId}.tar.gz"
+            }
+            //sh "tar -czvf ${newId}.tar.gz time2eat_flutter/*.yaml time2eat_flutter/build/*"
+		    //sh 'ls'
+		    
+            //sh "gcloud storage cp ${WORKSPACE}/time2eat_flutter/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/time2eat_flutter/time2eat_flutter.tar.gz-${newId} --recursive"
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
 }
@@ -415,12 +540,6 @@ pipeline {
             command:
             - cat
             tty: true
-          
-          - name: node-js
-            image: node:14.19.0
-            command:
-            - cat
-            tty: true    
 
           - name: gcloud
             image: google/cloud-sdk:latest
@@ -429,18 +548,24 @@ pipeline {
             tty: true
 
           - name: flutter
-            image: instrumentisto/flutter:latest
+            image: instrumentisto/flutter:3.10.2
             command:
             - cat
             tty: true 
+            
+          - name: time2eatflutter
+            image: instrumentisto/flutter:latest
+            command:
+            - cat
+            tty: true     
         '''        
         }
     }
 
     parameters {
 
-    choice(name: 'BitBucketProject', choices: ['web-ort', 'control-desk', 'ewallet', 'time2eatweb', 'vendor-dashboard','generic-admin-dashboard', 'smartq-cloud-backend', 'sq_microservices_backend','controldeskflutter'], description: 'Select BitBucket Project')
-    choice(name: 'Branch', choices: ['auto-sprint', 'auto-release', 'master', 'cicd-sprint'], description: 'Select Branch')
+    choice(name: 'BitBucketProject', choices: ['web-ort', 'control-desk', 'ewallet', 'time2eatweb', 'vendor-dashboard','generic-admin-dashboard', 'smartq-cloud-backend', 'sq_microservices_backend','controldeskflutter', 'time2eat_flutter'], description: 'Select BitBucket Project')
+    choice(name: 'Branch', choices: ['auto-sprint', 'auto-release', 'master', 'hotfix'], description: 'Select Branch')
     string(name: 'Hotfix_Branch', description: 'Enter the branch name')
     string(name: 'CommitId', defaultValue:"latest", trim: true, description: 'Enter the commitId')
     }
@@ -458,21 +583,7 @@ pipeline {
         ])
     }
 
-    stages { 
-
-        // stage('Send Email') {
-        //     steps {
-        //         script {
-        //             emailext subject: "Pipeline Started - ${bitBucketProject}", 
-        //                      body: "The pipeline ${bitBucketProject} has started.",
-        //                      from: 'yashwanth.kp@thesmartq.com',
-        //                      to: 'yashwanth.kp@thesmartq.com',
-        //                      cc: 'Ajith.Vijayakumar@thesmartq.com',
-        //                      attachLog: true
-        //         }
-        //     }
-        // }
-    
+    stages {  
         stage('Building All Pipeline') {
             steps {
                 script {
@@ -486,26 +597,16 @@ pipeline {
                     if (Hotfix_Branch != '') {
                     	bucketname="${hotfixbranch}"
                     	branch="${hotfixbranch}"
-<<<<<<<<< Temporary merge branch 1:Pipelines/Build/Smartq-Complete-Build.groovy
                     } else if (CommitId != 'latest'){
-=========
-                    } else if (CommitId != 'latest' || Hotfix_Branch != ''){
->>>>>>>>> Temporary merge branch 2:Pipelines/Build/Smartq-Build-pipeline
                     	branch="${commitId}"
                     	
                     } else {
                         branch = params.Branch
                     }
                     
-<<<<<<<<< Temporary merge branch 1:Pipelines/Build/Smartq-Complete-Build.groovy
                     if (CommitId != 'latest' && Hotfix_Branch != ''){
                         branch="${commitId}"
                     }
-=========
-                    // if (CommitId != 'latest' && Hotfix_Branch != ''){
-                    //     branch="${commitId}"
-                    // }
->>>>>>>>> Temporary merge branch 2:Pipelines/Build/Smartq-Build-pipeline
                       
                     
                     echo "Selected BitBucket Project: ${bitBucketProject}"
@@ -558,7 +659,12 @@ pipeline {
                         buildcontroldeskflutter()
                         uploadcontroldeskflutterToGCS(bucketname)
                         buildPipeline = true  
-                    }  
+                    } else if (bitBucketProject == 'time2eat_flutter') {
+                        checkouttime2eat_flutter(branch)
+                        buildtime2eat_flutter()
+                        uploadtime2eat_flutterToGCS(bucketname)
+                        buildPipeline = true    
+                    }      
 
                     if (!buildPipeline) {
                         error("Invalid combination of BitBucket Project and Branch.")
@@ -571,12 +677,9 @@ pipeline {
     // post{
     //     always{
     //         script {
-    //             mail bcc: '', body: "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nApplication  Name: ${bitBucketProject}.\nGCP Cloud URL: ${CLOUD_URL}.\n Version Number: ${VERSION_NUMBER}",
-    //             cc: 'Ajith.Vijayakumar@thesmartq.com, R.Prabhakaran@thesmartq.com , VenkateswaraReddi.P@thesmartq.com , abhijeet@thesmartq.com',
-    //             from: '',
-    //             replyTo: '',
-    //             subject: "Build Status# ${currentBuild.currentResult}",
-    //             to: 'yashwanth.kp@thesmartq.com'
+    //             office365ConnectorSend webhookUrl: "${mail_url}",
+    //             message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nApplication  Name: ${bitBucketProject}.\nGCP Cloud URL: ${CLOUD_URL}.\n Version Number: ${VERSION_NUMBER} ",
+    //             status: "Build Status# ${currentBuild.currentResult}"
     //         }
     //     }
     // }

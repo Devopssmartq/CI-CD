@@ -9,6 +9,7 @@ import groovy.transform.Field
 @Field def TIME2EAT_YAML
 @Field def BAWEB_YAML  
 @Field def WEBORT_YAML
+@Field def TIME2EAT_FLUTTER_YAML
 
 @Field def APP_SERVICE_YAML 
 @Field def DEFAULT_SERVICE_YAML
@@ -25,7 +26,7 @@ import groovy.transform.Field
 def setProperties() {
     
     GCS_BUCKET_NAME = "sqinternational-cicd.appspot.com"
-    ENVIRONMENT = (RELEASE_SCOPE == "sprint") ? "auto-sprint" : (RELEASE_SCOPE == "hot-fix") ? "${params.GIT_BRANCH}" : "auto-release"
+    ENVIRONMENT = (RELEASE_SCOPE == "sprint") ? "auto-sprint" : (RELEASE_SCOPE == "preprod") ? "auto-sprint" : (RELEASE_SCOPE == "hot-fix") ? "${params.GIT_BRANCH}" : "auto-release"
     // To-do : change the following to appropriate branch names, once release brnach is created
     GIT_BRANCH = (RELEASE_SCOPE == "sprint") ? "auto-sprint" :  (RELEASE_SCOPE == "hot-fix") ? "${params.GIT_BRANCH}" : "auto-release"
     
@@ -41,6 +42,7 @@ def setProperties() {
     BAWEB_YAML = ''
 
     WEBORT_YAML = RELEASE_SCOPE == "beta" ? 'beta_app.yaml' : 'app.yaml'
+    TIME2EAT_FLUTTER_YAML = ''
     //py2 service yamls
     APP_SERVICE_YAML = RELEASE_SCOPE == "beta" ? '' : 'app.yaml'//for india ::: // for international 'time2eat_appservice.yaml'
     DEFAULT_SERVICE_YAML = RELEASE_SCOPE == "beta" ? 'app_betaapp.yaml' : 'app.yaml'
