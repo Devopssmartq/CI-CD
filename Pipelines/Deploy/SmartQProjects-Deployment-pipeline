@@ -132,7 +132,6 @@ def nodeapps = [
             [key: 'smartq-pwa'],
             [key: 'foodbook-web'],
             [key: 'time2eat'],
-            [key: 'jumpr-pwa'],
             [key: 'baweb'],
             [key: 'web-ort'],
             [key: 'time2eat-flutter']
@@ -303,7 +302,7 @@ properties([
                         if (type == "India") {
                             options = ["All:selected","controldesk","web-ort","foodbook-web","smartq-pwa","py2_default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","app","pricebook"]
                         } else if (type == "International") {
-                            options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","jumpr-pwa","baweb","appservice","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","py3_default","integration", "pricebook"]
+                            options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","baweb","appservice","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","py3_default","integration", "pricebook"]
                         }
                         return options
                     '''
@@ -561,7 +560,15 @@ pipeline {
                                         ARR_VERIFY_SERVICE.add([service_name: 'foodbook-web', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'foodbook-web/main'])   
                                     }
                                 }
-                                if (INTERNATIONAL_FLAG && 'time2eat' in ARR_SELECTED_SERVICE ) {
+                                if (params.APP_ENGINE_PROJECT_ID.contains("-au")) {
+                                    parallelJobs[nodeapps.find { it.key == 'time2eat' }] = {
+                                        dir("${PWA_APP_NAME}-latest") {
+                                                
+                                            sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $JUMPR_PWA_YAML --no-promote"
+                                        }
+                                        ARR_VERIFY_SERVICE.add([service_name: 'jumpr-pwa', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'jumpr-pwa/main'])
+                                    }                                                                                                                               
+                                } else  if (INTERNATIONAL_FLAG && 'time2eat' in ARR_SELECTED_SERVICE ) {
                                     TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
                                     parallelJobs[nodeapps.find { it.key == 'time2eat' }] = {
                                         dir("${PWA_APP_NAME}-latest") {
@@ -570,20 +577,7 @@ pipeline {
                                         }
                                         ARR_VERIFY_SERVICE.add([service_name: 'time2eat', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'time2eat/main'])   
                                     }
-                                } 
-                                if (params.APP_ENGINE_PROJECT_ID.contains("-au")) {
-                                    if (INTERNATIONAL_FLAG && 'jumpr-pwa' in ARR_SELECTED_SERVICE ) {
-                                        TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
-                                        parallelJobs[nodeapps.find { it.key == 'time2eat' }] = {
-                                            dir("${PWA_APP_NAME}-latest") {
-                                            
-                                                sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $JUMPR_PWA_YAML --no-promote"
-                                            }
-                                            ARR_VERIFY_SERVICE.add([service_name: 'jumpr-pwa', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'jumpr-pwa/main'])   
-                                        }
-                                    }
-                                }  
-                                
+                                }                                                                                                 
                                 if (params.APP_ENGINE_PROJECT_ID.contains("-us")) {  
                                     if (INTERNATIONAL_FLAG && 'baweb' in ARR_SELECTED_SERVICE ) {
                                         TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
@@ -895,11 +889,10 @@ pipeline {
                                                 }                                 
                                             }
                                         }
-                                        if('pricebook' in ARR_SELECTED_SERVICE) {// ! For India only - Skip this when the condition is false
-                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend')
-                                            parallelJobs[py3_services.find { it.key == 'pricebook' }] = {
-                                                
-                                                if (params.APP_ENGINE_PROJECT_ID.contains("-us")) {
+                                        if (params.APP_ENGINE_PROJECT_ID.contains("-us")) {
+                                            if('pricebook' in ARR_SELECTED_SERVICE) {// ! For India only - Skip this when the condition is false
+                                                PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend')
+                                                parallelJobs[py3_services.find { it.key == 'pricebook' }] = {
                                                     dir ('sq_microservices_backend') {
                                                         sh 'cp -r commonlib pricebook'
                                                         dir ('pricebook') {
@@ -907,32 +900,25 @@ pipeline {
                                                             sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_PRICEBOOK_YAML --no-promote"
                                                         }                                                        
                                                     } 
-                                                } 
-                                                if (params.APP_ENGINE_PROJECT_ID.contains("-us")) {   
-                                                    ARR_VERIFY_SERVICE.add([service_name: 'pricebook', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v1/pricebook/category/search?categoryname=1']) 
+                                                    ARR_VERIFY_SERVICE.add([service_name: 'pricebook', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v1/pricebook/category/search?categoryname=1'])                                                                                                                                                                   
+                                                }                                                                                                                
+                                            }
+                                        }  
+                                        if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {  
+                                            if(INTERNATIONAL_FLAG && 'integration' in ARR_SELECTED_SERVICE ) {// ! For India only - Skip this when the condition is false
+                                                PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                                                parallelJobs[py3_services.find { it.key == 'integration' }] = {
+                                                    dir ('sq_microservices_backend') {
+                                                        sh 'cp -r commonlib appms'
+                                                        dir ('appms') {
+                                                            sh "ls *.yaml"
+                                                            sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_INTEGRATION_YAML --no-promote"
+                                                        }
+                                                    }        
+                                                    ARR_VERIFY_SERVICE.add([service_name: 'integration', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])                                                                                                                                                                                                                                                                                                                                                                                       
                                                 }
                                             }
-                                        }
-                                        if(INTERNATIONAL_FLAG && 'integration' in ARR_SELECTED_SERVICE ) {// ! For India only - Skip this when the condition is false
-                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
-                                            parallelJobs[py3_services.find { it.key == 'integration' }] = {
-                                                
-                                                        
-                                                        //enable only for uk servers
-                                                        if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {
-                                                            dir ('sq_microservices_backend') {
-                                                                sh 'cp -r commonlib appms'
-                                                                dir ('appms') {
-                                                                    sh "ls *.yaml"
-                                                                    sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_INTEGRATION_YAML --no-promote"
-                                                                }
-                                                            }        
-                                                        }
-                                                        if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {
-                                                            ARR_VERIFY_SERVICE.add([service_name: 'integration', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])
-                                                        }                                                                                   
-                                            }
-                                        }    
+                                        }        
                                         //2.1 Add new service block here, if there is any to be added
                                         parallel(parallelJobs)
                                     }
