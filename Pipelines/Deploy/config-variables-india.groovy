@@ -39,6 +39,7 @@ def setProperties() {
     FOODBOOK_YAML = RELEASE_SCOPE == "beta" ? '' : 'foodbook.yaml'
 
     TIME2EAT_YAML = ''
+    JUMPR_PWA_YAML = ''
     BAWEB_YAML = ''
 
     WEBORT_YAML = RELEASE_SCOPE == "beta" ? 'beta_app.yaml' : 'app.yaml'

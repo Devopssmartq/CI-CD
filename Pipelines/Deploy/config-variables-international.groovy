@@ -37,6 +37,7 @@ def setProperties() {
     PWA_YAML = ''// not for INTERNATIONAL. for india only
     FOODBOOK_YAML = ''// not for INTERNATIONAL. for india only
     TIME2EAT_YAML = RELEASE_SCOPE == "beta" ? '' : 'time2eat.yaml'
+    JUMPR_PWA_YAML = RELEASE_SCOPE == "beta" ? '' : 'jumpr-pwa.yaml'
     BAWEB_YAML = RELEASE_SCOPE == "beta" ? '' : 'baweb.yaml'
 
     WEBORT_YAML = RELEASE_SCOPE == "beta" ? 'beta_app.yaml' : 'app.yaml'
