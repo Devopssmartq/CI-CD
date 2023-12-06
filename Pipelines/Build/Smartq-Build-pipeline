@@ -567,7 +567,7 @@ pipeline {
     choice(name: 'BitBucketProject', choices: ['web-ort', 'control-desk', 'ewallet', 'time2eatweb', 'vendor-dashboard','generic-admin-dashboard', 'smartq-cloud-backend', 'sq_microservices_backend','controldeskflutter', 'time2eat_flutter'], description: 'Select BitBucket Project')
     choice(name: 'Branch', choices: ['auto-sprint', 'auto-release', 'master', 'hotfix'], description: 'Select Branch')
     string(name: 'Hotfix_Branch', description: 'Enter the branch name')
-    string(name: 'CommitId', defaultValue:"latest", trim: true, description: 'Enter the commitId')
+    string(name: 'CommitId', defaultValue:" ", trim: true, description: 'Enter the commitId')
     }
 
 
@@ -597,14 +597,13 @@ pipeline {
                     if (Hotfix_Branch != '') {
                     	bucketname="${hotfixbranch}"
                     	branch="${hotfixbranch}"
-                    } else if (CommitId != 'latest'){
-                    	branch="${commitId}"
-                    	
+                    } else if (CommitId != ''){
+                    	branch="${commitid}"                    	
                     } else {
                         branch = params.Branch
                     }
                     
-                    if (CommitId != 'latest' && Hotfix_Branch != ''){
+                    if (CommitId != '' && Hotfix_Branch != ''){
                         branch="${commitId}"
                     }
                       
