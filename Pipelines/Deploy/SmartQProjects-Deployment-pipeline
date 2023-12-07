@@ -291,7 +291,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["All:selected","controldesk","web-ort","foodbook-web","smartq-pwa","py2_default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","app","pricebook"]'
+                    script: 'return ["All:selected","controldesk","web-ort","time2eat","foodbook-web","smartq-pwa","py2_default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","app","pricebook"]'
                 ],
                 script: [
                     classpath: [],
@@ -300,7 +300,7 @@ properties([
                         def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
                         def options = []
                         if (type == "India") {
-                            options = ["All:selected","controldesk","web-ort","foodbook-web","smartq-pwa","py2_default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","app","pricebook"]
+                            options = ["All:selected","controldesk","web-ort","time2eat","foodbook-web","smartq-pwa","py2_default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","app","pricebook"]
                         } else if (type == "International") {
                             options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","baweb","appservice","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","py3_default","integration", "pricebook"]
                         }
@@ -321,7 +321,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return [APP_ENGINE_PROJECT_ID + "_Critical_Sanity", APP_ENGINE_PROJECT_ID + "_ios", "none:selected"]'
+                    script: 'return [APP_ENGINE_PROJECT_ID + "_Critical_Sanity", "none:selected"]'
                 ],
                 script: [
                     classpath: [],
@@ -332,7 +332,7 @@ properties([
                         if (scope == "sprint" || scope == "beta") {
                             options = []
                         } else if (APP_ENGINE_PROJECT_ID) {
-                            options = [APP_ENGINE_PROJECT_ID + "_Critical_Sanity", APP_ENGINE_PROJECT_ID + "_ios","none:selected"]
+                            options = [APP_ENGINE_PROJECT_ID + "_Critical_Sanity", "none:selected"]
                         } else {
                             options = ['DefaultValue']
                         }    
@@ -418,7 +418,7 @@ pipeline {
                             {
                                 def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
                                 echo "type of deplyoment is : ${type}"
-                                def options = 'controldesk,web-ort,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook'
+                                def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook'
                                 // if (type == "India") {
                                 //     options = 'controldesk,web-ort,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook'
                                 // } 
@@ -479,26 +479,6 @@ pipeline {
                         }                
                     }
                 }
-                // stage('Get the versions to be deployed') {
-                //     steps {
-                //         script {
-                //             //node app - versions                  
-                //             // TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')     
-                //             //CONTROLDESK_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldesk') 
-                //             //CONTROLDESK_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldeskflutter')
-                //             // WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'web-ort')
-                //             // TIME2EAT_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat-flutter')
-                //             //Py2 serices related versions
-                //             // APP_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ewallet')
-                //             // ADMIN_DASHBOARD_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'generic-admin-dashboard')
-                //             // BQREPORTS_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'vendor-dashboard')
-                //             // PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')
-                //             //PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend') + "-" + APP_SERVICE_APP_ENGINE_VERSION + "-" +  ADMIN_DASHBOARD_APP_ENGINE_VERSION  + "-" + VENDOR_DASHBOARD_APP_ENGINE_VERSION  //Must not exceed 63 characters.
-                //             //py3 micro service- version
-                //             // PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
-                //         }
-                //     }
-                // }
                 stage('Set GCloud ProjectID') {
                 steps {
                         container('gcloud') {
@@ -601,7 +581,7 @@ pipeline {
                                         }
                                         ARR_VERIFY_SERVICE.add([service_name: 'jumpr-pwa', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'jumpr-pwa/main'])
                                     }                                                                                                                               
-                                } else  if (INTERNATIONAL_FLAG && 'time2eat' in ARR_SELECTED_SERVICE ) {
+                                } else  if ('time2eat' in ARR_SELECTED_SERVICE ) {
                                     TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
                                     parallelJobs[nodeapps.find { it.key == 'time2eat' }] = {
                                         dir("${PWA_APP_NAME}-latest") {
@@ -1011,7 +991,7 @@ pipeline {
         always{
             script {
                 office365ConnectorSend webhookUrl: "${mail_url}",
-                message : "Job Name: ${Job_Name}.\n\n Build Status: ${currentBuild.currentResult}.\n\n Jenkins Build Number: ${Build_Number}.\n\n Build Server - ${APP_ENGINE_PROJECT_ID}.\n\n Services Promoted - ${PROMOTED_SERVICES}",
+                message : "Job Name: ${Job_Name}.\n\n Build Status: ${currentBuild.currentResult}.\n\n Jenkins Build Number: ${Build_Number}.\n\n Build Server - ${APP_ENGINE_PROJECT_ID}.\n\n Services Promoted - ${PROMOTED_SERVICES.join('\n\n')}",
                 status: "Deployment Status# ${currentBuild.currentResult}"
             }
         }
