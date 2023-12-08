@@ -1,0 +1,21 @@
+def setProperties() {
+    
+	def APP_NAME = "web-ort"
+	sh "mkdir -p ${APP_NAME}-latest"
+	sh "echo webort enter"
+	
+	sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH} ${WORKSPACE}/${APP_NAME}-latest --recursive"
+	
+	dir("${APP_NAME}-latest") {
+		sh 'ls'
+		//dir('web-ort'){
+    		sh 'ls; pwd'
+    		sh "tar -xzvf ${WEBORT_APP_ENGINE_VERSION}.tar.gz"
+    		
+    		sh "gcloud app deploy --version=$WEBORT_APP_ENGINE_VERSION --quiet $WEBORT_YAML --no-promote"
+		//}	
+	}
+	                       
+}
+
+return this
