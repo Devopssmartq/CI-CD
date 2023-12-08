@@ -1,0 +1,16 @@
+def setProperties() {
+    
+	def APP_NAME = "controldesk"
+    sh "mkdir -p ${APP_NAME}-latest"    
+    echo "${APP_NAME}"
+
+    sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest/ --recursive"                                                                               
+    dir("${APP_NAME}-latest") {
+        sh 'ls'
+        sh "tar -xzvf ${CONTROLDESK_APP_ENGINE_VERSION}.tar.gz"
+        sh 'ls; pwd'                                          
+        sh "gcloud app deploy --version=$CONTROLDESK_APP_ENGINE_VERSION --quiet $CONTROLDESK_YAML --no-promote"
+    }                  
+}
+
+return this

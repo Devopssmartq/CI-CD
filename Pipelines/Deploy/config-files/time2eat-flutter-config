@@ -1,0 +1,18 @@
+def setProperties() {
+    
+    def APP_NAME = "time2eat-flutter"
+    sh "mkdir -p ${APP_NAME}-latest"
+    sh "echo ${APP_NAME} enter"
+
+    sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
+                                                                                
+    dir("${APP_NAME}-latest") {
+        sh 'ls'
+        sh "tar -xzvf ${TIME2EAT_FLUTTER_APP_ENGINE_VERSION}.tar.gz"
+        sh 'ls; pwd'
+
+        sh "gcloud app deploy --version=$TIME2EAT_FLUTTER_APP_ENGINE_VERSION --quiet $TIME2EAT_FLUTTER_YAML --no-promote"
+    }
+}
+
+return this

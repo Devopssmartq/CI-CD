@@ -38,7 +38,7 @@ def setProperties() {
     PWA_YAML = RELEASE_SCOPE == "beta" ? 'smartqPWABeta.yaml' : 'smartq-pwa.yaml'
     FOODBOOK_YAML = RELEASE_SCOPE == "beta" ? '' : 'foodbook.yaml'
 
-    TIME2EAT_YAML = ''
+    TIME2EAT_YAML = RELEASE_SCOPE == "beta" ? '' : 'time2eat.yaml'
     JUMPR_PWA_YAML = ''
     BAWEB_YAML = ''
 
