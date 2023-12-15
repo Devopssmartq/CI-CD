@@ -1,5 +1,7 @@
 /* groovylint-disable CompileStatic */
 // Uses Declarative syntax to run commands inside a container.
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import groovy.transform.Field
 @Field def IS_NODEAPPS_ENABLED
 @Field def IS_PY2_ENABLED
@@ -93,7 +95,7 @@ def Write_To_File() {
         println(data)
         container('gcloud') {
             dir("${env.WORKSPACE}") {
-                sh "gcloud storage cp ${filePath} gs://sqinternational-cicd.appspot.com/release_summary/${APP_ENGINE_PROJECT_ID}/released/${env.VERSION_NUMBER} --recursive"
+                sh "gcloud storage cp ${filePath} gs://sqinternational-cicd.appspot.com/release_summary/released/${APP_ENGINE_PROJECT_ID}/${env.VERSION_NUMBER} --recursive"
             }
         }
     }
@@ -126,6 +128,7 @@ def migrate_Traffic() {
                         script: "gcloud app services set-traffic ${service_name} --splits ${previous_version}=1 --project=${APP_ENGINE_PROJECT_ID} --quiet",
                         returnStdout: true
                     ).trim()
+                    
                     migrations.add([service_name: service_name, previous_version: previous_version, result: MIGRATED_TRAFFIC])
                 } catch (Exception migrationException) {
                     println "Error occurred while migrating ${service_name}: ${migrationException.message}"
@@ -204,7 +207,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["smartqdemo-au", "smartqdemo-de", "smartqdemo-hk", "smartqdemo-nz", "smartqdemo-us", "smartqdemo-uk", "sqpentest", "smartqdemo:selected"]'
+                    script: 'return ["smartqdemo-au", "smartqdemo-de", "smartqdemo-hk", "smartqdemo-nz", "smartqdemo-us", "smartqdemo-uk", "sqpentest", "sqinternational-cicd", "smartqdemo:selected"]'
                 ],
                 script: [
                     classpath: [],
@@ -213,7 +216,7 @@ properties([
                         def scope = RELEASE_SCOPE ?: "sprint" // Default to 'SPRINT' if not selected
                         def options = []
                         if (scope == "sprint") {
-                            options = ["smartqdemo-au", "smartqdemo-de", "smartqdemo-hk", "smartqdemo-nz", "smartqdemo-us", "smartqdemo-uk", "sqpentest", "smartqdemo:selected"]
+                            options = ["smartqdemo-au", "smartqdemo-de", "smartqdemo-hk", "smartqdemo-nz", "smartqdemo-us", "smartqdemo-uk", "sqpentest", "sqinternational-cicd", "smartqdemo:selected"]
                         } else if (scope == "preprod") {
                             options = ["sqpreprod-india", "sqpreprod-uk", "sqpreprod-us:selected"]
                         } else if (scope == "beta") {
