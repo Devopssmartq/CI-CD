@@ -205,51 +205,13 @@ properties([
                             options = ["sqpreprod-india", "sqpreprod-uk", "sqpreprod-us:selected"]
                         } else if (scope == "beta") {
                             options = ["smartqprd-india", "smartqprd-uk", "smartqprd-us:selected"]
-                        } else if (scope == "prod") {
-                            options = [ "smartqprd-au",
-                                        "smartqprd-be",
-                                        "smartqprd-chi",
-                                        "smartqprd-cn",
-                                        "smartqprd-de",
-                                        "smartqprd-fi", 
-                                        "smartqprd-hk",
-                                        "smartqprd-ie",
-                                        "smartqprd-india",
-                                        "smartqprd-it",
-                                        "smartqprd-jp",
-                                        "smartqprd-mex",
-                                        "smartqprd-nl",
-                                        "smartqprd-nz",
-                                        "smartqprd-sng",
-                                        "smartqprd-spain",
-                                        "smartqprd-uae",
-                                        "smartqprd-uk",
-                                        "smartqprd-us:selected"
-                                    ]
+                       } else if (scope == "prod") {
+                            options = [ "smartqprd-au", "smartqprd-be", "smartqprd-chi", "smartqprd-cn", "smartqprd-de", "smartqprd-fi", "smartqprd-hk", "smartqprd-ie", "smartqprd-india",
+                                        "smartqprd-it", "smartqprd-jp", "smartqprd-mex", "smartqprd-nl",  "smartqprd-nz", "smartqprd-sng", "smartqprd-spain", "smartqprd-uae", "smartqprd-uk", "smartqprd-us:selected"]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
                         } else if (scope == "hot-fix") {
-                            options = [ "sqpreprod-india", 
-                                        "sqpreprod-uk", 
-                                        "sqpreprod-us:selected",
-                                        "smartqprd-au",
-                                        "smartqprd-be",
-                                        "smartqprd-chi",
-                                        "smartqprd-cn",
-                                        "smartqprd-de",
-                                        "smartqprd-fi", 
-                                        "smartqprd-hk",
-                                        "smartqprd-ie",
-                                        "smartqprd-india",
-                                        "smartqprd-it",
-                                        "smartqprd-jp",
-                                        "smartqprd-mex",
-                                        "smartqprd-nl",
-                                        "smartqprd-nz",
-                                        "smartqprd-sng",
-                                        "smartqprd-spain",
-                                        "smartqprd-uae",
-                                        "smartqprd-uk",
-                                        "smartqprd-us"
-                                        ]
+                            options = [ "sqpreprod-india", "sqpreprod-uk", "sqpreprod-us:selected", "smartqprd-au", "smartqprd-be", "smartqprd-chi", "smartqprd-cn", "smartqprd-de", "smartqprd-fi", "smartqprd-hk",
+                                        "smartqprd-ie",  "smartqprd-india", "smartqprd-it", "smartqprd-jp", "smartqprd-mex", "smartqprd-nl", "smartqprd-nz", "smartqprd-sng", "smartqprd-spain",  "smartqprd-uae",
+                                        "smartqprd-uk", "smartqprd-us"]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
                         }
                         return options
                     '''
@@ -454,27 +416,9 @@ pipeline {
                                 echo "$GCS_BUCKET_NAME"
                                 echo "$ENVIRONMENT"//see if you can get rid of this in all the places & use GIT_BRANCH, as both are same now
                                 echo "GIT_BRANCH - $GIT_BRANCH"
-
-                                echo "$CONTROLDESK_YAML"
-                                echo "$PWA_YAML"
-                                echo "$FOODBOOK_YAML"                       
-                                echo "$TIME2EAT_YAML"
-                                echo "$BAWEB_YAML"
-                                echo "$WEBORT_YAML"
-                                echo "$TIME2EAT_FLUTTER_YAML"
-
-                                echo "$APP_SERVICE_YAML"
-                                echo "$DEFAULT_SERVICE_YAML" 
-                                echo "$BACKGROUND_YAML"
-                                echo "$TASKQSERVICE_YAML"
-                                echo "$REPORTS_YAML"
-                                echo "$BQREPORTS_YAML"
-
-                                echo "$PY3_APPMS_YAML"
-                                echo "$PY3_DASHBOARD_YAML"
-                                echo "$PY3_SSO_YAML"
-                                echo "$PY3_PRICEBOOK_YAML"
-                                echo "$PY3_INTEGRATION_YAML"                        
+                                echo "[\"$CONTROLDESK_YAML\", \"$PWA_YAML\", \"$FOODBOOK_YAML\", \"$TIME2EAT_YAML\", \"$BAWEB_YAML\", \"$WEBORT_YAML\", \"$TIME2EAT_FLUTTER_YAML\"]"
+                                echo "[\"$APP_SERVICE_YAML\",  \"$DEFAULT_SERVICE_YAML\", \"$BACKGROUND_YAML\", \"$TASKQSERVICE_YAML\", \"$REPORTS_YAML\", \"$BQREPORTS_YAML\"]" 
+                                echo "[\"$PY3_APPMS_YAML\", \"$PY3_DASHBOARD_YAML\",  \"$PY3_SSO_YAML\", \"$PY3_PRICEBOOK_YAML\", \"$PY3_INTEGRATION_YAML\"]"                      
                             }
                         }                
                     }

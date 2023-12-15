@@ -7,6 +7,7 @@ import groovy.transform.Field
 @Field def ARR_SELECTED_SERVICE
 @Field def ARR_VERIFY_SERVICE = []
 @Field def PROMOTED_SERVICES = []
+@Field def MIGRATED_TRAFFIC = []
 
 def getURL_Status(Map args) {
     script {
@@ -82,24 +83,6 @@ def promote_Service(Map args) {
     def PROMOTED_SERVICE = sh (script: "gcloud app services set-traffic ${args.service_name} --splits ${args.version_name}=1 --quiet", returnStdout: true).trim()       
     return "${PROMOTED_SERVICE}"
 }
-def migrate_Traffic(Map args) {
-    def MIGRATE_TRAFFIC = args.MIGRATE_TRAFFIC
-    container('gcloud') {
-        sh "gcloud storage cp  gs://sqinternational-cicd.appspot.com/release_summary/sqpentest/released/20231208 ${WORKSPACE}/releasedfile.txt --recursive"
-        //dir('releasedfile'){}
-            def fileContents = readFile(file: "${WORKSPACE}/releasedfile.txt").trim()
-            def extractedValues = fileContents =~ /service_name:([^,]+).*previous_version:([^,\]]+)/
-            if (extractedValues) {
-                service_name = extractedValues[0][1].trim()
-                previous_version = extractedValues[0][2].trim()
-            }
-            echo "${service_name}"
-            echo "${previous_version}"
-            def MIGRATED_TRAFFIC = sh (script: "gcloud app services set-traffic ${service_name} --splits ${previous_version}=1 --project=${APP_ENGINE_PROJECT_ID} --quiet", returnStdout: true).trim()
-        //}
-    }
-    return "${MIGRATED_TRAFFIC}"
-}
 def Write_To_File() {
     script {    
         def filePath = "${env.WORKSPACE}/release-${env.VERSION_NUMBER}.txt"                  
@@ -114,6 +97,46 @@ def Write_To_File() {
             }
         }
     }
+}
+def migrate_Traffic() {
+    def MIGRATE_TRAFFIC = params.MIGRATE_TRAFFIC
+    def migrations = []
+
+    try {
+        container('gcloud') {
+            def FILE_NAME = "${WORKSPACE}/releasedfile"
+            sh "gcloud storage cp gs://sqinternational-cicd.appspot.com/release_summary/sqpentest/released/${MIGRATE_TRAFFIC} ${WORKSPACE}/releasedfile --recursive"
+            sh "ls"
+            def fileContents = readFile(FILE_NAME)
+			def lines = fileContents.readLines()
+			def content = lines.join('\n')
+			println(content)
+
+            def pattern = /service_name:\s*([^,]+).*previous_version:\s*([^,\]]+)/
+            def extractedValues = (fileContents =~ pattern)
+
+            extractedValues.each { match ->
+                def service_name = match[1].trim()
+                def previous_version = match[2].trim()
+
+                println "Service_Name = ${service_name}"
+                println "Previous_Version = ${previous_version}" 
+                try {
+                    MIGRATED_TRAFFIC = sh (
+                        script: "gcloud app services set-traffic ${service_name} --splits ${previous_version}=1 --project=${APP_ENGINE_PROJECT_ID} --quiet",
+                        returnStdout: true
+                    ).trim()
+                    migrations.add([service_name: service_name, previous_version: previous_version, result: MIGRATED_TRAFFIC])
+                } catch (Exception migrationException) {
+                    println "Error occurred while migrating ${service_name}: ${migrationException.message}"
+                }              
+            }			
+        }
+    } catch (Exception e) {
+        println "Error occurred: ${e.message}"
+    }
+
+    return migrations
 }
 //1. initialize the app that needs deployment
 def nodeapps = [
@@ -196,50 +219,12 @@ properties([
                         } else if (scope == "beta") {
                             options = ["smartqprd-india", "smartqprd-uk", "smartqprd-us:selected"]
                         } else if (scope == "prod") {
-                            options = [ "smartqprd-au",
-                                        "smartqprd-be",
-                                        "smartqprd-chi",
-                                        "smartqprd-cn",
-                                        "smartqprd-de",
-                                        "smartqprd-fi", 
-                                        "smartqprd-hk",
-                                        "smartqprd-ie",
-                                        "smartqprd-india",
-                                        "smartqprd-it",
-                                        "smartqprd-jp",
-                                        "smartqprd-mex",
-                                        "smartqprd-nl",
-                                        "smartqprd-nz",
-                                        "smartqprd-sng",
-                                        "smartqprd-spain",
-                                        "smartqprd-uae",
-                                        "smartqprd-uk",
-                                        "smartqprd-us:selected"
-                                    ]
+                            options = [ "smartqprd-au", "smartqprd-be", "smartqprd-chi", "smartqprd-cn", "smartqprd-de", "smartqprd-fi", "smartqprd-hk", "smartqprd-ie", "smartqprd-india",
+                                        "smartqprd-it", "smartqprd-jp", "smartqprd-mex", "smartqprd-nl",  "smartqprd-nz", "smartqprd-sng", "smartqprd-spain", "smartqprd-uae", "smartqprd-uk", "smartqprd-us:selected"]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
                         } else if (scope == "hot-fix") {
-                            options = [ "sqpreprod-india", 
-                                        "sqpreprod-uk", 
-                                        "sqpreprod-us:selected",
-                                        "smartqprd-au",
-                                        "smartqprd-be",
-                                        "smartqprd-chi",
-                                        "smartqprd-cn",
-                                        "smartqprd-de",
-                                        "smartqprd-fi", 
-                                        "smartqprd-hk",
-                                        "smartqprd-ie",
-                                        "smartqprd-india",
-                                        "smartqprd-it",
-                                        "smartqprd-jp",
-                                        "smartqprd-mex",
-                                        "smartqprd-nl",
-                                        "smartqprd-nz",
-                                        "smartqprd-sng",
-                                        "smartqprd-spain",
-                                        "smartqprd-uae",
-                                        "smartqprd-uk",
-                                        "smartqprd-us"
-                                        ]
+                            options = [ "sqpreprod-india", "sqpreprod-uk", "sqpreprod-us:selected", "smartqprd-au", "smartqprd-be", "smartqprd-chi", "smartqprd-cn", "smartqprd-de", "smartqprd-fi", "smartqprd-hk",
+                                        "smartqprd-ie",  "smartqprd-india", "smartqprd-it", "smartqprd-jp", "smartqprd-mex", "smartqprd-nl", "smartqprd-nz", "smartqprd-sng", "smartqprd-spain",  "smartqprd-uae",
+                                        "smartqprd-uk", "smartqprd-us"]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
                         }
                         return options
                     '''
@@ -299,6 +284,39 @@ properties([
                 ]
             ]
         ],
+        [$class: 'CascadeChoiceParameter',
+            choiceType: 'PT_CHECKBOX',
+            description: 'Select the Automation_Pipeline',
+            filterLength: 1,
+            filterable: false,
+            name: 'AUTOMATION_PIPELINE',
+            referencedParameters: 'APP_ENGINE_PROJECT_ID, RELEASE_SCOPE',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true, // should be true, otherwise you have to manually approve the script
+                    script: 'return [APP_ENGINE_PROJECT_ID + "_Critical_Sanity", "none:selected"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true, // should be true, otherwise you have to manually approve the script
+                    script: '''
+                        def scope = RELEASE_SCOPE ?: "sprint" // Default to 'SPRINT' if not selected
+                        def options = []
+                        if (scope == "sprint" || scope == "beta") {
+                            options = []
+                        } else if (APP_ENGINE_PROJECT_ID) {
+                            options = [APP_ENGINE_PROJECT_ID + "_Critical_Sanity", "none:selected"]
+                        } else {
+                            options = ['DefaultValue']
+                        }    
+                                                                  
+                        //return options
+                    '''
+                ]
+            ]
+        ],
         string(name: 'MIGRATE_TRAFFIC',defaultValue: '', description: 'Type old version file'),
     ])
 ])
@@ -334,7 +352,7 @@ pipeline {
         // Initialize a boolean flag
         INTERNATIONAL_FLAG = false
         VERSION_NUMBER = VersionNumber([
-            versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMdd"}', 
+            versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMddhhmmss"}', 
             //versionPrefix: 'v1.0.', 
             worstResultForIncrement: 'SUCCESS'
         ])
@@ -409,29 +427,11 @@ pipeline {
                         echo "$GCS_BUCKET_NAME"
                         echo "$ENVIRONMENT"//see if you can get rid of this in all the places & use GIT_BRANCH, as both are same now
                         echo "GIT_BRANCH - $GIT_BRANCH"
-
-                        echo "$CONTROLDESK_YAML"
-                        echo "$PWA_YAML"
-                        echo "$FOODBOOK_YAML"                       
-                        echo "$TIME2EAT_YAML"
-                        echo "$BAWEB_YAML"
-                        echo "$WEBORT_YAML"
-                        echo "$TIME2EAT_FLUTTER_YAML"
-
-                        echo "$APP_SERVICE_YAML"
-                        echo "$DEFAULT_SERVICE_YAML" 
-                        echo "$BACKGROUND_YAML"
-                        echo "$TASKQSERVICE_YAML"
-                        echo "$REPORTS_YAML"
-                        echo "$BQREPORTS_YAML"
-
-                        echo "$PY3_APPMS_YAML"
-                        echo "$PY3_DASHBOARD_YAML"
-                        echo "$PY3_SSO_YAML"
-                        echo "$PY3_PRICEBOOK_YAML"
-                        echo "$PY3_INTEGRATION_YAML"                        
+                        echo "[\"$CONTROLDESK_YAML\", \"$PWA_YAML\", \"$FOODBOOK_YAML\", \"$TIME2EAT_YAML\", \"$BAWEB_YAML\", \"$WEBORT_YAML\", \"$TIME2EAT_FLUTTER_YAML\"]"
+                        echo "[\"$APP_SERVICE_YAML\",  \"$DEFAULT_SERVICE_YAML\", \"$BACKGROUND_YAML\", \"$TASKQSERVICE_YAML\", \"$REPORTS_YAML\", \"$BQREPORTS_YAML\"]" 
+                        echo "[\"$PY3_APPMS_YAML\", \"$PY3_DASHBOARD_YAML\",  \"$PY3_SSO_YAML\", \"$PY3_PRICEBOOK_YAML\", \"$PY3_INTEGRATION_YAML\"]"                         
                     }
-                }                
+                }              
             }
         }
         stage('Set GCloud ProjectID') {
@@ -447,7 +447,7 @@ pipeline {
             parallel{
                 stage('NodeJs:Deploy Apps') { 
                     when {
-                        expression { return IS_NODEAPPS_ENABLED } // Check the condition here
+                        expression { return IS_NODEAPPS_ENABLED  && params.MIGRATE_TRAFFIC.isEmpty()}// Check the condition here
                     }                    
                     steps {
                         container('gcloud') {
@@ -565,7 +565,7 @@ pipeline {
                 }
                 stage('Py2:Deploy Backend Services') {
                     when {
-                        expression { return IS_PY2_ENABLED } // Check the condition here
+                        expression { return IS_PY2_ENABLED && params.MIGRATE_TRAFFIC.isEmpty()} // Check the condition here
                     }          
                     stages {
                         stage('Py2:Clone smartq-backend') { 
@@ -726,7 +726,7 @@ pipeline {
                 }
                 stage('Py3:Deploy Micro Services') {
                     when {
-                        expression { return IS_PY3_ENABLED } // Check the condition here
+                        expression { return IS_PY3_ENABLED && params.MIGRATE_TRAFFIC.isEmpty()} // Check the condition here
                     }           
                     stages {
                         stage('Py3:Clone') { 
@@ -854,6 +854,9 @@ pipeline {
             }    
         }
         stage ('Check URL Status')  {
+            when {
+                expression {params.MIGRATE_TRAFFIC.isEmpty()} // Check the condition here
+            }
             steps {
                 container('gcloud') {                    
                     script {                        
@@ -869,6 +872,9 @@ pipeline {
             }
         }     
         stage('Promote') {
+            when {
+                expression {params.MIGRATE_TRAFFIC.isEmpty()} // Check the condition here
+            }
            steps {
                 container('gcloud') {                    
                     script {                        
@@ -894,30 +900,44 @@ pipeline {
             }  
         }  
         stage('Migrate the traffic') {
+            when {
+                expression { params.MIGRATE_TRAFFIC != '' }
+            }
             steps {
                 container('gcloud') {
                     script {
-                        def MIGRATED_TRAFFIC = migrate_Traffic(
-                            APP_ENGINE_PROJECT_ID: "${APP_ENGINE_PROJECT_ID}",
-                            MIGRATE_TRAFFIC: "${MIGRATE_TRAFFIC}",
-                            service_name: "${service_name}"
-                        )
-                        echo "Migrated traffic: ${MIGRATED_TRAFFIC}"
+                        //sh "gcloud storage cp  gs://sqinternational-cicd.appspot.com/release_summary/sqpentest/released/${MIGRATE_TRAFFIC} ${WORKSPACE}/releasedfile --recursive"
+                        //sh "ls"
+                        def migrationResults = migrate_Traffic()
+                        migrationResults.each { migration ->
+                            println "Migration for Service ${migration.service_name} with Version ${migration.previous_version}: ${migration.result}"
+                        }
                     }
                 }
             }
         }
     }       
-    post{
-        always{
-            script{
-			    mail bcc: '', body: "Job Name: ${Job_Name}.\n\n Build Status: ${currentBuild.currentResult}.\n\n Jenkins Build Number: ${Build_Number}.\n\n Build Server - ${APP_ENGINE_PROJECT_ID}.\n\n Services Promoted - ${PROMOTED_SERVICES.join('\n\n')}",
-                cc:'', 
-                from: 'pipeline-pantry@thesmartq.com', 
-                replyTo: '', 
-                subject: "Build Status# ${currentBuild.currentResult}", 
-                to: 'yashwanth.kp@thesmartq.com'
-		    }
-        }
-    }
+    // post{
+    //     always{
+    //         script{
+	// 		    mail bcc: '', body: "Job Name: ${Job_Name}.\n\n Build Status: ${currentBuild.currentResult}.\n\n Jenkins Build Number: ${Build_Number}.\n\n Build Server - ${APP_ENGINE_PROJECT_ID}.\n\n Services Promoted - ${PROMOTED_SERVICES.join('\n\n')}",
+    //             cc:'', 
+    //             from: 'pipeline-pantry@thesmartq.com', 
+    //             replyTo: '', 
+    //             subject: "Build Status# ${currentBuild.currentResult}", 
+    //             to: 'yashwanth.kp@thesmartq.com'
+	// 	    }
+    //     }
+            // success{
+            //     script{
+            //         def Automation_Pipeline = params.AUTOMATION_PIPELINE
+                    
+            //         if (Automation_Pipeline != 'none') {
+            //             build job: Automation_Pipeline
+            //         } else {
+            //             echo "No specific job selected to trigger"
+            //         }
+            //     }
+            // }
+    // }
 }
