@@ -96,8 +96,7 @@ pipeline{
                     script {
                         sh "gcloud storage cp  gs://sqinternational-cicd.appspot.com/release_summary/sqpentest/released/${MIGRATE_TRAFFIC} ${WORKSPACE}/releasedfile --recursive"
                         sh "ls"
-                        def inputFile = 'releasedfile' // Update with your input file name
-
+                        def inputFile = 'releasedfile' 
                         // Read lines from the input file
                         def lines = readFile inputFile
                         lines = lines.split('\n')
