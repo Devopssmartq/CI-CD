@@ -150,7 +150,8 @@ def py3_services = [
             [key: 'dashboard'],
             [key: 'sso'],
             [key: 'pricebook'],
-            [key: 'integration']
+            [key: 'integration'],
+            [key: 'cloud_run']
         ]
 //To-Do: refactor the script blocks to use from variable definition
 properties([
@@ -206,50 +207,12 @@ properties([
                         } else if (scope == "beta") {
                             options = ["smartqprd-india", "smartqprd-uk", "smartqprd-us:selected"]
                         } else if (scope == "prod") {
-                            options = [ "smartqprd-au",
-                                        "smartqprd-be",
-                                        "smartqprd-chi",
-                                        "smartqprd-cn",
-                                        "smartqprd-de",
-                                        "smartqprd-fi", 
-                                        "smartqprd-hk",
-                                        "smartqprd-ie",
-                                        "smartqprd-india",
-                                        "smartqprd-it",
-                                        "smartqprd-jp",
-                                        "smartqprd-mex",
-                                        "smartqprd-nl",
-                                        "smartqprd-nz",
-                                        "smartqprd-sng",
-                                        "smartqprd-spain",
-                                        "smartqprd-uae",
-                                        "smartqprd-uk",
-                                        "smartqprd-us:selected"
-                                    ]
+                            options = [ "smartqprd-au", "smartqprd-be", "smartqprd-chi", "smartqprd-cn", "smartqprd-de", "smartqprd-fi", "smartqprd-hk", "smartqprd-ie", "smartqprd-india",
+                                        "smartqprd-it", "smartqprd-jp", "smartqprd-mex", "smartqprd-nl",  "smartqprd-nz", "smartqprd-sng", "smartqprd-spain", "smartqprd-uae", "smartqprd-uk", "smartqprd-us:selected"]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
                         } else if (scope == "hot-fix") {
-                            options = [ "sqpreprod-india", 
-                                        "sqpreprod-uk", 
-                                        "sqpreprod-us:selected",
-                                        "smartqprd-au",
-                                        "smartqprd-be",
-                                        "smartqprd-chi",
-                                        "smartqprd-cn",
-                                        "smartqprd-de",
-                                        "smartqprd-fi", 
-                                        "smartqprd-hk",
-                                        "smartqprd-ie",
-                                        "smartqprd-india",
-                                        "smartqprd-it",
-                                        "smartqprd-jp",
-                                        "smartqprd-mex",
-                                        "smartqprd-nl",
-                                        "smartqprd-nz",
-                                        "smartqprd-sng",
-                                        "smartqprd-spain",
-                                        "smartqprd-uae",
-                                        "smartqprd-uk",
-                                        "smartqprd-us"
-                                        ]
+                            options = [ "sqpreprod-india", "sqpreprod-uk", "sqpreprod-us:selected", "smartqprd-au", "smartqprd-be", "smartqprd-chi", "smartqprd-cn", "smartqprd-de", "smartqprd-fi", "smartqprd-hk",
+                                        "smartqprd-ie",  "smartqprd-india", "smartqprd-it", "smartqprd-jp", "smartqprd-mex", "smartqprd-nl", "smartqprd-nz", "smartqprd-sng", "smartqprd-spain",  "smartqprd-uae",
+                                        "smartqprd-uk", "smartqprd-us"]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
                         }
                         return options
                     '''
@@ -291,7 +254,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["All:selected","controldesk","web-ort","time2eat","foodbook-web","smartq-pwa","py2_default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","app","pricebook"]'
+                    script: 'return ["All:selected","controldesk","web-ort","time2eat","foodbook-web","smartq-pwa","py2_default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","app","pricebook","cloud_run"]'
                 ],
                 script: [
                     classpath: [],
@@ -300,9 +263,9 @@ properties([
                         def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
                         def options = []
                         if (type == "India") {
-                            options = ["All:selected","controldesk","web-ort","time2eat","foodbook-web","smartq-pwa","py2_default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","app","pricebook"]
+                            options = ["All:selected","controldesk","web-ort","time2eat","foodbook-web","smartq-pwa","py2_default","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","app","pricebook","cloud_run"]
                         } else if (type == "International") {
-                            options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","baweb","appservice","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","py3_default","integration", "pricebook"]
+                            options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","baweb","appservice","backgroundtasks","taskqservice","reports","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run"]
                         }
                         return options
                     '''
@@ -454,27 +417,9 @@ pipeline {
                                 echo "$GCS_BUCKET_NAME"
                                 echo "$ENVIRONMENT"//see if you can get rid of this in all the places & use GIT_BRANCH, as both are same now
                                 echo "GIT_BRANCH - $GIT_BRANCH"
-
-                                echo "$CONTROLDESK_YAML"
-                                echo "$PWA_YAML"
-                                echo "$FOODBOOK_YAML"                       
-                                echo "$TIME2EAT_YAML"
-                                echo "$BAWEB_YAML"
-                                echo "$WEBORT_YAML"
-                                echo "$TIME2EAT_FLUTTER_YAML"
-
-                                echo "$APP_SERVICE_YAML"
-                                echo "$DEFAULT_SERVICE_YAML" 
-                                echo "$BACKGROUND_YAML"
-                                echo "$TASKQSERVICE_YAML"
-                                echo "$REPORTS_YAML"
-                                echo "$BQREPORTS_YAML"
-
-                                echo "$PY3_APPMS_YAML"
-                                echo "$PY3_DASHBOARD_YAML"
-                                echo "$PY3_SSO_YAML"
-                                echo "$PY3_PRICEBOOK_YAML"
-                                echo "$PY3_INTEGRATION_YAML"                        
+                                echo "[\"$CONTROLDESK_YAML\", \"$PWA_YAML\", \"$FOODBOOK_YAML\", \"$TIME2EAT_YAML\", \"$BAWEB_YAML\", \"$WEBORT_YAML\", \"$TIME2EAT_FLUTTER_YAML\"]"
+                                echo "[\"$APP_SERVICE_YAML\",  \"$DEFAULT_SERVICE_YAML\", \"$BACKGROUND_YAML\", \"$TASKQSERVICE_YAML\", \"$REPORTS_YAML\", \"$BQREPORTS_YAML\"]" 
+                                echo "[\"$PY3_APPMS_YAML\", \"$PY3_DASHBOARD_YAML\",  \"$PY3_SSO_YAML\", \"$PY3_PRICEBOOK_YAML\", \"$PY3_INTEGRATION_YAML\"]"                                                 
                             }
                         }                
                     }
@@ -935,7 +880,20 @@ pipeline {
                                                     ARR_VERIFY_SERVICE.add([service_name: 'integration', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])                                                                                                                                                                                                                                                                                                                                                                                       
                                                 }
                                             }
-                                        }        
+                                        } 
+                                        if ('cloud_run' in ARR_SELECTED_SERVICE ) {
+                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                                            parallelJobs[py3_services.find { it.key == 'cloud_run' }] = {
+                                                dir ('sq_microservices_backend') {
+                                                    sh 'ls'
+                                                    dir ('cloud_run_longrun_script') {
+                                                        sh "ls"                                                        
+                                                        sh "gcloud builds submit --flags-file ${params.APP_ENGINE_PROJECT_ID}-build.json"
+                                                        sh "gcloud run deploy bigquerysync-${params.APP_ENGINE_PROJECT_ID}  --flags-file ${params.APP_ENGINE_PROJECT_ID}-deploy.json"
+                                                    }
+                                                }                                 
+                                            }
+                                        }       
                                         //2.1 Add new service block here, if there is any to be added
                                         parallel(parallelJobs)
                                     }

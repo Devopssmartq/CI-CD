@@ -9,7 +9,6 @@ import groovy.transform.Field
 @Field def ARR_SELECTED_SERVICE
 @Field def ARR_VERIFY_SERVICE = []
 @Field def PROMOTED_SERVICES = []
-@Field def MIGRATED_TRAFFIC = []
 
 def getURL_Status(Map args) {
     script {
@@ -99,47 +98,6 @@ def Write_To_File() {
             }
         }
     }
-}
-def migrate_Traffic() {
-    def MIGRATE_TRAFFIC = params.MIGRATE_TRAFFIC
-    def migrations = []
-
-    try {
-        container('gcloud') {
-            def FILE_NAME = "${WORKSPACE}/releasedfile"
-            sh "gcloud storage cp gs://sqinternational-cicd.appspot.com/release_summary/sqpentest/released/${MIGRATE_TRAFFIC} ${WORKSPACE}/releasedfile --recursive"
-            sh "ls"
-            def fileContents = readFile(FILE_NAME)
-			def lines = fileContents.readLines()
-			def content = lines.join('\n')
-			println(content)
-
-            def pattern = /service_name:\s*([^,]+).*previous_version:\s*([^,\]]+)/
-            def extractedValues = (fileContents =~ pattern)
-
-            extractedValues.each { match ->
-                def service_name = match[1].trim()
-                def previous_version = match[2].trim()
-
-                println "Service_Name = ${service_name}"
-                println "Previous_Version = ${previous_version}" 
-                try {
-                    MIGRATED_TRAFFIC = sh (
-                        script: "gcloud app services set-traffic ${service_name} --splits ${previous_version}=1 --project=${APP_ENGINE_PROJECT_ID} --quiet",
-                        returnStdout: true
-                    ).trim()
-                    
-                    migrations.add([service_name: service_name, previous_version: previous_version, result: MIGRATED_TRAFFIC])
-                } catch (Exception migrationException) {
-                    println "Error occurred while migrating ${service_name}: ${migrationException.message}"
-                }              
-            }			
-        }
-    } catch (Exception e) {
-        println "Error occurred: ${e.message}"
-    }
-
-    return migrations
 }
 //1. initialize the app that needs deployment
 def nodeapps = [
@@ -319,8 +277,7 @@ properties([
                     '''
                 ]
             ]
-        ],
-        string(name: 'MIGRATE_TRAFFIC',defaultValue: '', description: 'Type old version file'),
+        ]
     ])
 ])
 pipeline {
@@ -450,7 +407,7 @@ pipeline {
             parallel{
                 stage('NodeJs:Deploy Apps') { 
                     when {
-                        expression { return IS_NODEAPPS_ENABLED  && params.MIGRATE_TRAFFIC.isEmpty()}// Check the condition here
+                        expression { return IS_NODEAPPS_ENABLED}// Check the condition here
                     }                    
                     steps {
                         container('gcloud') {
@@ -465,8 +422,9 @@ pipeline {
                                     }                            
                                 }
                                 def parallelJobs = [:]
-                                if ('controldesk' in ARR_SELECTED_SERVICE ) { // if controldesk in selected list , then we have to deploy flutter also                                     
-                                    parallelJobs[nodeapps.find { it.key == 'controldesk' }] = {
+                                    // if controldesk in selected list , then we have to deploy flutter also                                     
+                                parallelJobs[nodeapps.find { it.key == 'controldesk' }] = {
+                                    if ('controldesk' in ARR_SELECTED_SERVICE ) {    
                                         configFileProvider([configFile(fileId: 'deploy-controldesk-script', targetLocation: 'deploy_controldesk.groovy')]) {
                                             CONTROLDESK_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldesk')
                                             STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "controldesk")
@@ -536,8 +494,8 @@ pipeline {
                                         }
                                     }
                                 }    
-                                if ('web-ort' in ARR_SELECTED_SERVICE ) {
-                                    parallelJobs[nodeapps.find { it.key == 'web-ort' }] = {                                                           
+                                parallelJobs[nodeapps.find { it.key == 'web-ort' }] = {
+                                    if ('web-ort' in ARR_SELECTED_SERVICE ) {                                                                                               
                                         configFileProvider([configFile(fileId: 'deploy-groovy-script', targetLocation: 'deploy_web-ort.groovy')]) {
                                             WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'web-ort')
                                             STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "web-ort")
@@ -548,11 +506,11 @@ pipeline {
                                     }
                                 }    
                                 if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {
-                                    if (INTERNATIONAL_FLAG && 'time2eat-flutter' in ARR_SELECTED_SERVICE ) {                                        
-                                        parallelJobs[nodeapps.find { it.key == 'time2eat-flutter' }] = {                                                           
+                                    parallelJobs[nodeapps.find { it.key == 'time2eat-flutter' }] = {
+                                        if (INTERNATIONAL_FLAG && 'time2eat-flutter' in ARR_SELECTED_SERVICE ) {                                                                                                                                           
                                             configFileProvider([configFile(fileId: 'deploy-time2eat-flutter-script', targetLocation: 'deploy_time2eat-flutter.groovy')]) {
                                                 TIME2EAT_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat-flutter')
-                                                STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
+                                                STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "time2eat-flutter")
                                                 PREVIOUS_VERSION = get_Previous_Version(service_name: "time2eat-flutter")
                                                 load("deploy_time2eat-flutter.groovy").setProperties()
                                                 ARR_VERIFY_SERVICE.add([service_name: 'time2eat-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'time2eat-v2/'])                                           
@@ -568,7 +526,7 @@ pipeline {
                 }
                 stage('Py2:Deploy Backend Services') {
                     when {
-                        expression { return IS_PY2_ENABLED && params.MIGRATE_TRAFFIC.isEmpty()} // Check the condition here
+                        expression { return IS_PY2_ENABLED} // Check the condition here
                     }          
                     stages {
                         stage('Py2:Clone smartq-backend') { 
@@ -729,7 +687,7 @@ pipeline {
                 }
                 stage('Py3:Deploy Micro Services') {
                     when {
-                        expression { return IS_PY3_ENABLED && params.MIGRATE_TRAFFIC.isEmpty()} // Check the condition here
+                        expression { return IS_PY3_ENABLED} // Check the condition here
                     }           
                     stages {
                         stage('Py3:Clone') { 
@@ -902,23 +860,6 @@ pipeline {
                 }               
             }  
         }  
-        stage('Migrate the traffic') {
-            when {
-                expression { params.MIGRATE_TRAFFIC != '' }
-            }
-            steps {
-                container('gcloud') {
-                    script {
-                        //sh "gcloud storage cp  gs://sqinternational-cicd.appspot.com/release_summary/sqpentest/released/${MIGRATE_TRAFFIC} ${WORKSPACE}/releasedfile --recursive"
-                        //sh "ls"
-                        def migrationResults = migrate_Traffic()
-                        migrationResults.each { migration ->
-                            println "Migration for Service ${migration.service_name} with Version ${migration.previous_version}: ${migration.result}"
-                        }
-                    }
-                }
-            }
-        }
     }       
     // post{
     //     always{

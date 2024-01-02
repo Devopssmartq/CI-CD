@@ -1,15 +1,32 @@
 pipeline {
     agent {
-    kubernetes {
-        containerTemplate {
-            name 'katalonstudio'
-            image 'katalonstudio/katalon'
-            command 'sleep'
-            args 'infinity'
-        }
-		defaultContainer 'jnlp'
+      kubernetes {
+        yaml '''
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            labels:
+              some-label: some-exp
+          spec:
+            containers:
+            - name: katalonstudio
+              image: katalonstudio/katalon
+              resources:
+              requests:
+                memory: "2048Mi"
+                cpu: "500m"
+              limits:
+                memory: "4096Mi"
+                cpu: "1000m"
+              command:
+              - sleep
+              args:
+              - 99d
+              tty: true
+          '''
+        retries 2
+      }
     }
-  }
     environment {    
     APP_ENGINE_PROJECT_ID = 'sqinternational-cicd'
     ENVIRONMENT='KATALON'
@@ -17,41 +34,58 @@ pipeline {
     stages {
         stage('pull') { 
             steps { 
-                git branch: 'Jayaram',
+                git branch: 'main',
                 credentialsId: 'abhigit',
-                url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/Automation-PWA.git'
+                url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/PWA-Automation.git'
                 sh 'ls -lrt'
                 dir ('Test Suites'){
                     sh 'ls'
                 }
             }                       
         }
-        stage('Run katalon') {
-            steps {
-                    container('katalonstudio') {
-                        
-                        sh 'echo ${WORKSPACE}'
-                        sh 'ls'
-                        sh 'katalonc -noSplash -runMode=console -projectPath=${WORKSPACE}/Automation-PWA.prj -retry=0 -testSuitePath="Test Suites/simpleloginsuite" -browserType="Chrome (headless)" -executionProfile="default" -apiKey="1c90c7a9-509d-46c8-bf6a-39fa39f29040" -orgID=41312 --config -proxy.auth.option=NO_PROXY -proxy.system.option=NO_PROXY -proxy.system.applyToDesiredCapabilities=true -webui.autoUpdateDrivers=true'
-                        sh 'ls'
-                        dir ('Reports'){
-                            sh 'ls'
-                            sh 'pwd'
+        stage('parallel') {
+                parallel {
+                    stage('Run katalon') {
+                        steps {
+                            container('katalonstudio') {
+                                sh 'echo ${WORKSPACE}'
+                                sh 'ls'
+                                sh 'katalonc -noSplash -runMode=console -projectPath="${WORKSPACE}/Automation-PWA.prj" -retry=1 -retryStrategy=failedExecutions -testSuitePath="Test Suites/Loyalty and Rewards Test Suite" -browserType="Firefox (headless)" -executionProfile="PWA-US-Preprod" -apiKey="e280c006-4270-4d00-a6e8-1abbf2f43749" -orgID=41312 --config -proxy.auth.option=NO_PROXY -proxy.system.option=NO_PROXY -proxy.system.applyToDesiredCapabilities=true -webui.autoUpdateDrivers=true'
+                                sh 'ls'
+                                dir ('Reports'){
+                                    sh 'ls'
+                                    sh 'pwd'
+                                }
+                            }
                         }
                     }
+                    stage('2nd command') {
+                        steps {
+                            container('katalonstudio') {
+                                sh 'katalonc -noSplash -runMode=console -projectPath="${WORKSPACE}/Automation-PWA.prj" -retry=1 -retryStrategy=failedExecutions -testSuitePath="Test Suites/PWA-US-Critical Sanity Test Suite" -browserType="Firefox (headless)" -executionProfile="PWA-US-Preprod" -apiKey="e280c006-4270-4d00-a6e8-1abbf2f43749" -orgID=41312 --config -proxy.auth.option=NO_PROXY -proxy.system.option=NO_PROXY -proxy.system.applyToDesiredCapabilities=true -webui.autoUpdateDrivers=true'
+                            }
+                        }
+                    }
+                    stage('3rd command') {
+                        steps {
+                            container('katalonstudio') {
+                                sh 'katalonc -noSplash -runMode=console -projectPath="${WORKSPACE}/Automation-PWA.prj" -retry=1 -retryStrategy=failedExecutions -testSuitePath="Test Suites/PWA-US-Security Test Suite" -browserType="Firefox (headless)" -executionProfile="PWA-US-Preprod" -apiKey="e280c006-4270-4d00-a6e8-1abbf2f43749" -orgID=41312 --config -proxy.auth.option=NO_PROXY -proxy.system.option=NO_PROXY -proxy.system.applyToDesiredCapabilities=true -webui.autoUpdateDrivers=true'
+                            }
+                        }
+                    }
+                }   
             }
         }
-    }
-    post{
-	    always{
-		    script{
-			    mail bcc: '', body: "Build is working\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nJenkins Build URL: ${BUILD_URL}.\nJob Name: ${Job_Name}", 
-                cc: 'jayaram.b@thesmartq.com, chiranjeevi@thesmartq.com', 
-                from: 'pipeline-pantry@thesmartq.com', 
-                replyTo: '', 
-                subject: "Build Status# ${currentBuild.currentResult}", 
-                to: 'yashwanth.kp@thesmartq.com'
-		    }
-	    }
-    }
+    // post{
+	   // always{
+		  //  script{
+			 //   mail bcc: '', body: "Testcase is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nJenkins Build URL: ${BUILD_URL}", 
+    //             cc: 'jayaram.b@thesmartq.com, chiranjeevi.nr@thesmartq.com, abhijeet@thesmartq.com, abhishek@thesmartq.com', 
+    //             from: 'pipeline-pantry@thesmartq.com', 
+    //             replyTo: '', 
+    //             subject: "Build Status# ${currentBuild.currentResult}", 
+    //             to: 'yashwanth.kp@thesmartq.com'
+		  //  }
+	   // }
+    // }
 }
