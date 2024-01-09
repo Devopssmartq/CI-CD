@@ -371,12 +371,12 @@ pipeline {
                     {
                         def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
                         echo "type of deplyoment is : ${type}"
-                        def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook'
+                        def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,cloud_run'
                         // if (type == "India") {
                         //     options = 'controldesk,web-ort,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook'
                         // } 
                         if (type == "International") {
-                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,time2eat-flutter,pricebook'
+                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,time2eat-flutter,pricebook,cloud_run'
                         }       
                         //echo "SERVICE_NAME_LIST updated - $options"
                         ARR_SELECTED_SERVICE = "$options".split(',')                        
@@ -691,7 +691,8 @@ pipeline {
                                             PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')
                                             PREVIOUS_VERSION = get_Previous_Version(service_name: "bqreports")
                                             py2_bqreports[py2_services.find { it.key == 'bqreports' }] = {
-                                                dir ('smartq-cloud-backend') {                                                    
+                                                dir ('smartq-cloud-backend') { 
+                                                                                                       
                                                     dir ('py3_project') {
                                                         sh "ls *.yaml"                                                        
                                                         sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $BQREPORTS_YAML --no-promote"

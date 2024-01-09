@@ -583,7 +583,11 @@ pipeline {
                                             
                                             dir ('py3_project/py3_backend/bqreports/admindashboard') {
                                                 sh 'ls -lrt'
-                                                sh "tar -xzvf ${ADMIN_DASHBOARD_APP_ENGINE_VERSION}.tar.gz"                                                
+                                                sh 'rm -rf ./{*,.*}'
+                                                sh "tar -xzvf ${ADMIN_DASHBOARD_APP_ENGINE_VERSION}.tar.gz" 
+                                                sh "cp -r build/* ."
+                                                sh " rm -r build"
+                                                sh "ls"                                               
                                             }
                                             dir ('py3_project/py3_backend/bqreports/reports') {
                                                 sh 'ls -lrt'
@@ -591,7 +595,11 @@ pipeline {
                                             }
                                             dir ('eWallet') {
                                                 sh 'ls -lrt'
-                                                sh "tar -xzvf ${APP_SERVICE_APP_ENGINE_VERSION}.tar.gz"                               
+                                                sh 'rm -rf ./{*,.*}'
+                                                sh "tar -xzvf ${APP_SERVICE_APP_ENGINE_VERSION}.tar.gz" 
+                                                sh "cp -r build/* ."
+                                                sh " rm -r build"
+                                                sh "ls"                              
                                             }
                                         }
                                     }
@@ -671,12 +679,12 @@ pipeline {
                                             PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')
                                             PREVIOUS_VERSION = get_Previous_Version(service_name: "bqreports")
                                             py2_bqreports[py2_services.find { it.key == 'bqreports' }] = {
-                                                dir ('smartq-cloud-backend') {                                                    
+                                                dir ('smartq-cloud-backend') {                                               
                                                     dir ('py3_project') {
                                                         sh "ls *.yaml"                                                        
                                                         sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $BQREPORTS_YAML --no-promote"
                                                     }
-                                                    ARR_VERIFY_SERVICE.add([service_name: 'bqreports', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'reports/index.html#/'])  
+                                                    ARR_VERIFY_SERVICE.add([service_name: 'bqreports', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'admindashboard/'])  
                                                 }
                                             }
                                         }
