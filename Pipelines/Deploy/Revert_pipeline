@@ -1,5 +1,28 @@
 properties([
     parameters([
+        [$class: 'ChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select Release Scope',
+            filterLength: 1,
+            filterable: false,
+            name: 'RELEASE_SCOPE',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true, // should be true, otherwise you have to manually approve the script
+                    script: 'return ["sprint:selected", "preprod", "beta", "prod", "hot-fix"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true, // should be true, otherwise you have to manually approve the script
+                    script: '''
+                        def choices = ["sprint:selected", "preprod", "beta", "prod", "hot-fix"]
+                        return choices
+                    '''
+                ]
+            ]
+        ],
         [$class: 'CascadeChoiceParameter',
             choiceType: 'PT_SINGLE_SELECT',
             description: 'Select the Project_ID',
@@ -94,7 +117,7 @@ pipeline{
             steps {
                 container('gcloud') {
                     script {
-                        sh "gcloud storage cp  gs://sqinternational-cicd.appspot.com/release_summary/sqpentest/released/${MIGRATE_TRAFFIC} ${WORKSPACE}/releasedfile --recursive"
+                        sh "gcloud storage cp  gs://sqinternational-cicd.appspot.com/release_summary/released/${params.APP_ENGINE_PROJECT_ID}/${MIGRATE_TRAFFIC} ${WORKSPACE}/releasedfile --recursive"
                         sh "ls"
                         def inputFile = 'releasedfile' 
                         // Read lines from the input file

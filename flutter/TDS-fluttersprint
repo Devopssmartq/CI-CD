@@ -37,9 +37,14 @@ pipeline {
             steps { 
                 sh "mkdir -p tds-flutter"
                 dir('tds-flutter') {
-                    git branch: 'devops1',
-                    credentialsId: 'bitbucket api',
-                    url: 'https://yash123devops@bitbucket.org/bottlelabtech/tds-flutter.git'
+                    git branch: 'auto-sprint',
+                    credentialsId: 'git-devops',
+                    url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/TDS.git'
+                    sh 'ls'
+                        dir('build-config'){
+                            sh 'ls'
+                            sh 'pwd'
+                        }
                 }
             }                       
         }
@@ -50,7 +55,8 @@ pipeline {
                    dir('tds-flutter') {
                     sh 'flutter clean'
                     sh 'flutter build apk --release'
-                    dir ('${WORKSPACE}/build') {
+                    sh 'ls'
+                    dir ('build') {
                         sh 'echo changing to directory'
                         dir('app'){
                             dir('outputs/flutter-apk'){
@@ -61,6 +67,17 @@ pipeline {
                    }
                }             
             }       
+        }
+        stage('Sign APK') {
+            steps {
+                container('flutter') {
+                    script {
+                        sh """
+                            jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore ${WORKSPACE}/tds-flutter/build-config/flutter-tds-keystore.jks -storepass 'Smartq@123' -keypass 'Smartq@123' -signedjar build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-release.apk alias-smartq
+                        """
+                    }
+                }    
+            }
         }
     }
 }
