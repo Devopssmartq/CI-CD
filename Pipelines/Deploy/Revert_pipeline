@@ -29,7 +29,7 @@ properties([
             filterLength: 1,
             filterable: false,
             name: 'APP_ENGINE_PROJECT_ID',
-            //referencedParameters: 'RELEASE_SCOPE',
+            referencedParameters: 'RELEASE_SCOPE',
             script: [
                 $class: 'GroovyScript',
                 fallbackScript: [

@@ -103,6 +103,15 @@ def promote_Service(Map args) {
     }
     return "${PROMOTED_SERVICE}"
 }
+def Stop_Old_Version(Map args) {
+    def STOPPED_VERSION
+    if (args.service_name.contains("sso")) {
+        if (sso_previous_version != PY3_SERVICE_APP_ENGINE_VERSION){
+            STOPPED_VERSION = sh(script: "gcloud app versions stop --service=sso ${sso_previous_version} --quiet", returnStdout: true).trim()
+        }    
+    }
+    return "${STOPPED_VERSION}"
+}
 def Write_To_File() {
     script {    
         def filePath = "${env.WORKSPACE}/release-${env.VERSION_NUMBER}.txt"                  
@@ -202,7 +211,7 @@ properties([
                         if (scope == "sprint") {
                             options = ["smartqdemo-au", "smartqdemo-de", "smartqdemo-hk", "smartqdemo-nz", "smartqdemo-us", "smartqdemo-uk", "sqpentest", "sqinternational-cicd", "smartqdemo:selected"]
                         } else if (scope == "preprod") {
-                            options = ["sqpreprod-india", "sqpreprod-uk", "sqpreprod-us:selected"]
+                            options = ["sqpreprod-india", "sqpreprod-uk", "sqpreprod-us:selected", "sqpreprod-spain", "sqpreprod-de", "sqpreprod-au", "sqpreprod-hk", "sqpreprod-jp", "sqpreprod-sng", "sqpreprod-nz"]
                         } else if (scope == "beta") {
                             options = ["smartqprd-india", "smartqprd-uk", "smartqprd-us:selected"]
                         } else if (scope == "prod") {
@@ -494,7 +503,7 @@ pipeline {
                                 }
                                 if (params.APP_ENGINE_PROJECT_ID.contains("-au")) {
                                     TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
-                                    PREVIOUS_VERSION = get_Previous_Version(service_name: "time2eat")
+                                    PREVIOUS_VERSION = get_Previous_Version(service_name: "jumpr-pwa")
                                     parallelJobs[nodeapps.find { it.key == 'time2eat' }] = {
                                         dir("${PWA_APP_NAME}-latest") {                                                
                                             sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $JUMPR_PWA_YAML --no-promote"
@@ -798,6 +807,7 @@ pipeline {
                                         if ('sso' in ARR_SELECTED_SERVICE ) {
                                             PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
                                             PREVIOUS_VERSION = get_Previous_Version(service_name: "sso")
+                                            sso_previous_version = PREVIOUS_VERSION
                                             parallelJobs[py3_services.find { it.key == 'sso' }] = {
                                                 dir ('sq_microservices_backend') {
                                                     sh 'cp -r commonlib sso_flex'
@@ -912,6 +922,10 @@ pipeline {
                         }
                         else {  
                             error('Promote halted....')
+                        }
+                        
+                        if (params.SERVICE_NAME.contains("sso")) {
+                            Stop_Old_Version(service_name: 'sso')
                         }
                     }
                 }               
