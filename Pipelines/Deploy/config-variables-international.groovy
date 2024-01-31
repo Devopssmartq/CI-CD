@@ -53,7 +53,7 @@ def setProperties() {
     PY3_APPMS_YAML = RELEASE_SCOPE == "beta" ? "betaapp-${params.APP_ENGINE_PROJECT_ID}.yaml" : "${params.APP_ENGINE_PROJECT_ID}.yaml"
     PY3_DASHBOARD_YAML = RELEASE_SCOPE == "beta" ? "betaapp-${params.APP_ENGINE_PROJECT_ID}.yaml" : "${params.APP_ENGINE_PROJECT_ID}.yaml"
     PY3_SSO_YAML = RELEASE_SCOPE == "beta" ? '' : 'app.yaml'
-    PY3_PRICEBOOK_YAML = RELEASE_SCOPE == "beta" ? '' : 'app_db_prd.yaml'
+    PY3_PRICEBOOK_YAML = RELEASE_SCOPE == "beta" ? '' : "${params.APP_ENGINE_PROJECT_ID}.yaml"
     PY3_INTEGRATION_YAML = RELEASE_SCOPE == "beta" ? '' : "${params.APP_ENGINE_PROJECT_ID}-integration.yaml"
 }
 return this
