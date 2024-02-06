@@ -467,24 +467,24 @@ pipeline {
                                     }                            
                                 }
                                 def parallelJobs = [:]
-                                    // if controldesk in selected list , then we have to deploy flutter also                                     
-                                parallelJobs[nodeapps.find { it.key == 'controldesk' }] = {
-                                    if ('controldesk' in ARR_SELECTED_SERVICE ) {    
-                                        configFileProvider([configFile(fileId: 'deploy-controldesk-script', targetLocation: 'deploy_controldesk.groovy')]) {
-                                            CONTROLDESK_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldesk')
-                                            //controldesk_PATH = get_Storage_Object_Source_Path(app_name: "controldesk")
-                                            PREVIOUS_VERSION = get_Previous_Version(service_name: "controldesk")
+                                    // if controldesk in selected list , then we have to deploy flutter also                                                                     
+                                if ('controldesk' in ARR_SELECTED_SERVICE ) {    
+                                    configFileProvider([configFile(fileId: 'deploy-controldesk-script', targetLocation: 'deploy_controldesk.groovy')]) {
+                                        CONTROLDESK_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldesk')
+                                        //controldesk_PATH = get_Storage_Object_Source_Path(app_name: "controldesk")
+                                        PREVIOUS_VERSION = get_Previous_Version(service_name: "controldesk")
+                                        parallelJobs[nodeapps.find { it.key == 'controldesk' }] = {
                                             load("deploy_controldesk.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "controldesk"), CONTROLDESK_APP_ENGINE_VERSION)
                                             ARR_VERIFY_SERVICE.add([service_name: 'controldesk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login'])
                                         }                                                                            
                                     }
-                                }
-                                parallelJobs[nodeapps.find { it.key == 'controldeskflutter' }] = {
-                                    if ('controldesk' in ARR_SELECTED_SERVICE ) {    
-                                        configFileProvider([configFile(fileId: 'deploy-controldeskflutter-script', targetLocation: 'deploy_controldeskflutter.groovy')]) {
-                                            CONTROLDESK_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldeskflutter')
-                                            //controldeskflutter_PATH = get_Storage_Object_Source_Path(app_name: "controldeskflutter")
-                                            PREVIOUS_VERSION = get_Previous_Version(service_name: "control-desk-flutter")
+                                }                               
+                                if ('controldesk' in ARR_SELECTED_SERVICE ) {    
+                                    configFileProvider([configFile(fileId: 'deploy-controldeskflutter-script', targetLocation: 'deploy_controldeskflutter.groovy')]) {
+                                        CONTROLDESK_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldeskflutter')
+                                        //controldeskflutter_PATH = get_Storage_Object_Source_Path(app_name: "controldeskflutter")
+                                        PREVIOUS_VERSION = get_Previous_Version(service_name: "control-desk-flutter")
+                                        parallelJobs[nodeapps.find { it.key == 'controldeskflutter' }] = {
                                             load("deploy_controldeskflutter.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "controldeskflutter"), CONTROLDESK_FLUTTER_APP_ENGINE_VERSION)
                                             ARR_VERIFY_SERVICE.add([service_name: 'control-desk-flutter', version_name: "$CONTROLDESK_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'control-desk-v2/login'])
                                         }                                                                                                                              
@@ -541,13 +541,13 @@ pipeline {
                                             ARR_VERIFY_SERVICE.add([service_name: 'baweb', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'baweb/main'])                                                 
                                         }
                                     }
-                                }    
-                                parallelJobs[nodeapps.find { it.key == 'web-ort' }] = {
-                                    if ('web-ort' in ARR_SELECTED_SERVICE ) {                                                                                               
-                                        configFileProvider([configFile(fileId: 'deploy-groovy-script', targetLocation: 'deploy_web-ort.groovy')]) {
-                                            WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'web-ort')
-                                            //web_ort_PATH = get_Storage_Object_Source_Path(app_name: "web-ort")
-                                            PREVIOUS_VERSION = get_Previous_Version(service_name: "web-ort")
+                                }                                    
+                                if ('web-ort' in ARR_SELECTED_SERVICE ) {                                                                                               
+                                    configFileProvider([configFile(fileId: 'deploy-groovy-script', targetLocation: 'deploy_web-ort.groovy')]) {
+                                        WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'web-ort')
+                                        //web_ort_PATH = get_Storage_Object_Source_Path(app_name: "web-ort")
+                                        PREVIOUS_VERSION = get_Previous_Version(service_name: "web-ort")
+                                        parallelJobs[nodeapps.find { it.key == 'web-ort' }] = {
                                             load("deploy_web-ort.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "web-ort"), WEBORT_APP_ENGINE_VERSION)
                                             ARR_VERIFY_SERVICE.add([service_name: 'web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main'])                                           
                                         }
