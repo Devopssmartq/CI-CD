@@ -874,7 +874,7 @@ pipeline {
                                                     if (params.APP_ENGINE_PROJECT_ID.contains("-india")) {
                                                         dir ('cloud_vm_longrun') {
                                                             sh "ls"                                                        
-                                                            sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
+                                                            sh "gcloud builds submit --flags-file build_flag/${params.APP_ENGINE_PROJECT_ID}.json"
                                                         }
                                                     }
                                                     ARR_VERIFY_SERVICE.add([service_name: 'cloud_run', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
@@ -940,7 +940,7 @@ pipeline {
                             error('Promote halted....')
                         }
                         
-                        if (params.SERVICE_NAME.contains("sso")) {
+                        if ('sso' in ARR_SELECTED_SERVICE) {
                             Stop_Old_Version(service_name: 'sso')
                         }
                     }
