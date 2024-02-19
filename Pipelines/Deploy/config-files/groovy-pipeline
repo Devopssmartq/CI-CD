@@ -829,7 +829,7 @@ pipeline {
                                                 }                                 
                                             }
                                         }
-                                        if (params.APP_ENGINE_PROJECT_ID.contains("-uk") || params.APP_ENGINE_PROJECT_ID.contains("smartqprd-india")) {
+                                        if (params.APP_ENGINE_PROJECT_ID.contains("-uk") || params.APP_ENGINE_PROJECT_ID.contains("smartqprd-india") || params.APP_ENGINE_PROJECT_ID.contains("-de")) {
                                             if('pricebook' in ARR_SELECTED_SERVICE) {// ! For India only - Skip this when the condition is false
                                                 PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend')
                                                 PREVIOUS_VERSION = get_Previous_Version(service_name: "pricebook")
