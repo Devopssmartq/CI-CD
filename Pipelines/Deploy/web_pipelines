@@ -1,0 +1,298 @@
+import groovy.transform.Field
+
+@Field def ARR_VERIFY_SERVICE = []
+@Field def IS_WEBAPPS_ENABLED
+
+
+def webapps = [
+    [key: 'smartq-kiosk-native'],
+    [key: 'IMD-flutter'],
+    [key: 'TDS']
+]
+def checkoutProject(String projectName, String branch) {
+    sh "mkdir -p ${projectName}"
+    dir("${projectName}") {
+        checkout([$class: 'GitSCM', 
+            branches: [[name: branch]], 
+            doGenerateSubmoduleConfigurations: false, 
+            extensions: [[$class: 'CleanCheckout']], 
+            userRemoteConfigs: [[url: "https://github.com/Bottle-Lab-Technologies-PVT-LTD/${projectName}.git", credentialsId: 'git-devops']]])
+
+        sh 'ls -lrt'
+        def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+        echo "Commit ID: ${commitId}"
+        newId = commitId
+    }
+}
+// def buildFlutterProject(String projectName) {
+//     container('flutter') {
+//         sh "echo ${WORKSPACE}"
+//         dir(projectName) {
+//             sh 'ls'
+//             sh 'flutter clean'
+//             sh 'flutter build apk --release'            
+//             dir("${WORKSPACE}/build") {
+//                 sh 'echo changing to directory'
+//                 dir('app') {
+//                     sh 'ls'
+//                     dir('outputs/flutter-apk') {
+//                         sh 'ls -lrt'                                  
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
+
+properties([
+    parameters([
+        [$class: 'ChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select Branch Name',
+            filterLength: 1,
+            filterable: false,
+            name: 'BRANCH_NAME',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["auto-sprint", "auto-release", "master", "hotfix"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def choices = ["auto-sprint", "auto-release", "master", "hotfix"]
+                        return choices
+                    '''
+                ]
+            ] 
+        ],
+        string(name: 'GIT_BRANCH',defaultValue: '', description: 'hotfix branch name'),
+        string(name: 'COMMIT_ID',defaultValue: '', description: 'Enter commit_id'),
+        [$class: 'ChoiceParameter',
+            choiceType: 'PT_CHECKBOX',
+            description: 'Select Project Name',
+            filterLength: 1,
+            filterable: false,
+            name: 'PROJECT_NAME',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["All:selected", "smartq-kiosk-native", "TDS", "IMD-flutter"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def choices = ["All:selected", "smartq-kiosk-native", "TDS", "IMD-flutter"]
+                        return choices
+                    '''
+                ]
+            ] 
+        ]
+    ])
+])
+
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+            apiVersion: v1
+            kind: Pod
+            environment:
+                name: "NODE_OPTIONS"
+                value: "--max-old-space-size=4096"
+            spec:
+              containers:
+              - name: jnlp  
+                resources:
+                  requests:
+                    memory: "2048Mi"
+                    cpu: "500m"
+                  limits:
+                    memory: "4096Mi"
+                    cpu: "1000m"
+
+              - name: native-android
+                image: jetbrains/qodana-jvm-android:latest
+                environment:
+                TERM: dumb
+                JVM_OPTS: "-Xmx4096m"
+                GRADLE_OPTS: 'org.gradle.jvmargs=-Xmx4096m -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'
+                resources:
+                requests:
+                    memory: "4096Mi"  # Increase the requested memory
+                    cpu: "500m"
+                limits:
+                    memory: "8192Mi"  # Increase the maximum allowed memory
+                    cpu: "1000m"
+                command:
+                - /bin/sh
+                - -c
+                - sleep 6000
+                - cat
+                tty: true
+
+              - name: flutter
+                image: instrumentisto/flutter:latest
+                resources:
+                  requests:
+                    memory: "2048Mi"
+                    cpu: "500m"
+                  limits:
+                    memory: "4096Mi"
+                    cpu: "1000m"
+                command:
+                - cat
+                tty: true
+
+              - name: gcloud
+                image: google/cloud-sdk:latest
+                command:
+                - cat
+                tty: true
+            '''        
+        }
+    }
+
+    stages {
+        stage('checking project'){
+            steps{
+                script{
+                    mail_url = 'https://cpgplc.webhook.office.com/webhookb2/6d5ff299-54f8-4bb3-911b-4ef2d419e335@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/3b95c290077440da9d684a0c498039e1/1b69cb54-bc9e-4431-98fa-5afcb910e9d4'
+
+                    if(params.PROJECT_NAME == "All" || params.PROJECT_NAME.isEmpty()){
+                        def options = 'smartq-kiosk-native,TDS,IMD-flutter'
+                        ARR_SELECTED_SERVICE = "$options".split(',')
+                    }
+                    else {
+                        ARR_SELECTED_SERVICE = params.PROJECT_NAME.split(',')
+                    }
+                    echo "Selected Services - $ARR_SELECTED_SERVICE"
+
+                    IS_WEBAPPS_ENABLED = ARR_SELECTED_SERVICE.any { element -> webapps.key.contains(element) }
+                    echo "IS_WEBAPPS_ENABLED - $IS_WEBAPPS_ENABLED"
+                }                
+            }
+        }
+        stage('checkout stage'){
+            steps {
+                script {
+                    //def bitBucketProject = params.BitBucketProject.toLowerCase()
+                    def branch = params.BRANCH_NAME
+                    def hotfixbranch = params.GIT_BRANCH //whenever we spcify hotfix parameter please provied commitId parameter because project is pulling from commitid not hotfixbranch
+                    def commitid = params.COMMIT_ID
+                    //def bucketname = params.Branch
+                    echo "selcted branch = ${branch}"
+                    echo "selcted hotfixbranch = ${hotfixbranch}"
+                    echo "selcted commitid = ${commitid}"
+                    if (GIT_BRANCH != '') {
+                    	//bucketname="${hotfixbranch}"
+                    	branch="${hotfixbranch}"
+                    } else if (COMMIT_ID != ''){
+                    	branch="${commitid}"                    	
+                    } else {
+                        branch = params.BRANCH_NAME
+                    }
+                    
+                    if (COMMIT_ID != '' && GIT_BRANCH != ''){
+                        branch="${commitId}"
+                    }
+                    def parallelJobs = [:]
+                    ARR_SELECTED_SERVICE.each { service ->
+                        parallelJobs["Checkout ${service}"] = {
+                            if (service in ['smartq-kiosk-native', 'IMD-flutter', 'TDS']) {
+                                checkoutProject(service, branch)
+                            }
+                        }    
+                    }
+                    parallel(parallelJobs)
+                }
+            }
+        }
+        stage('build stage'){
+            steps {
+                script {
+                    def parallelJobs = [:]
+                    if('smartq-kiosk-native' in ARR_SELECTED_SERVICE) {
+                        parallelJobs['Build SmartQ Kiosk Native'] = {
+                            container('native-android') {
+                            dir('smartq-kiosk-native'){
+                                sh 'ls -a'
+                                sh './gradlew --no-daemon --parallel assembleDebug'
+                                sh 'ls'
+                                dir ('app') { 
+                                    sh 'ls'                            
+                                    dir('${WORKPSACE}/build'){
+                                        sh 'ls'
+                                        dir('outputs'){
+                                        sh 'ls -lrt'
+                                        dir('apk'){
+                                            sh 'ls'
+                                            dir('smartq/debug'){
+                                                sh 'ls'
+                                            }
+                                            dir('bonAppetit/debug'){
+                                                sh 'ls'
+                                            }
+                                            dir('timeToEat/debug'){
+                                                sh 'ls'
+                                            }
+                                        }
+                                        }
+                                    }
+                                }
+                            }                    
+                            }
+                        }    
+                    }    
+                    if ('IMD-flutter' in ARR_SELECTED_SERVICE) {
+                        parallelJobs['Build IMD-flutter'] = {
+                            container('flutter') {
+                            sh 'echo ${WORKSPACE}'
+                                dir('IMD-flutter') {
+                                  sh 'flutter clean'
+                                  sh 'flutter build apk --release'
+                                  sh 'ls'
+                                  dir ('${WORKPSACE}/build') {
+                                      sh 'echo changing to directory'
+                                      dir('app'){
+                                        sh 'ls'
+                                          dir('outputs/flutter-apk'){
+                                              sh 'ls -lrt'                                  
+                                          }
+                                      }
+                                  }
+                                }
+                            }
+                        }                        
+                    }
+                    if ('TDS' in ARR_SELECTED_SERVICE) {
+                        parallelJobs['Build TDS'] = {
+                            container('flutter') {
+                            sh 'echo ${WORKSPACE}'
+                                dir('TDS') {
+                                    sh 'flutter clean'
+                                    sh 'flutter build apk --release'
+                                    dir ('${WORKSPACE}/build') {
+                                        sh 'echo changing to directory'
+                                        dir('app'){
+                                            dir('outputs/flutter-apk'){
+                                                sh 'ls -lrt'
+                                            }
+                                        }
+                                    }
+                                }
+                            } 
+                        }                        
+                    }
+                    parallel(parallelJobs)
+                }
+            }
+        }
+    }
+}
