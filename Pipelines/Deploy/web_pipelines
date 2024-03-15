@@ -24,25 +24,25 @@ def checkoutProject(String projectName, String branch) {
         newId = commitId
     }
 }
-// def buildFlutterProject(String projectName) {
-//     container('flutter') {
-//         sh "echo ${WORKSPACE}"
-//         dir(projectName) {
-//             sh 'ls'
-//             sh 'flutter clean'
-//             sh 'flutter build apk --release'            
-//             dir("${WORKSPACE}/build") {
-//                 sh 'echo changing to directory'
-//                 dir('app') {
-//                     sh 'ls'
-//                     dir('outputs/flutter-apk') {
-//                         sh 'ls -lrt'                                  
-//                     }
-//                 }
-//             }
-//         }
-//     }
-// }
+def buildFlutterProject(String projectName) {
+    container('flutter') {
+        sh "echo ${WORKSPACE}"
+        dir(projectName) {
+            sh 'ls'
+            sh 'flutter clean'
+            sh 'flutter build apk --release'            
+            dir("${WORKSPACE}/build") {
+                sh 'echo changing to directory'
+                dir('app') {
+                    sh 'ls'
+                    dir('outputs/flutter-apk') {
+                        sh 'ls -lrt'                                  
+                    }
+                }
+            }
+        }
+    }
+}
 
 properties([
     parameters([
@@ -252,42 +252,12 @@ pipeline {
                     }    
                     if ('IMD-flutter' in ARR_SELECTED_SERVICE) {
                         parallelJobs['Build IMD-flutter'] = {
-                            container('flutter') {
-                            sh 'echo ${WORKSPACE}'
-                                dir('IMD-flutter') {
-                                  sh 'flutter clean'
-                                  sh 'flutter build apk --release'
-                                  sh 'ls'
-                                  dir ('${WORKPSACE}/build') {
-                                      sh 'echo changing to directory'
-                                      dir('app'){
-                                        sh 'ls'
-                                          dir('outputs/flutter-apk'){
-                                              sh 'ls -lrt'                                  
-                                          }
-                                      }
-                                  }
-                                }
-                            }
+                            buildFlutterProject(ARR_SELECTED_SERVICE.find { it in ['IMD-flutter'] })
                         }                        
                     }
                     if ('TDS' in ARR_SELECTED_SERVICE) {
                         parallelJobs['Build TDS'] = {
-                            container('flutter') {
-                            sh 'echo ${WORKSPACE}'
-                                dir('TDS') {
-                                    sh 'flutter clean'
-                                    sh 'flutter build apk --release'
-                                    dir ('${WORKSPACE}/build') {
-                                        sh 'echo changing to directory'
-                                        dir('app'){
-                                            dir('outputs/flutter-apk'){
-                                                sh 'ls -lrt'
-                                            }
-                                        }
-                                    }
-                                }
-                            } 
+                            buildFlutterProject(ARR_SELECTED_SERVICE.find { it in ['TDS'] })
                         }                        
                     }
                     parallel(parallelJobs)
