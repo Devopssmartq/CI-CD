@@ -397,9 +397,6 @@ pipeline {
                         def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
                         echo "type of deplyoment is : ${type}"
                         def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,cloud_run,index'
-                        // if (type == "India") {
-                        //     options = 'controldesk,web-ort,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook'
-                        // } 
                         if (type == "International") {
                             options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,time2eat-flutter,pricebook,cloud_run,index'
                         }       
@@ -432,9 +429,9 @@ pipeline {
                         echo "$GCS_BUCKET_NAME"
                         echo "$ENVIRONMENT"//see if you can get rid of this in all the places & use GIT_BRANCH, as both are same now
                         echo "GIT_BRANCH - $GIT_BRANCH"
-                        echo "[\"$CONTROLDESK_YAML\", \"$PWA_YAML\", \"$FOODBOOK_YAML\", \"$TIME2EAT_YAML\", \"$BAWEB_YAML\", \"$WEBORT_YAML\", \"$TIME2EAT_FLUTTER_YAML\"]"
-                        echo "[\"$APP_SERVICE_YAML\",  \"$DEFAULT_SERVICE_YAML\", \"$BACKGROUND_YAML\", \"$TASKQSERVICE_YAML\", \"$REPORTS_YAML\", \"$BQREPORTS_YAML\"]" 
-                        echo "[\"$PY3_APPMS_YAML\", \"$PY3_DASHBOARD_YAML\",  \"$PY3_SSO_YAML\", \"$PY3_PRICEBOOK_YAML\", \"$PY3_INTEGRATION_YAML\"]"                         
+                        // echo "[\"$CONTROLDESK_YAML\", \"$PWA_YAML\", \"$FOODBOOK_YAML\", \"$TIME2EAT_YAML\", \"$BAWEB_YAML\", \"$WEBORT_YAML\", \"$TIME2EAT_FLUTTER_YAML\"]"
+                        // echo "[\"$APP_SERVICE_YAML\",  \"$DEFAULT_SERVICE_YAML\", \"$BACKGROUND_YAML\", \"$TASKQSERVICE_YAML\", \"$REPORTS_YAML\", \"$BQREPORTS_YAML\"]" 
+                        // echo "[\"$PY3_APPMS_YAML\", \"$PY3_DASHBOARD_YAML\",  \"$PY3_SSO_YAML\", \"$PY3_PRICEBOOK_YAML\", \"$PY3_INTEGRATION_YAML\"]"                         
                     }
                 }              
             }
