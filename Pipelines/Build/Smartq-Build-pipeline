@@ -9,7 +9,7 @@ def checkoutWebORT(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/web-ort.git', credentialsId: 'serviceaccount',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/web-ort', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -19,7 +19,6 @@ def checkoutWebORT(branch) {
 }
 def buildWebORT() {
     container('nodejs') {
-
         sh 'echo ${WORKSPACE}'
         sh 'echo $BUILD_NUMBER'
             dir('webort') {
@@ -60,7 +59,7 @@ def checkoutControlDesk(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/control-desk.git', credentialsId: 'serviceaccount',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/control-desk.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -115,7 +114,7 @@ def checkoutEWallet(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/ewallet.git', credentialsId: 'serviceaccount',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/eWallet.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -164,7 +163,7 @@ def checkouttime2eatweb(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/time2eatweb.git', credentialsId: 'serviceaccount',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/time2eatweb.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -222,7 +221,7 @@ def checkoutvendordashboard(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/unified_webstack.git', credentialsId: 'serviceaccount',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/unified_webstack.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -274,7 +273,7 @@ def checkoutgenericadmindashboard(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/generic-admin-dashboard.git', credentialsId: 'serviceaccount',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/generic-admin-dashboard.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -398,7 +397,7 @@ def checkoutcontroldeskflutter(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://yash123devops@bitbucket.org/bottlelabtech/control-desk-flutter.git', credentialsId: 'bitbucket api',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/control-desk-flutter.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             // git branch: "${branch}",
@@ -459,7 +458,7 @@ def checkouttime2eat_flutter(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://yash123devops@bitbucket.org/bottlelabtech/smartq.git', credentialsId: 'bitbucket api',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_flutter_main_app', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             // git branch: "${branch}",
