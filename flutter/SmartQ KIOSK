@@ -8,14 +8,33 @@ apiVersion: v1
 kind: Pod
 spec:
   containers:
+  - name: jnlp  
+    resources:
+      requests:
+        memory: "2048Mi"
+        cpu: "500m"
+      limits:
+        memory: "4096Mi"
+        cpu: "1000m"
+
   - name: gcloud
-    image: gcr.io/cloud-builders/gcloud
+    image: google/cloud-sdk:latest
     command:
     - sleep
     args:
     - 99d
+    
   - name: native-android
-    image: androidsdk/android-31:latest
+    image: jetbrains/qodana-jvm-android:latest
+    env:
+      GRADLE_OPTS: -Dorg.gradle.jvmargs="-XX:MaxMetaspaceSize=1g"
+    resources:
+      requests:
+        memory: "2048Mi"
+        cpu: "500m"
+      limits:
+        memory: "4096Mi"
+        cpu: "1000m"
     command:
     - sleep
     args:
@@ -24,6 +43,10 @@ spec:
     '''
     }
   }
+   parameters {
+
+    choice(name: 'ProjectVariant', choices: ['Release', 'Smartq', 'TimeToEat', 'BonAppetit'], description: 'Select project variant')
+    }
     //environment {
       //  APP_ENGINE_PROJECT_ID = 'sqinternational-cicd'
         //APP_ENGINE_SERVICE = 'taskqservice'
@@ -32,15 +55,27 @@ spec:
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
-            }
+                sh "mkdir -p kiosk"
+                dir('kiosk') {
+                    checkout([$class: 'GitSCM', 
+                    branches: [[name: "auto-sprint"]], 
+                    doGenerateSubmoduleConfigurations: false, 
+                    extensions: [[$class: 'CleanCheckout']], 
+                    userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/smartq-kiosk-native.git', credentialsId: 'git-devops',]]])
+                        
+                    sh 'ls -lrt'
+                }
+            }            
         }
         
         stage('Build') {
             steps {
                 container('native-android') {
-                    sh 'ls -a'
-                    sh './gradlew assembleRelease'
+                  //def selectVariant = params.ProjectVariant
+                    dir('kiosk'){
+                      sh 'ls -a'
+                      sh './gradlew assembleSmartq'
+                    }                    
                 }
             }
         }    

@@ -37,25 +37,36 @@ pipeline {
         //APP_ENGINE_VERSION = '1'
     //}
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-                sh 'ls -a'
+      stage('Checkout flutter') { 
+        steps { 
+            sh "mkdir -p tds-flutter"
+            dir('tds-flutter') {
+                git branch: 'auto-sprint',
+                credentialsId: 'git-devops',
+                url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/TDS.git'
+                sh 'ls'
             }
-        }
+        }                       
+    }
         
-        stage('Build') {
-            steps {
-                container('native-android') {
-                    //sh 'ls -a'
-                    sh 'chmod +x gradlew'
-                    sh './gradlew assembleRelease'
-                    sh 'ls'
-                        dir('app/imdind'){
-                            sh 'ls'
-                        }
-                }
-            }
-        }    
+        stage('Build tds-flutter') {
+          steps {
+              container('flutter') {
+                 sh 'echo ${WORKSPACE}'
+                 dir('tds-flutter') {
+                  sh 'flutter clean'
+                  sh 'flutter build apk --release'
+                  dir ('${WORKSPACE}/build') {
+                      sh 'echo changing to directory'
+                      dir('app'){
+                          dir('outputs/flutter-apk'){
+                              sh 'ls -lrt'
+                          }
+                      }
+                  }
+                 }
+             }             
+          }       
+      }
     }
 }
