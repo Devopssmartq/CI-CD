@@ -79,6 +79,7 @@ def buildControlDesk() {
             sh 'ls'
                 dir('controldesk') {
                     sh 'npm install --force'
+                    sh 'npm install react-checkbox-tree@1.5.0 --force'
                     sh 'CI=false npm run build'
                         dir ('${WORKSPACE}/controldesk/build') {
                             sh 'echo changing to directory'
@@ -321,7 +322,7 @@ def checkoutsmartqcloudbackend(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/smartq-cloud-backend.git', credentialsId: 'serviceaccount',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/smartq-cloud-backend.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             sh "touch smartqcloudbackend.txt"
@@ -360,7 +361,7 @@ def checkoutsqmicroservicesbackend(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/sq_microservices_backend.git', credentialsId: 'serviceaccount',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_microservices_backend.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             //sh "touch sqmicroservicesbackend.txt"
@@ -508,7 +509,41 @@ def uploadtime2eat_flutterToGCS(bucketname) {
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
 }
+def checkoutphrase_translate(branch) {
+    echo "Checkout phrase_translate"
+    sh "mkdir -p phrase_translate"
+        dir('phrase_translate') {                        
+            checkout([$class: 'GitSCM', 
+                branches: [[name: branch]], 
+                doGenerateSubmoduleConfigurations: false, 
+                extensions: [[$class: 'CleanCheckout']], 
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/phrase_translate.git', credentialsId: 'git/devops/new',]]])
+                    
+            sh 'ls -lrt'
+            //sh "touch sqmicroservicesbackend.txt"
+            def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+            sh "echo ${commitId}"
+            newId = "${commitId}"
+            // git branch: "${branch}",
+            // credentialsId: 'serviceaccount',
+            // url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/sq_microservices_backend.git'
+            // sh 'ls -lrt'
+            // sh "touch sqmicroservicesbackend.txt"
+        }
 
+}
+def uploadphrase_translateToGCS(bucketname) {
+    echo "Uploading phrase_translate to GCS Bucket"
+    echo "My branch & GCS Bucket name is ${branch}"
+        container('gcloud') { 
+            sh "touch phrase_translate.txt"
+            sh "tar -czvf ${newId}.tar.gz phrase_translate.txt"
+    	    sh 'ls'
+    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/phrase_translate/ --recursive"
+            //sh "gcloud storage cp ${WORKSPACE}/sq_microservices_backend/sqmicroservicesbackend.txt gs://sqinternational-cicd.appspot.com/${bucketname}/sq_microservices_backend/sq_microservices_backend@$VERSION_NUMBER-${newId}/default --recursive"
+           CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
+        }
+}
 pipeline {
     agent {
     
@@ -538,6 +573,12 @@ pipeline {
 
           - name: node-js
             image: node:20.12.0
+            requests:
+                memory: "4096Mi"  # Increase the requested memory
+                cpu: "500m"
+            limits:
+                memory: "8192Mi"  # Increase the maximum allowed memory
+                cpu: "1000m"
             command:
             - cat
             tty: true
@@ -565,7 +606,7 @@ pipeline {
 
     parameters {
 
-    choice(name: 'BitBucketProject', choices: ['web-ort', 'control-desk', 'ewallet', 'time2eatweb', 'vendor-dashboard','generic-admin-dashboard', 'smartq-cloud-backend', 'sq_microservices_backend','controldeskflutter', 'time2eat_flutter'], description: 'Select BitBucket Project')
+    choice(name: 'BitBucketProject', choices: ['web-ort', 'control-desk', 'ewallet', 'time2eatweb', 'vendor-dashboard','generic-admin-dashboard', 'smartq-cloud-backend', 'sq_microservices_backend','controldeskflutter', 'time2eat_flutter', 'phrase_translate'], description: 'Select BitBucket Project')
     choice(name: 'Branch', choices: ['auto-sprint', 'auto-release', 'master', 'hotfix'], description: 'Select Branch')
     string(name: 'Hotfix_Branch', description: 'Enter the branch name')
     string(name: 'CommitId', defaultValue:" ", trim: true, description: 'Enter the commitId')
@@ -664,7 +705,11 @@ pipeline {
                         buildtime2eat_flutter()
                         uploadtime2eat_flutterToGCS(bucketname)
                         buildPipeline = true    
-                    }      
+                    }  else if (bitBucketProject == 'phrase_translate') {
+                        checkoutphrase_translate(branch)
+                        uploadphrase_translateToGCS(bucketname)
+                        buildPipeline = true    
+                    }          
 
                     if (!buildPipeline) {
                         error("Invalid combination of BitBucket Project and Branch.")
