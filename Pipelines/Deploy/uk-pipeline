@@ -163,7 +163,8 @@ def py3_services = [
             [key: 'pricebook'],
             [key: 'integration'],
             [key: 'cloud_run'],
-            [key: 'index']
+            [key: 'index'],
+            [key: 'menucacheupdate']
         ]
 def phrase_translate = [
             [key: 'phrase'] //INTERNATIONAL
@@ -266,7 +267,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","index",,"phrase"]'
+                    script: 'return ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","index",,"phrase","menucacheupdate"]'
                 ],
                 script: [
                     classpath: [],
@@ -275,7 +276,7 @@ properties([
                         def type = DEPLOYMENT_TYPE ?: "International" 
                         def options = []
                         if (type == "International") {
-                            options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","index".,"phrase"]
+                            options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","index".,"phrase","menucacheupdate"]
                         }
                         return options
                     '''
@@ -390,9 +391,9 @@ pipeline {
                     {
                         def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
                         echo "type of deplyoment is : ${type}"
-                        def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,cloud_run,index'
+                        def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,cloud_run,index,menucacheupdate'
                         if (type == "International") {
-                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,time2eat-flutter,pricebook,cloud_run,index,phrase'
+                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,time2eat-flutter,pricebook,cloud_run,index,phrase,menucacheupdate'
                         }       
                         //echo "SERVICE_NAME_LIST updated - $options"
                         ARR_SELECTED_SERVICE = "$options".split(',')                        
@@ -788,16 +789,27 @@ pipeline {
                                                         sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
                                                         sh "gcloud run deploy bigquerysync-${params.APP_ENGINE_PROJECT_ID} --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic"
                                                     }
-                                                    if (params.APP_ENGINE_PROJECT_ID.contains("-india")) {
-                                                        dir ('cloud_vm_longrun') {
-                                                            sh "ls"                                                        
-                                                            sh "gcloud builds submit --flags-file build_flag/${params.APP_ENGINE_PROJECT_ID}.json"
-                                                        }
-                                                    }
+
                                                     ARR_VERIFY_SERVICE.add([service_name: 'cloud_run', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                                                 }                                 
                                             }
-                                        }  
+                                        } 
+                                        if ('menucacheupdate' in ARR_SELECTED_SERVICE ) {
+                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                                            parallelJobs[py3_services.find { it.key == 'menucacheupdate' }] = {
+                                                dir ('sq_microservices_backend') {
+                                                    sh 'ls'
+                                                    //if (params.APP_ENGINE_PROJECT_ID.contains("-india")) {
+                                                        dir ('menucacheupdate') {
+                                                            sh "ls"                                                        
+                                                            sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
+                                                            sh "gcloud run deploy menucacheupdate --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json"
+                                                        }
+                                                    //}
+                                                    //ARR_VERIFY_SERVICE.add([service_name: 'menucacheupdate', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
+                                                }                                 
+                                            }
+                                        }   
                                         if ('index' in ARR_SELECTED_SERVICE ) {
                                             PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
                                             parallelJobs[py3_services.find { it.key == 'index' }] = {
@@ -916,16 +928,16 @@ pipeline {
             }  
         }      
     }       
-    // post{
-    //     always{
-    //         script {
-    //             notifyStatus()
-    //         }
-    //     }
-    //     success{
-    //         script{
-    //             runAutomation()
-    //         }
-    //     }
-    // }
+    post{
+        always{
+            script {
+                notifyStatus()
+            }
+        }
+        success{
+            script{
+                runAutomation()
+            }
+        }
+    }
 }
