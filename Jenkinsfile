@@ -1,9 +1,9 @@
 pipeline {
     agent any
      
-    parameters {
-        choice(name: 'Branch', choices: ['', 'python-version', 'bucket-list'], description: 'Select Branch')
-    }
+    // parameters {
+    //     choice(name: 'Branch', choices: ['', 'python-version', 'bucket-list'], description: 'Select Branch')
+    // }
     
     stages {
         stage('test') {
