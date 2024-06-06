@@ -1,0 +1,59 @@
+name: Build and Depoly SeimensDashboadrd
+
+on:
+  push:
+    branches: 
+      - 'auto-sprint'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'auto-sprint'
+
+jobs:
+  build-and-deploy: 
+    runs-on: ubuntu-latest
+
+    env: 
+      NODE_OPTIONS: '--max-old-space-size=4096'
+
+    steps:  
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with: 
+          //repository: ''
+          ref: 'auto-sprint'
+
+      - name: List files after checkout
+        run: |
+          ls -la
+          
+      - name: Print Commit ID
+        run: |
+          echo "Short Commit ID: ${GITHUB_SHA::8}"
+        
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14.19.0'
+
+      - name: Install dependencies and build
+        run: |
+          echo "Running first command"
+          npm install
+          echo "Running second command"
+          CI=false npm run build
+          echo "Running third command"
+          ls
+          cd build 
+          ls
+          cd ..
+          ls
+          
+      - name: Tar and zip build folder
+        run: |
+          tar -czf ${GITHUB_SHA::8}.tar.gz 
+          build/*
+          ls
+  

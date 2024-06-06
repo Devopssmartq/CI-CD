@@ -1,0 +1,597 @@
+import groovy.transform.Field
+
+@Field def ARR_VERIFY_SERVICE = []
+@Field def IS_BUILDAPPS_ENABLED
+
+
+def buildapps = [
+    [key: 'web-ort'],
+    [key: 'control-desk'],
+    [key: 'ewallet'],
+    [key: 'time2eatweb'],
+    [key: 'vendor_dashboard'],
+    [key: 'generic-admin-dashboard'],
+    [key: 'smartq-cloud-backend'],
+    [key: 'sq_microservices_backend'],
+    [key: 'control-desk-flutter'],
+    [key: 'time2eat_flutter'],  
+    [key: 'cncms']  
+]
+
+def checkoutProject(Map args) {
+    def CHECKOUT_PROJECT
+    sh "mkdir -p ${args.app_name}"
+    dir("${args.app_name}") {
+        checkout([$class: 'GitSCM', 
+            branches: [[name: branch]], 
+            doGenerateSubmoduleConfigurations: false, 
+            extensions: [[$class: 'CleanCheckout']], 
+            userRemoteConfigs: [[url: "https://github.com/Bottle-Lab-Technologies-PVT-LTD/${args.app_name}.git", credentialsId: 'git/devops/new']]])
+
+        sh 'ls -lrt'
+        def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+        echo "Commit ID: ${commitId}"
+        newId = commitId
+        return newId
+    }
+}
+def buildNodejsProject(Map args, String commitId) {
+    def projectName = args.app_name
+
+    if (projectName in ['ewallet', 'generic-admin-dashboard', 'control-desk']) {
+        container('node-js') {
+            sh 'echo ${WORKSPACE}'
+            dir("${args.app_name}") {
+                echo "${commitId}"
+                sh 'ls'
+                sh 'npm install --force'
+                sh 'CI=false npm run build'
+                dir ('build') {
+                    sh 'ls'
+                }
+            }
+        }
+    } else if (projectName == 'web-ort') {
+        container('nodejs') {
+            sh 'echo ${WORKSPACE}'
+            dir("${args.app_name}") {
+                echo "${commitId}"
+                sh 'ls'
+                sh 'npm install --force'
+                sh 'CI=false npm run build'
+                dir ('build') {
+                    sh 'ls'
+                }
+            }
+        }
+    }
+}
+def buildtime2eatweb(Map args, String commitId) {
+    echo "Build PWA"
+        container('node-js') {
+        sh 'echo ${WORKSPACE}'
+            dir("${args.app_name}") {
+                echo "${commitId}"
+                sh 'npm install --legacy-peer-deps'
+                sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app1'
+                sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app2'
+                sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app3'
+                sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app4'
+                sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app5'
+                    dir ('build') {
+                        sh 'echo changing to directory'
+                    }
+            }
+        }
+
+}
+def buildvendordashboard(Map args, String commitId) {
+    echo "Building Vendordashboard"
+        dir("${args.app_name}") { 
+            echo "${commitId}"        
+            container('node-js') {
+                dir ('${WORKSPACE}/frontend') {
+                    sh 'npm install -g gulp'
+                    sh 'gulp build_vdashboard'
+                        dir ('dist/vdashboard/admindashboard'){
+                            sh 'ls *'
+                    }
+                }
+            }             
+        }      
+
+}
+def buildcontroldeskflutter(Map args, String commitId) {
+    container('flutter') {
+        sh 'echo ${WORKSPACE}'
+        sh 'echo $BUILD_NUMBER'
+            dir("${args.app_name}") {
+                echo "${commitId}"
+                sh 'flutter clean'
+                sh 'flutter pub get'
+                sh 'flutter build web --web-renderer canvaskit'
+                sh 'ls'
+                dir ('${WORKSPACE}/build/web') {
+                    sh 'ls'
+                    sh 'pwd'
+                    //sh 'echo changing to directory'
+                }
+            }
+    }
+}
+def buildtime2eat_flutter(Map args, String commitId) {
+    container('time2eatflutter') {
+        sh 'echo ${WORKSPACE}'
+        sh 'echo $BUILD_NUMBER'
+            dir("${args.app_name}") {
+            echo "${commitId}"    
+            withCredentials([usernamePassword(credentialsId: 'flutter-id', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]){
+                sh "git config --global credential.helper store"
+                sh "echo 'https://$USERNAME:$PASSWORD@github.com' > ~/.git-credentials"
+                //sh "git config --global credential.helper"
+                sh "git config --list"
+                sh "git clone https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_ui_lib.git"
+                sh 'flutter clean'
+                sh 'flutter pub upgrade'
+                sh 'flutter pub get'
+                sh 'flutter build web'
+            }    
+        }
+    }
+}
+def buildcncms(Map args, String commitId){
+    container('time2eatflutter') {
+        sh 'echo ${WORKSPACE}'
+        sh 'echo $BUILD_NUMBER'
+            dir("${args.app_name}") {
+                echo "${commitId}"
+                dir('cnc_finance_automation'){
+                    sh 'flutter clean'
+                    sh 'flutter build web'
+                    sh 'ls'
+                    dir ('${WORKSPACE}/build/web') {
+                        sh 'ls'
+                        sh 'pwd'
+                        //sh 'echo changing to directory'
+                    }
+                }    
+            }
+    }    
+}
+def uploadToGCS(Map args, String commitId) {
+   echo "Upload to GCS"  
+   echo "My branch & GCS Bucket name is  ${branch}"
+        def projectName = args.app_name    
+        container('gcloud') {
+            if (projectName in ['web-ort','control-desk', 'time2eatweb', 'control-desk-flutter', 'sq_flutter_main_app']) {
+                if (args.app_name == 'sq_flutter_main_app') {
+                    projectName = 'time2eat-flutter'
+                } else if (args.app_name == 'time2eatweb') {
+                    projectName = 'time2eat'
+                }
+                dir("${args.app_name}") {
+                    sh 'ls'
+                    sh "tar -czvf ${commitId}.tar.gz *.yaml build/*"
+                    sh "gcloud storage cp ${commitId}.tar.gz gs://sqinternational-cicd.appspot.com/test_build/${projectName}/ --recursive"
+                    sh "tar -xzvf ${commitId}.tar.gz"
+                }            
+                CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${env.BRANCH}/${projectName}"
+            }else if (projectName in ['ewallet', 'generic-admin-dashboard']) {
+                dir("${args.app_name}") {
+                    sh 'ls'
+                    sh "tar -czvf ${commitId}.tar.gz build/*"
+                    sh "gcloud storage cp ${commitId}.tar.gz gs://sqinternational-cicd.appspot.com/test_build/${projectName}/ --recursive"
+                    sh "tar -xzvf ${commitId}.tar.gz"
+                }            
+                CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${env.BRANCH}/${projectName}"
+            }else if (projectName == 'unified_webstack') {
+                dir('unified_webstack/frontend/dist/vdashboard/') {
+                sh "tar -czvf ${commitId}.tar.gz admindashboard/*"
+                sh 'ls'
+                sh "gcloud storage cp ${commitId}.tar.gz gs://sqinternational-cicd.appspot.com/test_build/vendor-dashboard/ --recursive"
+                sh "tar -xzvf ${commitId}.tar.gz"
+            }    
+            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${env.BRANH}/${projectName}"
+            }else if (projectName in ['smartq-cloud-backend', 'sq_microservices_backend']) {
+                sh "touch ${args.app_name}.txt"
+                sh "tar -czvf ${commitId}.tar.gz ${args.app_name}.txt"
+                sh 'ls'
+                sh "gcloud storage cp ${commitId}.tar.gz gs://sqinternational-cicd.appspot.com/test_build/smartq-cloud-backend/ --recursive"
+                CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${env.BRANCH}/${projectName}"                      
+            }else if (projectName in ['cnc-finance-automation']) {
+                if (args.app_name == 'cnc-finance-automation') {
+                    projectName = 'cncms'
+                }
+                dir("${args.app_name}") {
+                    dir('cnc_finance_automation') {
+                        sh 'ls'
+                        sh "tar -czvf ${commitId}.tar.gz build/*"
+                        sh "gcloud storage cp ${commitId}.tar.gz gs://sqinternational-cicd.appspot.com/test_build/${projectName}/ --recursive"
+                        sh "tar -xzvf ${commitId}.tar.gz"
+                    }    
+                }            
+                CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${env.BRANCH}/${projectName}"
+            }    
+        }    
+}
+
+properties([
+    parameters([
+        [$class: 'ChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select Branch Name',
+            filterLength: 1,
+            filterable: false,
+            name: 'BRANCH_NAME',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["auto-sprint", "auto-release", "master", "hotfix"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def choices = ["auto-sprint", "auto-release", "master", "hotfix"]
+                        return choices
+                    '''
+                ]
+            ] 
+        ],
+        [$class: 'ChoiceParameter',
+            choiceType: 'PT_CHECKBOX',
+            description: 'Select Project Name',
+            filterLength: 1,
+            filterable: false,
+            name: 'PROJECT_NAME',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["All:selected", "web-ort", "control-desk", "ewallet", "time2eatweb", "vendor_dashboard", "generic-admin-dashboard", "smartq-cloud-backend", "sq_microservices_backend", "control-desk-flutter", "time2eat_flutter", "cncms"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def choices = ["All:selected", "web-ort", "control-desk", "ewallet", "time2eatweb", "vendor_dashboard", "generic-admin-dashboard", "smartq-cloud-backend", "sq_microservices_backend", "control-desk-flutter", "time2eat_flutter", "cncms"]
+                        return choices
+                    '''
+                ]
+            ] 
+        ],
+        string(name: 'HOTFIX_BRANCH',defaultValue: '', description: 'hotfix branch name'),
+        string(name: 'COMMIT_ID',defaultValue: '', description: 'Enter commit_id')
+    ])
+])
+
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+        apiVersion: v1
+        kind: Pod
+        branch:
+            name: "NODE_OPTIONS"
+            value: "--max-old-space-size=4096"
+        spec:
+          containers:
+          - name: jnlp  
+            resources:
+              requests:
+                memory: "4096Mi"
+                cpu: "500m"
+              limits:
+                memory: "8192Mi"
+                cpu: "1000m"
+                
+          - name: nodejs
+            image: node:14.19.0
+            command:
+            - cat
+            tty: true
+
+          - name: node-js
+            image: node:18-alpine
+            requests:
+                memory: "4096Mi" 
+                cpu: "500m"
+            limits:
+                memory: "8192Mi" 
+                cpu: "1000m"
+            command:
+            - cat
+            tty: true
+
+          - name: gcloud
+            image: google/cloud-sdk:latest
+            command:
+            - cat
+            tty: true
+
+          - name: flutter
+            image: instrumentisto/flutter:3.10.2
+            command:
+            - cat
+            tty: true 
+            
+          - name: time2eatflutter
+            image: instrumentisto/flutter:3.19.6
+            command:
+            - cat
+            tty: true     
+        '''        
+        }
+    }
+
+    stages {
+        stage('checking project'){
+            steps{
+                script{
+                    mail_url = 'https://cpgplc.webhook.office.com/webhookb2/6d5ff299-54f8-4bb3-911b-4ef2d419e335@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/3b95c290077440da9d684a0c498039e1/1b69cb54-bc9e-4431-98fa-5afcb910e9d4'
+
+                    if(params.PROJECT_NAME == "All" || params.PROJECT_NAME.isEmpty()){
+                        def branch = BRANCH_NAME ?: "auto-sprint"
+                        echo "selected branch : ${branch}"
+                        def options = 'web-ort,control-desk,ewallet,time2eatweb,vendor_dashboard,generic-admin-dashboard,smartq-cloud-backend,sq_microservices_backend,control-desk-flutter,time2eat_flutter,cncms'
+                        if (branch == "auto-release") {
+                            options = 'web-ort,control-desk,ewallet,time2eatweb,vendor_dashboard,generic-admin-dashboard,smartq-cloud-backend,sq_microservices_backend,control-desk-flutter,time2eat_flutter,cncms'
+                        }else if (branch == "hotfix") {
+                            options == 'params.HOTFIX_BRANCH'
+                        }
+                        ARR_SELECTED_SERVICE = "$options".split(',')
+                    }
+                    else {
+                        ARR_SELECTED_SERVICE = params.PROJECT_NAME.split(',')
+                    }
+                    echo "Selected Services - $ARR_SELECTED_SERVICE"
+
+                    IS_BUILDAPPS_ENABLED = ARR_SELECTED_SERVICE.any { element -> buildapps.key.contains(element) }
+                    echo "IS_BUILDAPPS_ENABLED - $IS_BUILDAPPS_ENABLED"
+                }                
+            }
+        }
+        stage('checking stage'){
+            steps {
+                script {
+                    //def bitBucketProject = params.BitBucketProject.toLowerCase()
+                    def branch = params.BRANCH_NAME
+                    def hotfixbranch = params.HOTFIX_BRANCH //whenever we spcify hotfix parameter please provied commitId parameter because project is pulling from commitid not hotfixbranch
+                    def commitid = params.COMMIT_ID
+                    def bucketname = params.Branch
+                    
+                    if (HOTFIX_BRANCH != '') {
+                        bucketname="${hotfixbranch}"
+                        branch="${hotfixbranch}"
+                    } else if (COMMIT_ID != ''){
+                        branch="${commitid}"                        
+                    } else {
+                        branch = params.BRANCH_NAME
+                    }
+                    
+                    if (COMMIT_ID != '' && HOTFIX_BRANCH != ''){
+                        branch="${commitid}"
+                    }
+                    echo "selcted branch = ${branch}"
+                    echo "selcted hotfixbranch = ${hotfixbranch}"
+                    echo "selcted commitid = ${commitid}"
+                    env.BRANCH = branch
+
+                    
+                }
+            }
+        }
+        stage('checkout stage'){
+            when {
+                expression { return IS_BUILDAPPS_ENABLED}
+            }
+            steps {
+                script {
+                    def parallelJobs = [:]
+                    if ('web-ort' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find { it.key == 'web-ort' }] = {
+                            WEBORT_CHECKOUT_PROJECT = checkoutProject(app_name: 'web-ort')                     
+                        }                        
+                    }
+                    if ('control-desk' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find { it.key == 'control-desk' }] = {
+                            CONTROLDESK_CHECKOUT_PROJECT = checkoutProject(app_name: 'control-desk')                       
+                        }                        
+                    }
+                    
+                    if ('ewallet' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find { it.key == 'ewallet' }] = {
+                            EWALLET_CHECKOUT_PROJECT = checkoutProject(app_name: 'ewallet') 
+                        }                        
+                    }
+                    if ('time2eatweb' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find { it.key == 'time2eatweb' }] = {
+                            TIME2EAT_CHECKOUT_PROJECT = checkoutProject(app_name: 'time2eatweb') 
+                        }                        
+                    }
+                    if ('vendor_dashboard' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find { it.key == 'vendor_dashboard' }] = {
+                            VENDORDASHBOARD_CHECKOUT_PROJECT = checkoutProject(app_name: 'unified_webstack') 
+                        }                        
+                    }
+                    if ('generic-admin-dashboard' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find { it.key == 'generic-admin-dashboard' }] = {
+                            GAD_CHECKOUT_PROJECT = checkoutProject(app_name: 'generic-admin-dashboard') 
+                        }                        
+                    }
+                    if ('smartq-cloud-backend' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find { it.key == 'smartq-cloud-backend' }] = {
+                            PY2_CHECKOUT_PROJECT = checkoutProject(app_name: 'smartq-cloud-backend') 
+                        }                        
+                    }
+                    if ('sq_microservices_backend' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find { it.key == 'sq_microservices_backend' }] = {
+                            PY3_CHECKOUT_PROJECT = checkoutProject(app_name: 'sq_microservices_backend') 
+                        }                        
+                    }
+                    if ('control-desk-flutter' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find { it.key == 'control-desk-flutter' }] = {
+                            CONTROLDESKFLUTTER_CHECKOUT_PROJECT = checkoutProject(app_name: 'control-desk-flutter') 
+                        }                        
+                    }
+                    // if ('time2eat_flutter' in ARR_SELECTED_SERVICE) {
+                    //     parallelJobs[buildapps.find {it.key == 'time2eat_flutter'}] = {
+                    //         SMARTQ_CHECKOUT_PROJECT = checkoutProject(app_name: 'sq_flutter_main_app') 
+                    //     }                        
+                    // }
+                    if ('cncms' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find { it.key == 'cncms' }] = {
+                            CNCMS_CHECKOUT_PROJECT = checkoutProject(app_name: 'cnc-finance-automation') 
+                        }                        
+                    }
+                    parallel(parallelJobs)
+                }
+            }
+        }
+        stage('Build Project'){
+            when {
+                expression { return IS_BUILDAPPS_ENABLED}
+            }
+            steps {
+                script {
+                    def parallelJobs = [:]
+                    if('web-ort' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'web-ort'}] = {
+                            BUILD_WEBORT = buildNodejsProject(app_name: 'web-ort', WEBORT_CHECKOUT_PROJECT)
+                        }
+                    }
+                    if('control-desk' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'control-desk'}] = {
+                            BUILD_CONTROLDESK = buildNodejsProject(app_name: 'control-desk', CONTROLDESK_CHECKOUT_PROJECT) 
+                        }
+                    }
+                    if('ewallet' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'ewallet'}] = {
+                            BUILD_EWALLET = buildNodejsProject(app_name: 'ewallet', EWALLET_CHECKOUT_PROJECT) 
+                        }
+                    }
+                    if('generic-admin-dashboard' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'generic-admin-dashboard'}] = {
+                            BUILD_GAD = buildNodejsProject(app_name: 'generic-admin-dashboard', GAD_CHECKOUT_PROJECT)  
+                        }
+                    }
+                    if('time2eatweb' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'time2eatweb'}] = {
+                           BUILD_T2EAT = buildtime2eatweb(app_name: 'time2eatweb', TIME2EAT_CHECKOUT_PROJECT) 
+                        }
+                    }
+                    if('vendor_dashboard' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'vendor_dashboard'}] = {
+                            BUILD_VENDORDASHBOARD = buildvendordashboard(app_name: 'unified_webstack', VENDORDASHBOARD_CHECKOUT_PROJECT)  
+                        }
+                    }
+                    if('control-desk-flutter' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'control-desk-flutter'}] = {
+                            BUILD_CDF = buildcontroldeskflutter(app_name: 'control-desk-flutter', CONTROLDESKFLUTTER_CHECKOUT_PROJECT)    
+                        }
+                    }
+                    // if('time2eat_flutter' in ARR_SELECTED_SERVICE) {
+                    //     parallelJobs[buildapps.find {it.key == 'time2eat_flutter'}] = {
+                    //         BUILD_SMARTQ = buildtime2eat_flutter(app_name: 'sq_flutter_main_app', SMARTQ_CHECKOUT_PROJECT) 
+                    //     }
+                    // }
+                    if('smartq-cloud-backend' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'smartq-cloud-backend'}] = {
+                            sh "echo trigering py2" 
+                        }
+                    }
+                    if('sq_microservices_backend' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'sq_microservices_backend'}] = {
+                            sh "echo trigering py3" 
+                        }
+                    }
+                    if ('cncms' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'cncms'}] = {
+                            BUILD_CNCMS = buildcncms(app_name: 'cnc-finance-automation', CNCMS_CHECKOUT_PROJECT) 
+                        }                        
+                    }
+                    parallel(parallelJobs)
+                }
+            }
+        }
+        stage('Upload Project to GCS'){
+            when {
+                expression { return IS_BUILDAPPS_ENABLED}
+            }
+            steps {
+                script {
+                    def parallelJobs = [:]
+                    if('control-desk' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'control-desk'}] = {
+                            UPLOAD_CONTROLDESK = uploadToGCS(app_name: 'control-desk', CONTROLDESK_CHECKOUT_PROJECT)    
+                        }
+                    }
+                    if('web-ort' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'web-ort'}] = {
+                            UPLOAD_WEBORT = uploadToGCS(app_name: 'web-ort', WEBORT_CHECKOUT_PROJECT)    
+                        }
+                    }
+                    if('ewallet' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'ewallet'}] = {
+                            UPLOAD_EWALLET = uploadToGCS(app_name: 'ewallet', EWALLET_CHECKOUT_PROJECT)    
+                        }
+                    }
+                    if('generic-admin-dashboard' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'generic-admin-dashboard'}] = {
+                            UPLOAD_GAD = uploadToGCS(app_name: 'generic-admin-dashboard', GAD_CHECKOUT_PROJECT)    
+                        }
+                    }
+                    if('time2eatweb' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'time2eatweb'}] = {
+                           UPLOAD_T2EAT = uploadToGCS(app_name: 'time2eatweb', TIME2EAT_CHECKOUT_PROJECT)    
+                        }
+                    }
+                    if('vendor_dashboard' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'vendor_dashboard'}] = {
+                            UPLOAD_VENDORDASHBOARD = uploadToGCS(app_name: 'unified_webstack', VENDORDASHBOARD_CHECKOUT_PROJECT)    
+                        }
+                    }
+                    if('control-desk-flutter' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'control-desk-flutter'}] = {
+                            UPLOAD_CDF = uploadToGCS(app_name: 'control-desk-flutter', CONTROLDESKFLUTTER_CHECKOUT_PROJECT)    
+                        }
+                    }
+                    // if('time2eat_flutter' in ARR_SELECTED_SERVICE) {
+                    //     parallelJobs[buildapps.find {it.key == 'time2eat_flutter'}] = {
+                    //         UPLOAD_T2E_FLUTTER = uploadToGCS(app_name: 'sq_flutter_main_app', SMARTQ_CHECKOUT_PROJECT)    
+                    //     }
+                    // }
+                    if('smartq-cloud-backend' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'smartq-cloud-backend'}] = {
+                            UPLOAD_PY2 = uploadToGCS(app_name: 'smartq-cloud-backend', PY2_CHECKOUT_PROJECT)
+                        }
+                    }
+                    if('sq_microservices_backend' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'sq_microservices_backend'}] = {
+                            UPLOAD_PY3 = uploadToGCS(app_name: 'sq_microservices_backend', PY3_CHECKOUT_PROJECT)   
+                        }
+                    }
+                    if ('cncms' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[buildapps.find {it.key == 'cncms'}] = {
+                            UPLOAD_CNCMS = uploadToGCS(app_name: 'cnc-finance-automation', CNCMS_CHECKOUT_PROJECT) 
+                        }                        
+                    }
+                    parallel(parallelJobs)
+                }
+            }
+        }
+    }
+    // post{
+    //     always{
+    //         script {
+    //             def selectedProjects = params.PROJECT_NAME.join('\n')
+    //             office365ConnectorSend webhookUrl: "${mail_url}",
+    //             message: "Job Name: ${Job_Name}.\n\n Build Status: ${currentBuild.currentResult}.\n\n Selected Projects - ${selectedProjects}",
+    //             status: "Build Status# ${currentBuild.currentResult}"
+    //         }
+    //     }
+    // }
+}

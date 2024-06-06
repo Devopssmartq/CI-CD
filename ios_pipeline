@@ -1,0 +1,526 @@
+import groovy.transform.Field
+
+@Field def ARR_VERIFY_SERVICE = []
+@Field def IS_WEBAPPS_ENABLED
+
+def webapps = [
+    [key: 'smartq-kiosk-native'],
+    [key: 'IMD-flutter'],
+    [key: 'TDS']
+]
+def iosapps = [
+    [key: 'Quick_start'],
+    [key: 'jumpr_plus'],
+    [key: 'cafebon'],
+    [key: 'smart_testflight'],
+    [key: 'time2eat_testflight'],
+    [key: 'jumpr_plus'],
+    [key: 'Cafebon_testflight'],
+    [key: 'foodbook'],
+    [key: 'Food4Me']
+]
+def checkoutProject(Map args) {
+    def CHECKOUT_PROJECT
+    sh "mkdir -p ${args.app_name}"
+    dir("${args.app_name}") {
+        checkout([$class: 'GitSCM', 
+            branches: [[name: branch]], 
+            doGenerateSubmoduleConfigurations: false, 
+            extensions: [[$class: 'CleanCheckout']], 
+            userRemoteConfigs: [[url: "https://github.com/Bottle-Lab-Technologies-PVT-LTD/${args.app_name}.git", credentialsId: 'git-devops']]])
+
+        sh 'ls -lrt'
+        def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+        echo "Commit ID: ${commitId}"
+        newId = commitId
+        return newId
+    }
+}
+def buildflutterProject(Map args, String commitId) {
+    def BUILD_FLUTTER_PROJECT
+    container('flutter') {
+        sh "echo ${WORKSPACE}"        
+        dir("${args.app_name}") {
+            sh "echo ${WORKSPACE}"
+            sh "echo ${commitId}"
+            sh 'pwd'
+            sh 'ls'
+            sh 'flutter clean'
+            sh 'flutter build apk --release'
+            sh 'ls'            
+            dir ('${WORKSPACE}/build') {
+                sh 'ls'
+                sh 'echo changing to directory'
+                dir('app'){
+                    sh "echo ${commitId}"
+                    dir('outputs/flutter-apk'){
+                        sh 'ls -lrt'
+                        sh "mv app-release.apk ${commitId}.apk"
+                        sh "mv app-release.apk.sha1 ${commitId}.apk.sha1"
+                        sh "rm ${commitId}.apk.sha1"
+                    }
+                }
+            }
+        }
+    }
+    return "${BUILD_FLUTTER_PROJECT}"
+}
+def uploadKioskToGCS(Map args, String commitId) {
+    def UPLOAD_KIOSK
+    echo "Upload to GCS"  
+    echo "My branch & GCS Bucket name is  ${env.BRANCH}"
+        container('gcloud') {
+            dir("smartq-kiosk-native") {
+                echo: "${commitId}"
+                sh 'ls'
+                sh 'pwd'
+                dir ('app') { 
+                    sh 'ls'
+                    //sh 'echo changing to directory'
+                    dir('${WORKPSACE}/build'){
+                        sh 'ls'
+                        dir('outputs'){
+                            sh 'ls -lrt'
+                            dir('apk') {
+                                sh 'ls'
+                                dir('smartq/release'){
+                                sh 'ls' 
+                                sh 'rm output-metadata.json'                               
+                                sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/apk.files/${env.BRANCH}/${args.app_name}/smartq --recursive"
+                                }
+                                dir('bonAppetit/release'){
+                                sh 'ls'
+                                sh 'rm output-metadata.json'
+                                sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/apk.files/${env.BRANCH}/${args.app_name}/bonAppetit --recursive"
+                                }
+                                dir('timeToEat/release'){
+                                sh 'ls'
+                                sh 'rm output-metadata.json'
+                                sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/apk.files/${env.BRANCH}/${args.app_name}/timeToEat --recursive"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${env.BRANCH}/${args.app_name}"
+        }
+        return "${UPLOAD_KIOSK}"
+}
+def uploadToGCS(Map args, String commitId) {
+    def UPLOAD_TO_GCS
+    echo "Upload to GCS"  
+    echo "My branch & GCS Bucket name is  ${env.BRANCH}"
+        container('gcloud') {            
+            dir("${args.app_name}") {
+                sh "echo ${args.app_name}"
+                echo "${commitId}"
+                sh 'ls'
+                sh 'pwd'
+                dir('${WORKSPACE}/build'){
+                    sh 'ls'
+                    dir('app'){
+                        dir('outputs/flutter-apk'){
+                            sh 'ls -lrt'
+                            sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/apk.files/${env.BRANCH}/${args.app_name}/ --recursive"
+                        }
+                    }
+                }    
+            }
+            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${env.BRANCH}/${args.app_name}"
+        }
+}
+def trigerIosProject(String projectName, String branch) {
+    def CODEMAGIC_APP_ID = '63b2aabdb4222db5c6deda2b'
+    def CODEMAGIC_BRANCH = env.branch
+    def WORKFLOW_ID = projectName
+    def apiUrl = 'https://api.codemagic.io/builds'
+    def payload = "{\"appId\": \"${CODEMAGIC_APP_ID}\", \"branch\": \"${CODEMAGIC_BRANCH}\", \"workflowId\": \"${WORKFLOW_ID}\"}"
+    def getURL
+
+    withCredentials([string(credentialsId: 'codemagic-cred', variable: 'CODEMAGIC_API_KEY')]) {
+        try {
+            // Trigger the build
+            def response = sh(script: """curl -X POST -H 'Content-Type: application/json' -H 'x-auth-token: ${CODEMAGIC_API_KEY}' -d '${payload}' ${apiUrl}""", returnStdout: true).trim()
+            echo "CodeMagic API Response: ${response}"
+            def jsonResponse = readJSON text: response
+            
+            // Fetch build status
+            sleep 60 
+            def buildId = jsonResponse.buildId
+            def statusResponse = sh(script: "curl -H 'x-auth-token: ${CODEMAGIC_API_KEY}' ${apiUrl}/${buildId}", returnStdout: true).trim()
+            echo "current_status: ${statusResponse}"
+            def statusJson = readJSON text: statusResponse
+            def buildStatus = statusJson.build.status
+            
+            echo "Initial_Build_Status: ${buildStatus}"
+
+            // Wait and fetch build status and logs
+            while (true) {
+                if (buildStatus == 'finished' || buildStatus == 'failed') {
+                    break; // Exit the loop if build status is success or failed
+                }
+                sleep 120 // Adjust the interval as needed
+                statusResponse = sh(script: "curl -H 'x-auth-token: ${CODEMAGIC_API_KEY}' ${apiUrl}/${buildId}", returnStdout: true).trim()
+                echo "Build Info: ${statusResponse}" // Debug statement to check the fetched build information
+                statusJson = readJSON text: statusResponse
+                buildStatus = statusJson.build.status
+                echo "Build Status inside loop: ${buildStatus}" // Debug statement to check the build status inside the loop
+
+            }
+
+            echo "Final Build Status: ${buildStatus}"
+            //echo "Final Build Log URL: ${jsonResponse.buildLogUrl}"
+            
+            // Set Jenkins build result based on CodeMagic build status
+            if (buildStatus == 'finished') {
+                
+                def artifactURL = statusJson.build.artefacts[0].url
+                echo "Artifact URL: ${artifactURL}"
+                
+                def commitID = statusJson.build.commit.hash
+                def shortCommitID = commitID.substring(0, 7) // Taking first 7 characters as short commit ID
+                echo "Commit_ID: ${commitID}"
+                echo "Short Commit_ID: ${shortCommitID}"
+                // Download IPA file from artifact URL
+                def ipaFileName = "${shortCommitID}.ipa" 
+                sh "curl -o ${ipaFileName} ${artifactURL}" 
+                sh "ls"
+                container('gcloud'){
+                    sh 'ls'
+                    sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/apk.files/${env.BRANCH}/${projectName}/ --recursive"
+                }
+                currentBuild.result = 'SUCCESS'
+            } else {
+                currentBuild.result = 'FAILURE'
+            }
+
+        } catch (Exception e) {
+            echo "Error occurred: ${e.message}"
+            currentBuild.result = 'FAILURE'
+        }
+        
+    }
+}
+
+properties([
+    parameters([
+        [$class: 'ChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select Branch Name',
+            filterLength: 1,
+            filterable: false,
+            name: 'BRANCH_NAME',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["auto-sprint", "auto-release", "master", "hotfix"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def choices = ["auto-sprint", "auto-release", "master", "hotfix"]
+                        return choices
+                    '''
+                ]
+            ] 
+        ],
+        string(name: 'GIT_BRANCH',defaultValue: '', description: 'hotfix branch name'),
+        string(name: 'COMMIT_ID',defaultValue: '', description: 'Enter commit_id'),
+        [$class: 'CascadeChoiceParameter',
+            choiceType: 'PT_CHECKBOX',
+            description: 'Select Project Name',
+            filterLength: 1,
+            filterable: false,
+            name: 'PROJECT_NAME',
+            referencedParameters: 'BRANCH_NAME',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["All:selected", "smartq-kiosk-native", "TDS", "IMD-flutter", "Quick_start", "jumpr_plus", "cafebon"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def scope = BRANCH_NAME ?: "auto-sprint"
+                        def options = []
+                        if (scope == "auto-sprint") {
+                            options = ["All:selected", "smartq-kiosk-native", "TDS", "IMD-flutter", "Quick_start", "jumpr_plus", "cafebon"]
+                        } else if (scope == "auto-release") {
+                            options = ["All:selected", "smartq-kiosk-native", "TDS", "IMD-flutter", "smart_testflight", "time2eat_testflight", "jumprplus_tesflight", "Cafebon_testflight", "foodbook", "Food4Me"]
+                        } else if (scope == "master") {
+                            options = ["All:selected", "smartq-kiosk-native", "TDS", "IMD-flutter", "smart_testflight", "time2eat_testflight", "jumprplus_tesflight", "Cafebon_testflight", "foodbook", "Food4Me"]
+                        } else if (scope == "hotfix") {
+                            options = ["All:selected", "smartq-kiosk-native", "TDS", "IMD-flutter", "Quick_start", "jumpr_plus", "cafebon", "smart_testflight", "time2eat_testflight", "jumprplus_tesflight", "Cafebon_testflight", "foodbook", "Food4Me"]
+                        } 
+                        return options
+                    '''
+                ]
+            ] 
+        ]
+    ])
+])
+
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+            apiVersion: v1
+            kind: Pod
+            environment:
+                name: "NODE_OPTIONS"
+                value: "--max-old-space-size=4096"
+            spec:
+              containers:
+              - name: jnlp  
+                resources:
+                  requests:
+                    memory: "2048Mi"
+                    cpu: "500m"
+                  limits:
+                    memory: "4096Mi"
+                    cpu: "1000m"
+
+              - name: native-android
+                image: jetbrains/qodana-jvm-android:latest
+                environment:
+                TERM: dumb
+                JVM_OPTS: "-Xmx4096m"
+                GRADLE_OPTS: 'org.gradle.jvmargs=-Xmx4096m -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'
+                resources:
+                requests:
+                    memory: "4096Mi"  # Increase the requested memory
+                    cpu: "500m"
+                limits:
+                    memory: "8192Mi"  # Increase the maximum allowed memory
+                    cpu: "1000m"
+                command:
+                - /bin/sh
+                - -c
+                - sleep 6000
+                - cat
+                tty: true
+
+              - name: flutter
+                image: instrumentisto/flutter:latest
+                resources:
+                  requests:
+                    memory: "4096Mi"
+                    cpu: "500m"
+                  limits:
+                    memory: "8192Mi"
+                    cpu: "1000m"
+                command:
+                - cat
+                tty: true
+
+              - name: gcloud
+                image: google/cloud-sdk:latest
+                command:
+                - cat
+                tty: true
+            '''        
+        }
+    }
+    environment {
+        def CLOUD_URL = 'Your_URL'
+        CODEMAGIC_API_KEY = credentials('codemagic-cred')
+    }
+    stages {
+        stage('checking project'){
+            steps{
+                script{
+                    mail_url = 'https://cpgplc.webhook.office.com/webhookb2/6d5ff299-54f8-4bb3-911b-4ef2d419e335@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/3b95c290077440da9d684a0c498039e1/1b69cb54-bc9e-4431-98fa-5afcb910e9d4'
+
+                    if(params.PROJECT_NAME == "All" || params.PROJECT_NAME.isEmpty()){
+                        def branch = BRANCH_NAME ?: "auto-sprint"
+                        echo "selected branch : ${branch}"
+                        def options = 'smartq-kiosk-native,TDS,IMD-flutter,Quick_start,jumpr_plus,cafebon'
+                        if (branch == "auto-release") {
+                            options = 'smartq-kiosk-native,TDS,IMD-flutter,smart_testflight,time2eat_testflight,jumprplus_tesflight,Cafebon_testflight,foodbook,Food4Me'
+                        } else if (branch == "hotfix") {
+                            options == 'params.PROJECT_NAME'
+                        }
+                        ARR_SELECTED_SERVICE = "$options".split(',')
+                    }
+                    else {
+                        ARR_SELECTED_SERVICE = params.PROJECT_NAME.split(',')
+                    }
+                    echo "Selected Services - $ARR_SELECTED_SERVICE"
+
+                    IS_WEBAPPS_ENABLED = ARR_SELECTED_SERVICE.any { element1 -> webapps.key.contains(element1) }
+                    echo "IS_WEBAPPS_ENABLED - $IS_WEBAPPS_ENABLED"
+
+                    IS_IOSAPPS_ENABLED = ARR_SELECTED_SERVICE.any { element2 -> iosapps.key.contains(element2) }
+                    echo "IS_IOSAPPS_ENABLED - $IS_IOSAPPS_ENABLED"
+                }                
+            }
+        }
+        stage('checkout stage'){
+            steps {
+                script {
+                    //def bitBucketProject = params.BitBucketProject.toLowerCase()
+                    def branch = params.BRANCH_NAME
+                    def hotfixbranch = params.GIT_BRANCH //whenever we spcify hotfix parameter please provied commitId parameter because project is pulling from commitid not hotfixbranch
+                    def commitid = params.COMMIT_ID
+                    def bucketname = params.BRANCH_NAME
+                    if (GIT_BRANCH != '') {
+                    	bucketname="${hotfixbranch}"
+                    	branch="${hotfixbranch}"
+                    } else if (COMMIT_ID != ''){
+                    	branch="${commitid}"                    	
+                    } else {
+                        branch = params.BRANCH_NAME
+                    }
+                    
+                    if (COMMIT_ID != '' && GIT_BRANCH != ''){
+                        branch="${commitid}"
+                    }
+                    echo "selected branch = ${branch}"
+                    echo "selected hotfixbranch = ${hotfixbranch}"
+                    echo "selected commitid = ${commitid}"
+                    echo "selected bucket = ${bucketname}"
+                    env.BRANCH = branch
+
+                    def parallelJobs = [:]
+                    if ('smartq-kiosk-native' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[webapps.find {it.key == 'smartq-kiosk-native'}] = {
+                            KIOSK_CHECKOUT_PROJECT = checkoutProject(app_name: 'smartq-kiosk-native')                     
+                        }                        
+                    }
+                    if ('IMD-flutter' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[webapps.find {it.key == 'IMD-flutter'}] = {
+                            IMD_CHECKOUT_PROJECT = checkoutProject(app_name: 'IMD-flutter')                       
+                        }                        
+                    }
+                    if ('TDS' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[webapps.find {it.key == 'TDS'}] = {
+                            TDS_CHECKOUT_PROJECT = checkoutProject(app_name: 'TDS') 
+                        }                        
+                    }
+                    parallel(parallelJobs)
+                }
+            }
+        }
+        stage('build stage'){
+            when {
+                expression { return IS_WEBAPPS_ENABLED}
+            }
+            steps {
+                script {
+                    def parallelJobs = [:]
+                    if('smartq-kiosk-native' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[webapps.find {it.key == 'smartq-kiosk-native'}] = {
+                            container('native-android') {
+                            dir('smartq-kiosk-native'){
+                                sh 'ls -a'
+                                sh './gradlew --no-daemon --parallel assembleRelease'
+                                sh 'ls'
+                                dir ('app') { 
+                                    sh 'ls'                            
+                                    dir('${WORKSPACE}/build'){
+                                        sh 'ls'
+                                        dir('outputs'){
+                                        sh 'ls -lrt'
+                                        dir('apk'){
+                                            sh 'ls'
+                                            dir('smartq/release'){
+                                                sh 'ls'
+                                                sh 'pwd'
+                                            }
+                                            dir('bonAppetit/release'){
+                                                sh 'ls'
+                                                sh 'pwd'
+                                            }
+                                            dir('timeToEat/release'){
+                                                sh 'ls'
+                                                sh 'pwd'
+                                            }
+                                        }
+                                        }
+                                    }
+                                }
+                            }                    
+                            }
+                            //def kiosk = 'smartq-kiosk-native'
+                            KIOSK_UPLOAD_KIOSK = uploadKioskToGCS(app_name: 'smartq-kiosk-native', KIOSK_CHECKOUT_PROJECT)
+                        }    
+                    }    
+                    if ('IMD-flutter' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[webapps.find {it.key == 'IMD-flutter'}] = {
+                            IMD_BUILD_FLUTTER_PROJECT = buildflutterProject(app_name: 'IMD-flutter', IMD_CHECKOUT_PROJECT)
+                            IMD_UPLOAD_TO_GCS = uploadToGCS(app_name: 'IMD-flutter', IMD_CHECKOUT_PROJECT)                      
+                        }                        
+                    }
+                    if ('TDS' in ARR_SELECTED_SERVICE) {
+                        parallelJobs[webapps.find {it.key == 'TDS'}] = {
+                            TDS_BUILD_FLUTTER_PROJECT = buildflutterProject(app_name: 'TDS', TDS_CHECKOUT_PROJECT)
+                            TDS_UPLOAD_TO_GCS = uploadToGCS(app_name: 'TDS', TDS_CHECKOUT_PROJECT)
+                        }                        
+                    }
+                    parallel(parallelJobs)
+                }
+            }
+        }
+        stage('Trigering IOS Application'){
+            when {
+                expression { return IS_IOSAPPS_ENABLED}
+            }
+            steps {
+                script {
+                    //def parallelJobs = [:]
+                    def branch = env.BRANCH
+                    if ('Quick_start' in ARR_SELECTED_SERVICE) {
+                        //parallelJobs['Triger Quick_start'] = {
+                            def Quick_start_workflowName = 'ios-native-quick-start'
+                            trigerIosProject(Quick_start_workflowName, branch)
+                        //}
+                    }
+                    if ('jumpr_plus' in ARR_SELECTED_SERVICE) {
+                        //parallelJobs['Triger jumpr_plus'] = {
+                            def jumpr_plus_workflowName = 'ios-native-Jumpr_plus_workflow'
+                            trigerIosProject(jumpr_plus_workflowName, branch)
+                        //}
+                    }
+                    if ('cafebon' in ARR_SELECTED_SERVICE) {
+                    //     parallelJobs['Triger cafebon'] = {
+                            def cafebon_workflowName = 'ios-native-cafebon_workflow'
+                            trigerIosProject(cafebon_workflowName, branch)
+                    //     }
+                    }
+                     if ('smart_testflight' in ARR_SELECTED_SERVICE) {
+                        def smart_testflight_workflowName = 'ios-native-smartq-testflight-workflow'
+                        trigerIosProject(ARR_SELECTED_SERVICE.find {it in ['smart_testflight_workflowName']}, branch)
+                    }
+                     if ('time2eat_testflight' in ARR_SELECTED_SERVICE) {
+                        def time2eat_testflight_workflowName = 'ios-native-time2eat-testflight-workflow'
+                        trigerIosProject(ARR_SELECTED_SERVICE.find {it in ['time2eat_testflight_workflowName']}, branch)
+                    }
+                     if ('jumprplus_tesflight' in ARR_SELECTED_SERVICE) {
+                        def jumprplus_tesflight_workflowName = 'ios-native-Jumpr_plus_testflight_workflow'
+                        trigerIosProject(ARR_SELECTED_SERVICE.find {it in ['jumprplus_tesflight_workflowName']}, branch)
+                    }
+                     if ('Cafebon_testflight' in ARR_SELECTED_SERVICE) {  
+                        def Cafebon_testflight_workflowName = 'ios-native-CafeBon_testflight_workflow'
+                        trigerIosProject(ARR_SELECTED_SERVICE.find {it in ['Cafebon_testflight_workflowName']}, branch)
+                    }
+                     if ('foodbook' in ARR_SELECTED_SERVICE) {
+                        def foodbook_workflowName = 'ios-native-foodbook_testflight_workflow'
+                        trigerIosProject(ARR_SELECTED_SERVICE.find {it in ['foodbook_workflowName']}, branch)
+                    }
+                    if ('Food4Me' in ARR_SELECTED_SERVICE) {
+                        def Food4Me_workflowName = 'ios-native-Food4Me_testsflight_workflow'
+                        trigerIosProject(ARR_SELECTED_SERVICE.find {it in ['Food4Me_workflowName']}, branch)                                               
+                    }
+                    //parallel(parallelJobs)
+                }
+            }
+        }
+    }
+}
