@@ -1,15 +1,34 @@
-name: Build and Depoly SeimensDashboadrd
+name: Build and Deploy SiemensDashboard
 
 on:
-  push:
-    branches: 
-      - 'auto-sprint'
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Deployment environment'
+      branch:
+        description: 'Branch to deploy'
         required: true
-        default: 'auto-sprint'
+        default: 'main'
+        type: choice
+        options: 
+          - master
+          - auto-sprint
+          - auto-release
+      region:
+        description: 'Deployment region'
+        required: true
+        default: 'us'
+        type: choice
+        options:
+          - japan
+          - us
+          - uk
+      services:
+        description: 'Services to deploy'
+        required: true
+        default: 'app'
+        type: choice
+        options:
+          - app
+          - dashboard
 
 jobs:
   build-and-deploy: 
@@ -22,12 +41,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
         with: 
-          //repository: ''
-          ref: 'auto-sprint'
+          ref: ${{ github.event.inputs.branch }}
 
       - name: List files after checkout
-        run: |
-          ls -la
+        run: ls -la
           
       - name: Print Commit ID
         run: |
@@ -53,7 +70,15 @@ jobs:
           
       - name: Tar and zip build folder
         run: |
-          tar -czf ${GITHUB_SHA::8}.tar.gz 
-          build/*
+          tar -czf ${GITHUB_SHA::8}.tar.gz build/*
           ls
-  
+
+      # - name: Deploy to ${{ github.event.inputs.region }}
+      #   run: |
+      #     if [ "${{ github.event.inputs.services }}" == "app" ]; then
+      #       echo "Deploying app to ${{ github.event.inputs.region }}"
+      #       # Add deployment commands for app here
+      #     elif [ "${{ github.event.inputs.services }}" == "dashboard" ]; then
+      #       echo "Deploying dashboard to ${{ github.event.inputs.region }}"
+      #       # Add deployment commands for dashboard here
+      #     fi
