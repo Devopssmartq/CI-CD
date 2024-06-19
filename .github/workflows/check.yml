@@ -1,10 +1,12 @@
-name: hello-world
-on: push
-jobs:
-  my-job:
-    runs-on: ubuntu-latest
+name: 02-workflow_event
+
+on: 
+  push:
+  workflow_dispatch:
+
+jobs: 
+  echo:
+    runs-on: ubuntu-latest  # Correct property name with a hyphen
     steps:
-      - name: my-step
-        run: 
-          echo "Hello World!"
-          echo "github action"
+      - name: show the trigger
+        run: echo "I've been triggered by a(n) ${{ github.event_name }} event"
