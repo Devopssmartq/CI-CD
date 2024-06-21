@@ -764,7 +764,7 @@ pipeline {
                                             }
                                         //}  
                                         //if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {  
-                                            if(INTERNATIONAL_FLAG && 'integration' in ARR_SELECTED_SERVICE ) {// ! For India only - Skip this when the condition is false
+                                            if(INTERNATIONAL_FLAG && 'integration' in ARR_SELECTED_SERVICE ) {// 
                                                 PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
                                                 PREVIOUS_VERSION = get_Previous_Version(service_name: "integration")
                                                 parallelJobs[py3_services.find { it.key == 'integration' }] = {
