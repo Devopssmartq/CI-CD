@@ -8,7 +8,11 @@ on:
         description: Skip deployment and only print build output
         default: false
       target:
-        type: environment
+        type: choice
+        options:
+          - development
+          - staging
+          - production
         required: true
         description: Which environment the workflow will target
       tag:
