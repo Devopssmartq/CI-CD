@@ -49,9 +49,9 @@ pipeline {
             steps { 
                 sh "mkdir -p controldesk"
                 dir('controldesk') {
-                    git branch: 'feature/sprapr25-may15alloc/preprodconfig',
-                    credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
-                    url: 'https://vrp63531@bitbucket.org/bottlelabtech/control-desk.git'
+                    git branch: 'auto-sprint',
+                    credentialsId: 'git/devops/new',
+                    url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/control-desk.git'
                 }
             }                       
         }

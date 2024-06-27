@@ -49,9 +49,9 @@ pipeline {
             steps { 
                 sh "mkdir -p webort"
                 dir('webort') {
-                    git branch: 'feature/sprint-25apr15may/preprod-config',
-                    credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
-                    url: 'https://vrp63531@bitbucket.org/bottlelabtech/web-ort.git'
+                    git branch: 'auto-sprint',
+                    credentialsId: 'git/devops/new',
+                    url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/web-ort'
                 }
             }                       
         }

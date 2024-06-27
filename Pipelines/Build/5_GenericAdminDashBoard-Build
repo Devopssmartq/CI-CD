@@ -49,9 +49,9 @@ pipeline {
             steps { 
                 sh "mkdir -p generic-admin-dashboard"                
                 dir('generic-admin-dashboard') {
-                    git branch: 'feature/bqreports/jenkins',
-                    credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
-                    url: 'https://vrp63531@bitbucket.org/bottlelabtech/generic-admin-dashboard.git'                   
+                    git branch: 'auto-sprint',
+                    credentialsId: 'git/devops/new',
+                    url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/generic-admin-dashboard.git'                   
                 }
             }                       
         }

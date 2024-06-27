@@ -50,8 +50,8 @@ pipeline {
                 sh "mkdir -p unified_webstack"                
                 dir('unified_webstack') {
                     git branch: 'master',
-                    credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
-                    url: 'https://vrp63531@bitbucket.org/bottlelabtech/unified_webstack.git'
+                    credentialsId: 'git/devops/new',
+                    url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/unified_webstack.git'
                 }
             }                       
         }

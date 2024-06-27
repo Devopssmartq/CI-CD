@@ -1,5 +1,6 @@
-/* groovylint-disable CompileStatic */
+// groovylint-disable CompileStatic */
 // Uses Declarative syntax to run commands inside a container.
+
 pipeline {
     agent {
         kubernetes {
@@ -43,9 +44,9 @@ pipeline {
             steps { 
                 sh "mkdir -p sq_microservices_backend"
                 dir('sq_microservices_backend') {                          
-                    git branch: 'preprodsetup',
-                    credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
-                    url: 'https://vrp63531@bitbucket.org/bottlelabtech/sq_microservices_backend.git'
+                    git branch: 'auto-sprint',
+                    credentialsId: 'git/devops/new',
+                    url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/smartq-cloud-backend.git'
 
                 sh 'ls -lrt'                
                 }
