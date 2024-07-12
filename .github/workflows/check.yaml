@@ -1,0 +1,87 @@
+name: Build and push siemens_dashboard
+ 
+on:
+  push:
+    branches:
+      - auto-sprint
+      - auto-release
+      - yash
+ 
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+ 
+    env:
+      NODE_OPTIONS: '--max-old-space-size=4096'
+ 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+ 
+      - name: List files after checkout
+        run: ls -la
+ 
+      - name: Print Commit Message
+        run: |
+          echo "Commit Message: ${{ github.event.head_commit.message }}"
+ 
+      - name: Print Commit ID
+        id: commit_id
+        run: |
+          echo "short_commit_id=${GITHUB_SHA::8}" >> $GITHUB_ENV
+ 
+      - name: Print Branch and Repo Name
+        run: |
+          echo "branch_name=$(basename ${{ github.ref }})" >> $GITHUB_ENV
+          echo "repo_name=$(echo ${GITHUB_REPOSITORY} | cut -d'/' -f2)" >> $GITHUB_ENV
+ 
+      - name: Adjust Repo Name for Hotfix Branch
+        if: github.ref == 'refs/heads/hotfix'
+        run: |
+          echo "repo_name=${{ github.event.head_commit.message }}" >> $GITHUB_ENV
+ 
+      - name: Display Branch and Repo Name
+        run: |
+          echo "Branch Name: ${{ env.branch_name }}"
+          echo "Repo Name: ${{ env.repo_name }}"
+ 
+      - name: Print Commit Message
+        run: |
+          echo "Commit Message: ${{ github.event.head_commit.message }}"
+ 
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14.19.0'
+ 
+      - name: Install dependencies and build
+        run: |
+          echo "Running first command"
+          npm install
+          echo "Running second command"
+          CI=false npm run build
+          echo "Running third command"
+          ls
+          cd build
+          ls
+          cd ..
+          ls
+ 
+      - name: Tar and zip build folder
+        run: tar -cvzf ${{ env.short_commit_id }}.tar.gz build/*
+ 
+      - name: Write GCP credentials to file
+        run: echo "${{ secrets.CICD_SECRET }}" > ${{ runner.temp }}/gcloud.json
+ 
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.CICD_SECRET }}
+ 
+      - name: Set Google Cloud Project
+        run: gcloud config set project ${{ secrets.Project_ID }}
+ 
+      - name: Upload Build to GCS
+        run: |
+          gcloud storage cp ${{ env.short_commit_id }}.tar.gz gs://sqinternational-cicd.appspot.com/${{ env.branch_name }}/${{ env.repo_name }}/
+ 
