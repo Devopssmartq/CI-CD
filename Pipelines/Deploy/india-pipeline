@@ -505,16 +505,16 @@ pipeline {
                                         ARR_VERIFY_SERVICE.add([service_name: 'foodbook-web', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'foodbook-web/main'])   
                                     }
                                 }
-                                // if ('time2eat' in ARR_SELECTED_SERVICE ) {
-                                //     TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
-                                //     PREVIOUS_VERSION = get_Previous_Version(service_name: "time2eat")
-                                //     parallelJobs[nodeapps.find { it.key == 'time2eat' }] = {
-                                //         dir("${PWA_APP_NAME}-latest") {                                           
-                                //             sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $TIME2EAT_YAML --no-promote"
-                                //         }
-                                //         ARR_VERIFY_SERVICE.add([service_name: 'time2eat', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'time2eat/main'])   
-                                //     }
-                                // }                                                                                                                                    
+                                if ('time2eat' in ARR_SELECTED_SERVICE ) {
+                                    TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
+                                    PREVIOUS_VERSION = get_Previous_Version(service_name: "time2eat")
+                                    parallelJobs[nodeapps.find { it.key == 'time2eat' }] = {
+                                        dir("${PWA_APP_NAME}-latest") {                                           
+                                            sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $TIME2EAT_YAML --no-promote"
+                                        }
+                                        ARR_VERIFY_SERVICE.add([service_name: 'time2eat', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'time2eat/main'])   
+                                    }
+                                }                                                                                                                                    
                                 if ('web-ort' in ARR_SELECTED_SERVICE ) {                                                                                               
                                     configFileProvider([configFile(fileId: 'deploy-groovy-script', targetLocation: 'deploy_web-ort.groovy')]) {
                                         WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'web-ort')
