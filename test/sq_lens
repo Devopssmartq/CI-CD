@@ -1,0 +1,92 @@
+/* groovylint-disable CompileStatic */
+// Uses Declarative syntax to run commands inside a container.
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+        apiVersion: v1
+        kind: Pod
+        environment:
+            name: "NODE_OPTIONS"
+            value: "--max-old-space-size=4096"
+        spec:
+          containers:
+          - name: jnlp  
+            resources:
+              requests:
+                memory: "2048Mi"
+                cpu: "500m"
+              limits:
+                memory: "4096Mi"
+                cpu: "1000m"
+                
+          - name: nodejs
+            image: node:18-alpine
+            command:
+            - cat
+            tty: true
+
+          - name: gcloud
+            image: google/cloud-sdk:latest
+            command:
+            - cat
+            tty: true
+
+          - name: docker
+            image: docker:25
+            command:
+            - cat
+            tty: true  
+        '''        
+        }
+    }
+    
+    parameters {
+
+    string(name: 'Sqlens_ID', defaultValue:" ", trim: true, description: 'Enter the sqlens_id')
+    }
+     
+    stages {  
+        stage('Chekout mendix_auto_deployer') { 
+            steps { 
+                sh "mkdir -p mendix_auto_deployer"
+                dir('mendix_auto_deployer') {
+                    git branch: 'main',
+                    credentialsId: 'git/devops/new',
+                    url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/mendix_auto_deployer.git'
+                    sh 'ls'
+                }
+            }                       
+        }
+        stage('listing the files in cloud storage'){
+            steps {
+                script {
+                    container('gcloud') {
+                        def sqlensid = params.Sqlens_ID
+                        
+                        sh 'gcloud config set project smqdebug'
+                        def bucketName = 'gs://samplemendixprojectfiles/'
+                        def command = "gcloud storage ls -l ${bucketName} | grep '.mda' | awk '{print \$3}' | awk -F '/' '{print \$NF}'"
+                        def result = sh(script: command, returnStdout: true).trim()
+                        echo "Filtered .mda files:\n${result}"
+                    }    
+                }
+            }
+        }
+        stage('Build the Image'){
+            steps{
+                script{
+                    container('docker'){
+                        dir('mendix_auto_deployer') {
+                            def sqlensid = params.Sqlens_ID
+                            echo "${sqlensid}"
+                            sh 'ls'
+                            sh 'chmod +x docker_creator.sh'
+                            sh "./docker_creator.sh indiaprd gs://prdin_mendixbuilds/"${sqlensid}" compassprd" 
+                        }       
+                    }
+                }
+            }
+        }
+    }
+}

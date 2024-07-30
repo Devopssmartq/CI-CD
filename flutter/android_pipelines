@@ -51,42 +51,47 @@ properties([
 ])
 pipeline {
     agent {
-    
         kubernetes {
-            yaml '''
+        //label 'jenkins-private-cluster-0'
+        defaultContainer 'jnlp'
+        yaml '''
         apiVersion: v1
         kind: Pod
-        branch:
-            name: "NODE_OPTIONS"
-            value: "--max-old-space-size=4096"
         spec:
-          containers:
-          - name: jnlp  
-            resources:
-              requests:
-                memory: "2048Mi"
-                cpu: "500m"
-              limits:
-                memory: "4096Mi"
-                cpu: "1000m"
+            containers:
+            - name: jnlp  
+                resources:
+                requests:
+                    memory: "2048Mi"
+                    cpu: "500m"
+                limits:
+                    memory: "4096Mi"
+                    cpu: "1000m"
+
+            - name: gcloud
+                image: google/cloud-sdk:latest
+                command:
+                - sleep
+                args:
+                - 99d
                 
-          - name: gcloud
-            image: google/cloud-sdk:latest
-            command:
-            - cat
-            tty: true
-
-          - name: native-android
-            image: jetbrains/qodana-jvm-android:latest
-            command:
-            - sleep
-            args:
-            - 99d
-            tty: true     
-
-        '''        
-        }
+            - name: native-android
+                image: jetbrains/qodana-jvm-android:latest
+                resources:
+                requests:
+                    memory: "2048Mi"
+                    cpu: "500m"
+                limits:
+                    memory: "4096Mi"
+                    cpu: "1000m"
+                command:
+                - sleep
+                args:
+                - 99d
+                tty: true 
+        '''
     }
+  }
     
     environment {
         JKS_CREDENTIAL_ID = 'CM_KEYSTORE_PATH_main_app_debug'
@@ -103,7 +108,7 @@ pipeline {
             steps {
                 sh "mkdir -p Android"
                 dir('Android') {
-                    git branch: 'auto-sprint',
+                    git branch: 'auto-sprint_no_calendar_view',
                     credentialsId: 'git/devops/new',
                     url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq-android-main-app.git'
                             
@@ -120,7 +125,8 @@ pipeline {
                             withCredentials([file(credentialsId: env.JKS_CREDENTIAL_ID, variable: 'CM_KEYSTORE_PATH_main_app_debug')]) {
                                 sh 'ls -a'
                                 sh 'chmod +x gradlew'
-                                sh './gradlew assembleSmartqdemoDebug'
+                                sh 'echo ${JENKINS_ANDROID_HOME}'
+                                //sh './gradlew assembleSmartqdemoDebug'
                                 sh 'ls'
 
                             }
