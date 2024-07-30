@@ -1,0 +1,203 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - dev
+      - yash
+      - auto-sprint
+      - auto-release
+  workflow_dispatch:
+    inputs:
+      RELEASE_SCOPE:
+        description: 'Select Release Scope'
+        required: true
+        type: choice
+        options:
+          - 'sprint:selected'
+          - 'preprod'
+          - 'beta'
+          - 'prod'
+          - 'hot-fix'
+      GIT_BRANCH:
+        description: 'Hotfix branch name'
+        required: true
+        type: string
+      APP_ENGINE_PROJECT_ID:
+        description: 'Select the Project_ID'
+        required: true
+        type: choice
+        options:
+          - 'smartqdemo-uk:selected'
+          - 'sqpreprod-uk:selected'
+          - 'smartqprd-uk:selected'
+          - 'smartqprd-ie'
+          - 'sqpreprod-uk'
+          - 'smartqprd-ie'
+      DEPLOYMENT_TYPE:
+        description: 'Select Deployment Type'
+        required: true
+        type: choice
+        options:
+          - 'International:selected'
+      SERVICE_NAME:
+        description: 'Select Service Name'
+        required: true
+        type: choice
+        options:
+          - 'All:selected'
+          - 'controldesk'
+          - 'web-ort'
+          - 'time2eat'
+          - 'time2eat-flutter'
+          - 'appservice'
+          - 'backgroundtasks'
+          - 'taskqservice'
+          - 'bqreports'
+          - 'dashboard'
+          - 'sso'
+          - 'py3_default'
+          - 'integration'
+          - 'pricebook'
+          - 'cloud_run'
+          - 'index'
+          - 'phrase'
+          - 'menucacheupdate'
+      AUTOMATION_PIPELINE:
+        description: 'Select the Automation_Pipeline'
+        required: true
+        type: choice
+        options:
+          - 'APP_ENGINE_PROJECT_ID_Critical_Sanity'
+          - 'none:selected'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: '--max-old-space-size=4096'
+      INTERNATIONAL_FLAG: false
+      VERSION_NUMBER: '${{ steps.get_version.outputs.VERSION_NUMBER }}'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Set environment variables
+        id: get_version
+        run: |
+          echo "VERSION_NUMBER=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
+
+      - name: Check Deployment Type - India / International
+        run: |
+          lstServers_India="smartqdemo sqpreprod-india smartqprd-india"
+          if [[ "$lstServers_India" =~ "${{ github.event.inputs.APP_ENGINE_PROJECT_ID }}" ]]; then
+            echo "${{ github.event.inputs.APP_ENGINE_PROJECT_ID }} is in india servers list."
+            echo "INTERNATIONAL_FLAG=false" >> $GITHUB_ENV
+          else
+            echo "${{ github.event.inputs.APP_ENGINE_PROJECT_ID }} is in International servers list."
+            echo "INTERNATIONAL_FLAG=true" >> $GITHUB_ENV
+          fi
+          DEPLOYMENT_TYPE=$([[ "$INTERNATIONAL_FLAG" == "true" ]] && echo "International" || echo "India")
+          echo "DEPLOYMENT_TYPE=$DEPLOYMENT_TYPE" >> $GITHUB_ENV
+          echo "International_flag : $INTERNATIONAL_FLAG"
+          echo "Deployment-Type : $DEPLOYMENT_TYPE"
+          
+      - name: Map YAMLs specific to each Service
+        run: |
+          RELEASE_SCOPE=${{ github.event.inputs.RELEASE_SCOPE }}
+          APP_ENGINE_PROJECT_ID=${{ github.event.inputs.APP_ENGINE_PROJECT_ID }}
+          GIT_BRANCH=${{ github.event.inputs.GIT_BRANCH }}
+          mail_url='https://cpgplc.webhook.office.com/webhookb2/6d5ff299-54f8-4bb3-911b-4ef2d419e335@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/3b95c290077440da9d684a0c498039e1/1b69cb54-bc9e-4431-98fa-5afcb910e9d4'
+          if [[ "${{ github.event.inputs.SERVICE_NAME }}" == "All" || -z "${{ github.event.inputs.SERVICE_NAME }}" ]]; then
+            type=${{ env.DEPLOYMENT_TYPE }}
+            echo "type of deployment is : $type"
+            options='controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,cloud_run,index,menucacheupdate'
+            if [[ "$type" == "International" ]]; then
+              options='controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,time2eat-flutter,pricebook,cloud_run,index,phrase,menucacheupdate'
+            fi
+            ARR_SELECTED_SERVICE=($options)
+          else
+            IFS=',' read -r -a ARR_SELECTED_SERVICE <<< "${{ github.event.inputs.SERVICE_NAME }}"
+          fi
+          echo "Selected Services - ${ARR_SELECTED_SERVICE[@]}"
+
+      - name: Set GCloud ProjectID
+        run: |
+          echo "Selected APP_ENGINE_PROJECT_ID: ${{ github.event.inputs.APP_ENGINE_PROJECT_ID }}"
+          gcloud config set project ${{ github.event.inputs.APP_ENGINE_PROJECT_ID }}
+
+      - name: Deploy Node.js Apps
+        if: env.IS_NODEAPPS_ENABLED == 'true'
+        run: |
+          for service in "${ARR_SELECTED_SERVICE[@]}"; do
+            case $service in
+              "controldesk")
+                echo "Deploying controldesk"
+                ;;
+              "web-ort")
+                echo "Deploying web-ort"
+                ;;
+              "time2eat")
+                echo "Deploying time2eat"
+                ;;
+              "time2eat-flutter")
+                echo "Deploying time2eat-flutter"
+                ;;
+              "appservice")
+                echo "Deploying appservice"
+                ;;
+              "backgroundtasks")
+                echo "Deploying backgroundtasks"
+                ;;
+              "taskqservice")
+                echo "Deploying taskqservice"
+                ;;
+              "bqreports")
+                echo "Deploying bqreports"
+                ;;
+              "dashboard")
+                echo "Deploying dashboard"
+                ;;
+              "sso")
+                echo "Deploying sso"
+                ;;
+              "py3_default")
+                echo "Deploying py3_default"
+                ;;
+              "integration")
+                echo "Deploying integration"
+                ;;
+              "pricebook")
+                echo "Deploying pricebook"
+                ;;
+              "cloud_run")
+                echo "Deploying cloud_run"
+                ;;
+              "index")
+                echo "Deploying index"
+                ;;
+              "phrase")
+                echo "Deploying phrase"
+                ;;
+              "menucacheupdate")
+                echo "Deploying menucacheupdate"
+                ;;
+              *)
+                echo "Unknown service: $service"
+                ;;
+            esac
+          done
+
+      - name: Check URL Status
+        run: |
+          echo "Checking URL status for deployed services"
+
+      - name: Promote
+        if: always()
+        run: |
+          echo "Promoting deployed services"
