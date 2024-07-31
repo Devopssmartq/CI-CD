@@ -1,71 +1,177 @@
 /* groovylint-disable CompileStatic */
-// Uses Declarative syntax to run commands inside a container.
+// Uses Decla(rative syntax to run commands inside a container.
+def Print_sha() {
+    def matcher = output =~ /digest: sha256:[a-f0-9]+/
+    if (matcher) {
+        def deigest = matcher[0]
+        echo "Digest: ${deigest}"
+    }else {
+        error("Error in getting digest")
+    }
+}
+
+properties([
+    parameters([
+        [$class: 'ChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select the region',
+            filterLength: 1,
+            filterable: false,
+            name: 'DEPLOYMENT_TYPE',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["india", "international"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                    return ["india", "international"]
+                '''
+                ]
+            ]
+        ],
+        [$class: 'CascadeChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select the Project',
+            filterLength: 1,
+            filterable: false,
+            name: 'Project_Name',
+            referencedParameters: 'DEPLOYMENT_TYPE',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["sqlens", "compass_lens"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        if (DEPLOYMENT_TYPE == 'india') {
+                            return ["sqlens", "compass_lens"]
+                        } else if (DEPLOYMENT_TYPE == 'international') {
+                            return ["compass_lens"]
+                        }
+                    '''
+                ]
+            ] 
+        ],
+        [$class: 'CascadeChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select the Region',
+            filterLength: 1,
+            filterable: false,
+            name: 'Region_Name',
+            referencedParameters: 'DEPLOYMENT_TYPE,Project_Name',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["smqdebug:selected", "smartqprd-india"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def deploymentType = DEPLOYMENT_TYPE.toString()
+                        def projectName = Project_Name.toString()
+
+                        if (deploymentType == 'india') {
+                            if (projectName == 'sqlens') {
+                                return ["smartqprd-india", "smqdebug:selected"]
+                            } else if (projectName == 'compass_lens') {
+                                return ["smartqprd-india", "smqdebug:selected"]
+                            }
+                        } else if (DEPLOYMENT_TYPE == 'international') {
+                            return ["smartqdemo-hk:selected", "smartqprd-hk"]
+                        }
+                        return []
+                    '''
+                ]
+            ] 
+        ],  
+        string(name: 'Lens_ID',defaultValue: '', description: 'Enter the ID'),           
+    ])
+])
 pipeline {
     agent {
         kubernetes {
             yaml '''
-        apiVersion: v1
-        kind: Pod
-        environment:
-            name: "NODE_OPTIONS"
-            value: "--max-old-space-size=4096"
-        spec:
-          containers:
-          - name: jnlp  
-            resources:
-              requests:
-                memory: "2048Mi"
-                cpu: "500m"
-              limits:
-                memory: "4096Mi"
-                cpu: "1000m"
-                
-          - name: nodejs
-            image: node:18-alpine
-            command:
-            - cat
-            tty: true
+            apiVersion: v1      
+            kind: Pod
+            spec:
+              containers:
+              - name: jnlp  
+                resources:
+                  requests:
 
-          - name: gcloud
-            image: google/cloud-sdk:latest
-            command:
-            - cat
-            tty: true
+                    memory: "2048Mi"
+                    cpu: "500m"
+                  limits:
+                    memory: "4096Mi"
+                    cpu: "1000m"
+                    
+              - name: nodejs
+                image: node:18-alpine
+                command:
+                - cat
+                tty: true
+                env:
+                - name: "NODE_OPTIONS"
+                  value: "--max-old-space-size=4096"
 
-          - name: docker
-            image: docker:25
-            command:
-            - cat
-            tty: true  
-        '''        
+              - name: gcloud
+                image: google/cloud-sdk:latest
+                command:
+                - cat
+                tty: true
+            '''        
         }
     }
     
-    parameters {
-
-    string(name: 'Sqlens_ID', defaultValue:" ", trim: true, description: 'Enter the sqlens_id')
-    }
-     
     stages {  
-        stage('Chekout mendix_auto_deployer') { 
+        stage('Checkout mendix_auto_deployer') { 
             steps { 
                 sh "mkdir -p mendix_auto_deployer"
                 dir('mendix_auto_deployer') {
-                    git branch: 'main',
+                    git branch: 'cicd-main',
                     credentialsId: 'git/devops/new',
                     url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/mendix_auto_deployer.git'
-                    sh 'ls'
+                    sh 'ls -l'
                 }
             }                       
         }
-        stage('listing the files in cloud storage'){
+        stage('Listing the files in cloud storage') {
             steps {
                 script {
                     container('gcloud') {
-                        def sqlensid = params.Sqlens_ID
-                        
-                        sh 'gcloud config set project smqdebug'
-                        def bucketName = 'gs://samplemendixprojectfiles/'
+                        def project_id = params.Region_Name
+                        echo "Project_ID = ${project_id}"
+                        echo "Deployment_type = ${params.DEPLOYMENT_TYPE}"
+                        echo "ProjectName = ${params.Project_Name}"
+                        def sqlensid = params.Lens_ID
+                        mail_url = 'https://cpgplc.webhook.office.com/webhookb2/6d5ff299-54f8-4bb3-911b-4ef2d419e335@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/3b95c290077440da9d684a0c498039e1/1b69cb54-bc9e-4431-98fa-5afcb910e9d4'
+
+                        if (Region_Name == "smqdebug") {
+                            bucketName = 'gs://samplemendixprojectfiles/'
+                        } else if (Region_Name == "smartqprd-india") {
+                            bucketName = 'gs://prdin_mendixbuilds/'
+                        } else if (Region_Name == "smartqdemo-hk") {
+                            bucketName = 'gs://demohk_mendixbuilds/'
+                        } else if (Region_Name == "smartqprd-hk") {
+                            bucketName = 'gs://prdhk_mendixbuilds/'
+                        } else {
+                            error("Invalid Region")
+                        }
+                        echo "BucketName = ${bucketName}"
+
+                        sh "gcloud config set project ${project_id}"
                         def command = "gcloud storage ls -l ${bucketName} | grep '.mda' | awk '{print \$3}' | awk -F '/' '{print \$NF}'"
                         def result = sh(script: command, returnStdout: true).trim()
                         echo "Filtered .mda files:\n${result}"
@@ -73,19 +179,53 @@ pipeline {
                 }
             }
         }
-        stage('Build the Image'){
-            steps{
-                script{
-                    container('docker'){
+        stage('Build the Image') {
+            steps {
+                script {
+                    container('gcloud') {
                         dir('mendix_auto_deployer') {
-                            def sqlensid = params.Sqlens_ID
+                            def sqlensid = params.Lens_ID
                             echo "${sqlensid}"
-                            sh 'ls'
-                            sh 'chmod +x docker_creator.sh'
-                            sh "./docker_creator.sh indiaprd gs://prdin_mendixbuilds/"${sqlensid}" compassprd" 
+                            
+                            if (!sqlensid) {
+                                error("PLEASE ENTER VALID ID")
+                            }
+
+                            if (DEPLOYMENT_TYPE == "india" && Project_Name == "sqlens" && Region_Name == "smqdebug") {
+                                sh "./autodeploy.sh indiademo gs://samplemendixprojectfiles/SQLens_Shield_1.0.0.${sqlensid}.mda"
+
+                            } else if (DEPLOYMENT_TYPE == "india" && Project_Name == "sqlens" && Region_Name == "smartqprd-india") {
+                                sh "./autodeploy.sh indiaprd gs://prdin_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
+
+                            } else if (Region_Name == "smqdebug" && Project_Name == "compass_lens") {
+                                sh "sh ./docker_creator.sh indiademo gs://samplemendixprojectfiles/SQLens_Shield_1.0.0.${sqlensid}.mda compassdemo"
+                                sh "./autodeploy_restart_on_crash.sh indiademo gs://samplemendixprojectfiles/SQLens_Shield_1.0.0.${sqlensid}.mda compassdemo"
+
+                            } else if (Region_Name == "smartqprd-india" && Project_Name == "compass_lens") {
+                                sh "sh ./docker_creator.sh indiaprd gs://prdin_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda compassprd"
+                                sh "./autodeploy_restart_on_crash.sh indiaprd gs://prdin_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda compassprd"
+
+                            } else if (Region_Name == "smartqdemo-hk" && Project_Name == "compass_lens") {
+                                sh "sh ./docker_creator.sh hkdemo gs://demohk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
+                                sh "./autodeploy_restart_on_crash.sh hkdemo gs://demohk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
+
+                            } else if (Region_Name == "smartqprd-hk" && Project_Name == "compass_lens") {
+                                sh "sh ./docker_creator.sh hkprd gs://prdhk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
+                                sh "./autodeploy_restart_on_crash.sh hkprd gs://prdhk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
+
+                            } 
                         }       
                     }
                 }
+            }
+        }
+    }
+    post{
+        always{
+            script {
+                office365ConnectorSend webhookUrl: "${mail_url}",
+                message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nProject Name: ${Project_Name}.\nRegion Name: ${Region_Name}.\nLens ID: ${Lens_ID}.",
+                status: "Build Status# ${currentBuild.currentResult}"
             }
         }
     }
