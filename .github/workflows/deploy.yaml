@@ -77,21 +77,12 @@ jobs:
     env:
       NODE_OPTIONS: '--max-old-space-size=4096'
       INTERNATIONAL_FLAG: false
-      VERSION_NUMBER: '${{ steps.get_version.outputs.VERSION_NUMBER }}'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
           node-version: '14'
-
-      - name: Set environment variables
-        id: get_version
-        run: |
-          echo "VERSION_NUMBER=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
-
+          
       - name: Check Deployment Type - India / International
         run: |
           lstServers_India="smartqdemo sqpreprod-india smartqprd-india"
