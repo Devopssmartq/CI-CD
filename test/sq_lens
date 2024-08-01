@@ -1,14 +1,18 @@
 /* groovylint-disable CompileStatic */
 // Uses Decla(rative syntax to run commands inside a container.
-def Print_sha() {
-    def matcher = output =~ /digest: sha256:[a-f0-9]+/
+def Print_sha(output) {
+    def matcher = output =~ /sha256:[a-f0-9]+/
     if (matcher) {
-        def deigest = matcher[0]
-        echo "Digest: ${deigest}"
-    }else {
+        def digest = matcher[0]
+        echo "Digest: ${digest}"
+        // Save digest to environment variable
+        env.DIGEST = digest
+    } else {
         error("Error in getting digest")
     }
 }
+
+def digest = '' // Declare the variable globally
 
 properties([
     parameters([
@@ -199,18 +203,23 @@ pipeline {
 
                             } else if (Region_Name == "smqdebug" && Project_Name == "compass_lens") {
                                 sh "sh ./docker_creator.sh indiademo gs://samplemendixprojectfiles/SQLens_Shield_1.0.0.${sqlensid}.mda compassdemo"
+                                //Print_sha(output)
                                 sh "./autodeploy_restart_on_crash.sh indiademo gs://samplemendixprojectfiles/SQLens_Shield_1.0.0.${sqlensid}.mda compassdemo"
 
                             } else if (Region_Name == "smartqprd-india" && Project_Name == "compass_lens") {
+                                //output = sh(script: "sh ./docker_creator.sh indiaprd gs://prdin_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda compassprd", returnStdout: true).trim()
+                                //Print_sha(output)
                                 sh "sh ./docker_creator.sh indiaprd gs://prdin_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda compassprd"
                                 sh "./autodeploy_restart_on_crash.sh indiaprd gs://prdin_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda compassprd"
 
                             } else if (Region_Name == "smartqdemo-hk" && Project_Name == "compass_lens") {
                                 sh "sh ./docker_creator.sh hkdemo gs://demohk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
+                                //Print_sha(output)
                                 sh "./autodeploy_restart_on_crash.sh hkdemo gs://demohk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
 
                             } else if (Region_Name == "smartqprd-hk" && Project_Name == "compass_lens") {
                                 sh "sh ./docker_creator.sh hkprd gs://prdhk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
+                                //Print_sha(output)
                                 sh "./autodeploy_restart_on_crash.sh hkprd gs://prdhk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
 
                             } 
@@ -219,14 +228,36 @@ pipeline {
                 }
             }
         }
+        // stage('Updating to rolling update') {
+        //     steps{
+        //         script {
+        //             container('gcloud') {
+        //                 dir('mendix_auto_deployer') {
+        //                     echo "${env.DIGEST}"
+
+        //                     if (Region_Name == "smqdebug" && Project_Name == "compass_lens") {
+        //                         sh "echo 'smqdebug'"
+        //                     } else if (Region_Name == "smartqprd-india" && Project_Name == "compass_lens") {
+        //                         sh "echo 'smartqprd-india'"
+        //                     } else if (Region_Name == "smartqdemo-hk" && Project_Name == "compass_lens") {
+        //                         sh "gcloud container clusters get-credentials autopilot-hksqlens-demo-cluster --region asia-east2 --project smartqdemo-hk"
+        //                         sh "kubectl set image Deployment/hksqlens-demo hksqlensdemo-sha256-1=gcr.io/smartqdemo-hk/hksqlens/hksqlensdemo@${env.DIGEST}"
+        //                     } else if (Region_Name == "smartqprd-hk" && Project_Name == "compass_lens") {
+        //                         sh "echo 'smartqprd-hk'"
+        //                     } 
+        //                 }       
+        //             }
+        //         }
+        //     }
+        // }
     }
-    post{
-        always{
-            script {
-                office365ConnectorSend webhookUrl: "${mail_url}",
-                message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nProject Name: ${Project_Name}.\nRegion Name: ${Region_Name}.\nLens ID: ${Lens_ID}.",
-                status: "Build Status# ${currentBuild.currentResult}"
-            }
-        }
-    }
+    // post{
+    //     always{
+    //         script {
+    //             office365ConnectorSend webhookUrl: "${mail_url}",
+    //             message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nProject Name: ${Project_Name}.\nRegion Name: ${Region_Name}.\nLens ID: ${Lens_ID}.",
+    //             status: "Build Status# ${currentBuild.currentResult}"
+    //         }
+    //     }
+    // }
 }
