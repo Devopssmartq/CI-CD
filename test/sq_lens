@@ -1,18 +1,21 @@
-/* groovylint-disable CompileStatic */
-// Uses Decla(rative syntax to run commands inside a container.
-def Print_sha(output) {
-    def matcher = output =~ /sha256:[a-f0-9]+/
+def printDigestFromFile(Map args) {
+    def outputFile = args.outputFile
+    def digestOutput = readFile(outputFile).trim()
+    echo "Digest Output from ${outputFile}: ${digestOutput}"
+
+    // Extract and print digest if it follows the pattern "digest: sha256:<digest>"
+    def matcher = digestOutput =~ /digest: sha256:[a-f0-9]+/
     if (matcher) {
-        def digest = matcher[0]
-        echo "Digest: ${digest}"
-        // Save digest to environment variable
+        def fullDigest = matcher[0]
+        def digest = fullDigest.replace('digest: ', '')
+        echo "Latest Digest from ${outputFile}: ${digest}"
         env.DIGEST = digest
     } else {
-        error("Error in getting digest")
+        echo "Digest not found in output from ${outputFile}."
     }
 }
 
-def digest = '' // Declare the variable globally
+
 
 properties([
     parameters([
@@ -114,7 +117,6 @@ pipeline {
               - name: jnlp  
                 resources:
                   requests:
-
                     memory: "2048Mi"
                     cpu: "500m"
                   limits:
@@ -194,40 +196,46 @@ pipeline {
                             if (!sqlensid) {
                                 error("PLEASE ENTER VALID ID")
                             }
-
+        
+                            // Define output files for each case
+                            def smqdebugoutputFile = "smqdebug_output.txt"
+                            def smartqprd_indiaoutputFile = "smartqprd_india_output.txt"
+                            def smartqdemo_hkoutputFile = "smartqdemo_hk_output.txt"
+                            def smartqprd_hkoutputFile = "smartqprd_hk_output.txt"
+        
                             if (DEPLOYMENT_TYPE == "india" && Project_Name == "sqlens" && Region_Name == "smqdebug") {
                                 sh "./autodeploy.sh indiademo gs://samplemendixprojectfiles/SQLens_Shield_1.0.0.${sqlensid}.mda"
-
+        
                             } else if (DEPLOYMENT_TYPE == "india" && Project_Name == "sqlens" && Region_Name == "smartqprd-india") {
                                 sh "./autodeploy.sh indiaprd gs://prdin_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
-
+        
                             } else if (Region_Name == "smqdebug" && Project_Name == "compass_lens") {
-                                sh "sh ./docker_creator.sh indiademo gs://samplemendixprojectfiles/SQLens_Shield_1.0.0.${sqlensid}.mda compassdemo"
-                                //Print_sha(output)
+                                sh "sh ./docker_creator.sh indiademo gs://samplemendixprojectfiles/SQLens_Shield_1.0.0.${sqlensid}.mda compassdemo > ${smqdebugoutputFile}"
+                                printDigestFromFile(outputFile: smqdebugoutputFile)
                                 sh "./autodeploy_restart_on_crash.sh indiademo gs://samplemendixprojectfiles/SQLens_Shield_1.0.0.${sqlensid}.mda compassdemo"
-
+        
                             } else if (Region_Name == "smartqprd-india" && Project_Name == "compass_lens") {
-                                //output = sh(script: "sh ./docker_creator.sh indiaprd gs://prdin_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda compassprd", returnStdout: true).trim()
-                                //Print_sha(output)
-                                sh "sh ./docker_creator.sh indiaprd gs://prdin_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda compassprd"
+                                sh "sh ./docker_creator.sh indiaprd gs://prdin_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda compassprd > ${smartqprd_indiaoutputFile}"
+                                printDigestFromFile(outputFile: smartqprd_indiaoutputFile)
                                 sh "./autodeploy_restart_on_crash.sh indiaprd gs://prdin_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda compassprd"
-
+        
                             } else if (Region_Name == "smartqdemo-hk" && Project_Name == "compass_lens") {
-                                sh "sh ./docker_creator.sh hkdemo gs://demohk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
-                                //Print_sha(output)
-                                sh "./autodeploy_restart_on_crash.sh hkdemo gs://demohk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
-
+                                sh "sh ./docker_creator.sh hkdemo gs://demohk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda > ${smartqdemo_hkoutputFile}"
+                                printDigestFromFile(outputFile: smartqdemo_hkoutputFile)
+                                //sh "./autodeploy_restart_on_crash.sh hkdemo gs://demohk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
+        
                             } else if (Region_Name == "smartqprd-hk" && Project_Name == "compass_lens") {
-                                sh "sh ./docker_creator.sh hkprd gs://prdhk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
-                                //Print_sha(output)
+                                sh "sh ./docker_creator.sh hkprd gs://prdhk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda > ${smartqprd_hkoutputFile}"
+                                printDigestFromFile(outputFile: smartqprd_hkoutputFile)
                                 sh "./autodeploy_restart_on_crash.sh hkprd gs://prdhk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
-
+        
                             } 
                         }       
                     }
                 }
             }
         }
+
         // stage('Updating to rolling update') {
         //     steps{
         //         script {
@@ -237,6 +245,8 @@ pipeline {
 
         //                     if (Region_Name == "smqdebug" && Project_Name == "compass_lens") {
         //                         sh "echo 'smqdebug'"
+        //                         sh "gcloud container clusters get-credentials autopilot-compasslens-demo-cluster --region us-central1 --project smqdebug"
+        //                         sh "kubectl set image Deployment/compasslens-demo-nginx sqlensdemo-sha256-1=gcr.io/smqdebug/sqlensdebug/sqlensdemo@${env.DIGEST}"
         //                     } else if (Region_Name == "smartqprd-india" && Project_Name == "compass_lens") {
         //                         sh "echo 'smartqprd-india'"
         //                     } else if (Region_Name == "smartqdemo-hk" && Project_Name == "compass_lens") {
@@ -255,7 +265,7 @@ pipeline {
     //     always{
     //         script {
     //             office365ConnectorSend webhookUrl: "${mail_url}",
-    //             message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nProject Name: ${Project_Name}.\nRegion Name: ${Region_Name}.\nLens ID: ${Lens_ID}.",
+    //             message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nProject Name: ${Project_Name}.\nRegion Name: ${Region_Name}.\nLens ID: ${Lens_ID}.\nLatest Build ID: ${env.DIGEST}",
     //             status: "Build Status# ${currentBuild.currentResult}"
     //         }
     //     }

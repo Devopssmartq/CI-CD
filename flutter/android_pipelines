@@ -52,49 +52,48 @@ properties([
 pipeline {
     agent {
         kubernetes {
-        //label 'jenkins-private-cluster-0'
-        defaultContainer 'jnlp'
-        yaml '''
-        apiVersion: v1
-        kind: Pod
-        spec:
-            containers:
-            - name: jnlp  
-                resources:
-                requests:
-                    memory: "2048Mi"
-                    cpu: "500m"
-                limits:
-                    memory: "4096Mi"
-                    cpu: "1000m"
-
-            - name: gcloud
-                image: google/cloud-sdk:latest
-                command:
-                - sleep
-                args:
-                - 99d
-                
-            - name: native-android
-                image: jetbrains/qodana-jvm-android:latest
-                resources:
-                requests:
-                    memory: "2048Mi"
-                    cpu: "500m"
-                limits:
-                    memory: "4096Mi"
-                    cpu: "1000m"
-                command:
-                - sleep
-                args:
-                - 99d
-                tty: true 
-        '''
+            // label 'jenkins-private-cluster-0'
+            defaultContainer 'jnlp'
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+    containers:
+    - name: jnlp
+      resources:
+        requests:
+            memory: "2048Mi"
+            cpu: "500m"
+        limits:
+            memory: "4096Mi"
+            cpu: "1000m"
+    - name: gcloud
+      image: google/cloud-sdk:latest
+      command:
+        - sleep
+      args:
+        - 99d
+    - name: native-android
+      image: mingc/android-build-box:master
+      resources:
+        requests:
+            memory: "2048Mi"
+            cpu: "500m"
+        limits:
+            memory: "4096Mi"
+            cpu: "1000m"
+      command:
+        - sleep
+      args:
+        - 99d
+      tty: true
+'''
+        }
     }
-  }
     
     environment {
         JKS_CREDENTIAL_ID = 'CM_KEYSTORE_PATH_main_app_debug'
+        BUNDLE_CREDENSTIAL_ID = 'bundle_smartq_release'
         CM_KEYSTORE_PASSWORD_main_app_debug = 'Smartq@123'
         CM_KEY_ALIAS_main_app_debug = 'smartq' 
         CM_KEY_PASSWORD_main_app_debug = 'Smartq@123'
@@ -106,14 +105,20 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                sh "mkdir -p Android"
-                dir('Android') {
-                    git branch: 'auto-sprint_no_calendar_view',
-                    credentialsId: 'git/devops/new',
-                    url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq-android-main-app.git'
+                script { 
+                    def branch = params.RELEASE_SCOPE
+                    echo "selected branch: ${branch}"
+                    sh "mkdir -p Android"
+                    dir('Android') {
+                        checkout([$class: 'GitSCM', 
+                        branches: [[name: branch]], 
+                        doGenerateSubmoduleConfigurations: false, 
+                        extensions: [[$class: 'CleanCheckout']], 
+                        userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq-android-main-app.git', credentialsId: 'git/devops/new',]]])
                             
-                    sh 'ls -lrt'
-                }
+                        sh 'ls -lrt'
+                    }
+                }   
             }
         }
         
@@ -122,13 +127,63 @@ pipeline {
                 script {
                     container('native-android') {
                         dir('Android'){
-                            withCredentials([file(credentialsId: env.JKS_CREDENTIAL_ID, variable: 'CM_KEYSTORE_PATH_main_app_debug')]) {
-                                sh 'ls -a'
-                                sh 'chmod +x gradlew'
-                                sh 'echo ${JENKINS_ANDROID_HOME}'
-                                //sh './gradlew assembleSmartqdemoDebug'
-                                sh 'ls'
-
+                            // withCredentials([file(credentialsId: env.JKS_CREDENTIAL_ID, variable: 'CM_KEYSTORE_PATH_main_app_debug')]) {
+                            //     sh 'ls -a'
+                            //     sh 'chmod +x gradlew'
+                            //     sh './gradlew assembleSmartqdemoDebug'
+                            //     sh 'ls'
+                            // }
+                            if (params.work_flows.contains('time2eat' && params.RELEASE_SCOPE == 'auto-sprint')) {
+                                withCredentials([file(credentialsId: env.JKS_CREDENTIAL_ID, variable: 'CM_KEYSTORE_PATH_main_app_debug')]) {
+                                    sh 'ls -a'
+                                    sh 'chmod +x gradlew'
+                                    sh './gradlew bundleTimetoeatRelease'
+                                    sh 'ls'
+                                }
+                            }
+                            if (params.work_flows.contains('foodbook' && params.RELEASE_SCOPE == 'auto-sprint')) {
+                                withCredentials([file(credentialsId: env.BUNDLE_CREDENSTIAL_ID, variable: 'bundle_smartq_release')]) {
+                                    sh 'ls -a'
+                                    sh 'chmod +x gradlew'
+                                    sh './gradlew bundleFoodbookRelease'
+                                    sh 'ls'
+                                    dir('build/outputs') {
+                                        sh 'ls'
+                                    }
+                                }
+                            }
+                            if (params.work_flows.contains('smartq' && params.RELEASE_SCOPE == 'auto-sprint')) {
+                                withCredentials([file(credentialsId: env.BUNDLE_CREDENSTIAL_ID, variable: 'bundle_smartq_release')]) {
+                                    sh 'ls -a'
+                                    sh 'chmod +x gradlew'
+                                    sh './gradlew bundleSmartqRelease'
+                                    sh 'ls'
+                                    dir('build/outputs') {
+                                        sh 'ls'
+                                    }
+                                }
+                            }
+                            if (params.work_flows.contains('cafebonapp' && params.RELEASE_SCOPE == 'auto-sprint')) {
+                                withCredentials([file(credentialsId: env.BUNDLE_CREDENSTIAL_ID, variable: 'bundle_smartq_release')]) {
+                                    sh 'ls -a'
+                                    sh 'chmod +x gradlew'
+                                    sh './gradlew bundleBonappetitRelease'
+                                    sh 'ls'
+                                    dir('build/outputs') {
+                                        sh 'ls'
+                                    }
+                                }
+                            }
+                            if (params.work_flows.contains('jumprplus' && params.RELEASE_SCOPE == 'auto-sprint')) {
+                                withCredentials([file(credentialsId: env.BUNDLE_CREDENSTIAL_ID, variable: 'bundle_smartq_release')]) {
+                                    sh 'ls -a'
+                                    sh 'chmod +x gradlew'
+                                    sh './gradlew bundleJumprRelease'
+                                    sh 'ls'
+                                    dir('build/outputs') {
+                                        sh 'ls'
+                                    }
+                                }
                             }
                         }
                     }    
