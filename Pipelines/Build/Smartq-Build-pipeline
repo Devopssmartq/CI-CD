@@ -181,7 +181,7 @@ def buildtime2eatweb() {
         container('node-js') {
              sh 'echo ${WORKSPACE}'
                 dir('time2eatweb') {
-                    sh 'npm install --legacy-peer-deps'
+                    sh 'npm install --force'
                     //sh 'npm update'
                     //sh 'export NODE_OPTIONS=--openssl-legacy-provider'
                     sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app1'
