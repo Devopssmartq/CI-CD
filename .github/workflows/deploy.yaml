@@ -2,11 +2,11 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - dev
-      - yash
-      - auto-sprint
-      - auto-release
+    # branches:
+    #   - dev
+    #   - yash
+    #   - auto-sprint
+    #   - auto-release
   workflow_dispatch:
     inputs:
       RELEASE_SCOPE:
@@ -82,7 +82,7 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: '14'
-          
+
       - name: Check Deployment Type - India / International
         run: |
           lstServers_India="smartqdemo sqpreprod-india smartqprd-india"

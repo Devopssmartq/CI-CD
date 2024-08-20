@@ -59,14 +59,6 @@ apiVersion: v1
 kind: Pod
 spec:
     containers:
-    - name: jnlp
-      resources:
-        requests:
-            memory: "2048Mi"
-            cpu: "500m"
-        limits:
-            memory: "4096Mi"
-            cpu: "1000m"
     - name: gcloud
       image: google/cloud-sdk:latest
       command:
@@ -77,10 +69,10 @@ spec:
       image: mingc/android-build-box:master
       resources:
         requests:
-            memory: "2048Mi"
+            memory: "4Gi"
             cpu: "500m"
         limits:
-            memory: "4096Mi"
+            memory: "6Gi"
             cpu: "1000m"
       command:
         - sleep
@@ -90,16 +82,18 @@ spec:
 '''
         }
     }
-    
     environment {
         JKS_CREDENTIAL_ID = 'CM_KEYSTORE_PATH_main_app_debug'
-        BUNDLE_CREDENSTIAL_ID = 'bundle_smartq_release'
         CM_KEYSTORE_PASSWORD_main_app_debug = 'Smartq@123'
         CM_KEY_ALIAS_main_app_debug = 'smartq' 
         CM_KEY_PASSWORD_main_app_debug = 'Smartq@123'
         PRIVATE_MAVEN_REPO_USERNAME = 'nagesh_kashyap_r'
         PRIVATE_MAVEN_REPO_PASSWORD = '9dZmhVHAhFhgjYhPXjXU'
         //JKS_BOTTEL_LAB = 'CM_KEYSTORE_PATH_bottlelabs' 
+        BUNDLE_CREDENSTIAL_ID = 'CM_KEYSTORE_PATH_bottlelabs'
+        CM_KEYSTORE_PASSWORD_bottlelabs = 'Smartq@123'
+        CM_KEY_ALIAS_bottlelabs = 'bottle lab technologies release key'
+        CM_KEY_PASSWORD_bottlelabs = 'Codebottlelab#1987'
     }
 
     stages {
@@ -153,7 +147,7 @@ spec:
                                 }
                             }
                             if (params.work_flows.contains('smartq' && params.RELEASE_SCOPE == 'auto-sprint')) {
-                                withCredentials([file(credentialsId: env.BUNDLE_CREDENSTIAL_ID, variable: 'bundle_smartq_release')]) {
+                                withCredentials([file(credentialsId: env.BUNDLE_CREDENSTIAL_ID, variable: 'CM_KEYSTORE_PATH_bottlelabs')]) {
                                     sh 'ls -a'
                                     sh 'chmod +x gradlew'
                                     sh './gradlew bundleSmartqRelease'

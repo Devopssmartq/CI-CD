@@ -117,6 +117,7 @@ pipeline {
               - name: jnlp  
                 resources:
                   requests:
+
                     memory: "2048Mi"
                     cpu: "500m"
                   limits:
@@ -222,7 +223,7 @@ pipeline {
                             } else if (Region_Name == "smartqdemo-hk" && Project_Name == "compass_lens") {
                                 sh "sh ./docker_creator.sh hkdemo gs://demohk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda > ${smartqdemo_hkoutputFile}"
                                 printDigestFromFile(outputFile: smartqdemo_hkoutputFile)
-                                //sh "./autodeploy_restart_on_crash.sh hkdemo gs://demohk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
+                                sh "./autodeploy_restart_on_crash.sh hkdemo gs://demohk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
         
                             } else if (Region_Name == "smartqprd-hk" && Project_Name == "compass_lens") {
                                 sh "sh ./docker_creator.sh hkprd gs://prdhk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda > ${smartqprd_hkoutputFile}"
@@ -236,38 +237,42 @@ pipeline {
             }
         }
 
-        // stage('Updating to rolling update') {
-        //     steps{
-        //         script {
-        //             container('gcloud') {
-        //                 dir('mendix_auto_deployer') {
-        //                     echo "${env.DIGEST}"
+        stage('Updating to rolling update') {
+            steps{
+                script {
+                    container('gcloud') {
+                        dir('mendix_auto_deployer') {
+                            echo "${env.DIGEST}"
 
-        //                     if (Region_Name == "smqdebug" && Project_Name == "compass_lens") {
-        //                         sh "echo 'smqdebug'"
-        //                         sh "gcloud container clusters get-credentials autopilot-compasslens-demo-cluster --region us-central1 --project smqdebug"
-        //                         sh "kubectl set image Deployment/compasslens-demo-nginx sqlensdemo-sha256-1=gcr.io/smqdebug/sqlensdebug/sqlensdemo@${env.DIGEST}"
-        //                     } else if (Region_Name == "smartqprd-india" && Project_Name == "compass_lens") {
-        //                         sh "echo 'smartqprd-india'"
-        //                     } else if (Region_Name == "smartqdemo-hk" && Project_Name == "compass_lens") {
-        //                         sh "gcloud container clusters get-credentials autopilot-hksqlens-demo-cluster --region asia-east2 --project smartqdemo-hk"
-        //                         sh "kubectl set image Deployment/hksqlens-demo hksqlensdemo-sha256-1=gcr.io/smartqdemo-hk/hksqlens/hksqlensdemo@${env.DIGEST}"
-        //                     } else if (Region_Name == "smartqprd-hk" && Project_Name == "compass_lens") {
-        //                         sh "echo 'smartqprd-hk'"
-        //                     } 
-        //                 }       
-        //             }
-        //         }
-        //     }
-        // }
+                            if (Region_Name == "smqdebug" && Project_Name == "compass_lens") {
+                                sh "echo 'smqdebug'"
+                                sh "gcloud container clusters get-credentials autopilot-compasslens-demo-cluster --region us-central1 --project smqdebug"
+                                sh "kubectl set image Deployment/compasslens-demo-nginx sqlensdemo-sha256-1=gcr.io/smqdebug/sqlensdebug/sqlensdemo@${env.DIGEST}"
+                            } else if (Region_Name == "smartqprd-india" && Project_Name == "compass_lens") {
+                                sh "echo 'smartqprd-india'"
+                                sh "gcloud container clusters get-credentials compasslens-autopilot-cluster --region asia-south1 --project smartqprd-india"
+                                sh "kubectl set image Deployment/compasslens-nginx compasslensprd-sha256-1=gcr.io/smartqprd-india/compasslens/compasslensprd@${env.DIGEST}"
+                            } else if (Region_Name == "smartqdemo-hk" && Project_Name == "compass_lens") {
+                                sh "gcloud container clusters get-credentials autopilot-hksqlens-demo-cluster --region asia-east2 --project smartqdemo-hk"
+                                sh "kubectl set image Deployment/hksqlens-demo hksqlensdemo-sha256-1=gcr.io/smartqdemo-hk/hksqlens/hksqlensdemo@${env.DIGEST}"
+                            } else if (Region_Name == "smartqprd-hk" && Project_Name == "compass_lens") {
+                                sh "echo 'smartqprd-hk'"
+                                sh "gcloud container clusters get-credentials sqlens-autopilot-cluster --region asia-east2 --project smartqprd-hk"
+                                sh "kubectl set image Deployment/hksqlens hksqlensprd-sha256-1=gcr.io/smartqprd-hk/hksqlens/hksqlensprd@${env.DIGEST}"
+                            } 
+                        }       
+                    }
+                }
+            }
+        }
     }
-    // post{
-    //     always{
-    //         script {
-    //             office365ConnectorSend webhookUrl: "${mail_url}",
-    //             message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nProject Name: ${Project_Name}.\nRegion Name: ${Region_Name}.\nLens ID: ${Lens_ID}.\nLatest Build ID: ${env.DIGEST}",
-    //             status: "Build Status# ${currentBuild.currentResult}"
-    //         }
-    //     }
-    // }
+    post{
+        always{
+            script {
+                office365ConnectorSend webhookUrl: "${mail_url}",
+                message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nProject Name: ${Project_Name}.\nRegion Name: ${Region_Name}.\nLens ID: ${Lens_ID}.\nLatest Build ID: ${env.DIGEST}",
+                status: "Build Status# ${currentBuild.currentResult}"
+            }
+        }
+    }
 }
