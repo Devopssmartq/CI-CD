@@ -835,7 +835,14 @@ pipeline {
                                                     } 
                                                 }                                 
                                             }
-                                        }               
+                                        }  
+                                        if ('params.RELEASE_SCOPE.contains("prod")') {
+                                            dir ('dispatch') {
+                                                sh "ls *.yaml"
+                                                sh "gcloud app deploy index.yaml"
+                                                sh "gcloud app deploy queue.yaml"
+                                            }   
+                                        }             
                                         //2.1 Add new service block here, if there is any to be added
                                         parallel(parallelJobs)
                                     }

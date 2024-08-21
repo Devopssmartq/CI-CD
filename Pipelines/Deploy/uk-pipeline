@@ -219,7 +219,7 @@ properties([
                         if (scope == "sprint") {
                             options = ["smartqdemo-uk:selected"]
                         } else if (scope == "preprod") {
-                            options = ["sqpreprod-uk:selected"]
+                            options = ["sqpreprod-uk:selected", "sqpreprod-ie"]
                         } else if (scope == "beta") {
                             options = ["smartqprd-uk:selected"]
                         } else if (scope == "prod") {
