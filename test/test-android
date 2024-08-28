@@ -1,0 +1,157 @@
+properties([
+    parameters([
+        [$class: 'ChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select Release Scope',
+            filterLength: 1,
+            filterable: false,
+            name: 'RELEASE_SCOPE',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true, // should be true, otherwise you have to manually approve the script
+                    script: 'return ["auto-sprint:selected", "auto-release"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true, // should be true, otherwise you have to manually approve the script
+                    script: '''
+                        def choices = ["auto-sprint:selected", "auto-release"]
+                        return choices
+                    '''
+                ]
+            ]
+        ],
+        [$class: 'CascadeChoiceParameter',
+            choiceType: 'PT_CHECKBOX',
+            description: 'Select the Workflows_ID',
+            filterLength: 1,
+            filterable: false,
+            name: 'work_flows',
+            //referencedParameters: 'RELEASE_SCOPE',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true, // should be true, otherwise you have to manually approve the script
+                    script: 'return ["time2eat:selected", "foodbook", "smartq", "cafebonapp", "jumprplus"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true, // should be true, otherwise you have to manually approve the script
+                    script: '''
+                        def choices = [""time2eat:selected", "foodbook", "smartq", "cafebonapp", "jumprplus""]
+                        return choices
+                    '''
+                ]
+            ]
+        ]
+    ])
+])
+pipeline {
+    agent {
+        kubernetes {
+            // label 'jenkins-private-cluster-0'
+            defaultContainer 'jnlp'
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+    containers:
+    - name: gcloud
+      image: google/cloud-sdk:latest
+      command:
+        - sleep
+      args:
+        - 99d
+    - name: native-android
+      image: mingc/android-build-box:master
+      resources:
+        requests:
+            memory: "4Gi"
+            cpu: "500m"
+        limits:
+            memory: "6Gi"
+            cpu: "1000m"
+      command:
+        - sleep
+      args:
+        - 99d
+      tty: true
+'''
+        }
+    }
+    
+    environment {
+        JKS_CREDENTIAL_ID = 'CM_KEYSTORE_PATH_main_app_debug'
+        CM_KEYSTORE_PASSWORD_main_app_debug = 'Smartq@123'
+        CM_KEY_ALIAS_main_app_debug = 'smartq' 
+        CM_KEY_PASSWORD_main_app_debug = 'Smartq@123'
+        PRIVATE_MAVEN_REPO_USERNAME = 'nagesh_kashyap_r'
+        PRIVATE_MAVEN_REPO_PASSWORD = '9dZmhVHAhFhgjYhPXjXU'
+        //JKS_BOTTEL_LAB = 'CM_KEYSTORE_PATH_bottlelabs' 
+        BUNDLE_CREDENSTIAL_ID = 'CM_KEYSTORE_PATH_bottlelabs'
+        CM_KEYSTORE_PASSWORD_bottlelabs = 'Smartq@123'
+        CM_KEY_ALIAS_bottlelabs = 'bottle lab technologies release key'
+        CM_KEY_PASSWORD_bottlelabs = 'Codebottlelab#1987'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                script { 
+                    def branch = params.RELEASE_SCOPE
+                    echo "selected branch: ${branch}"
+                    sh "mkdir -p Android"
+                    dir('Android') {
+                        checkout([$class: 'GitSCM', 
+                        branches: [[name: branch]], 
+                        doGenerateSubmoduleConfigurations: false, 
+                        extensions: [[$class: 'CleanCheckout']], 
+                        userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq-android-main-app.git', credentialsId: 'git/devops/new',]]])
+                            
+                        sh 'ls -lrt'
+                    }
+                }   
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                script {
+                    container('native-android') {
+                        dir('Android'){
+                            // withCredentials([file(credentialsId: env.JKS_CREDENTIAL_ID, variable: 'CM_KEYSTORE_PATH_main_app_debug')]) {
+                            //     sh 'ls -a'
+                            //     sh 'chmod +x gradlew'
+                            //     sh './gradlew assembleSmartqdemoDebug'
+                            //     sh 'ls'
+                            // }
+                            withCredentials([file(credentialsId: env.BUNDLE_CREDENSTIAL_ID, variable: 'CM_KEYSTORE_PATH_bottlelabs')]) {
+                                sh 'ls -a'
+                                sh 'chmod +x gradlew'
+                                sh './gradlew bundleSmartqRelease'
+                                sh 'ls'
+                                dir('app/build') {
+                                   // sh 'ls **/*.aab'
+                                    sh 'ls'
+                                    sh 'chmod 777 outputs'
+                                    dir('outputs') {
+                                        sh 'ls **/*.aab'
+                                        // dir('apk') {
+                                        //     sh 'ls'
+                                        //     dir('release') {
+                                        //         sh 'ls *.aab'
+                                        //     }
+                                        // }
+                                    }
+                                }
+                            }
+                        }
+                    }    
+                }    
+            }
+        }    
+    }
+}

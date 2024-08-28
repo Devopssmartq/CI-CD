@@ -1,0 +1,74 @@
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+        apiVersion: v1
+        kind: Pod
+        environment:
+            name: "NODE_OPTIONS"
+            value: "--max-old-space-size=4096"
+        spec:
+          containers:
+          - name: jnlp  
+            resources:
+              requests:
+                memory: "2048Mi"
+                cpu: "500m"
+              limits:
+                memory: "4096Mi"
+                cpu: "1000m"
+                
+          - name: wix
+            image: wixquix/quix-frontend:latest
+            command:
+            - cat
+            tty: true
+
+          - name: gcloud
+            image: google/cloud-sdk:latest
+            command:
+            - cat
+            tty: true
+        '''        
+        }
+    }
+    // environment {
+    //     // Define environment variables if needed
+    //     WIX_HOME =  tool name: 'Wix Toolset'
+    //     // Add other environment variables as needed
+    // }
+
+    stages {
+        stage('Checkout flutter') { 
+            steps { 
+                sh "mkdir -p pos"
+                dir('pos') {
+                    git branch: 'auto-sprint',
+                    credentialsId: 'bitbucket api',
+                    url: 'https://yash123devops@bitbucket.org/bottlelabtech/pos_new.git'
+                    sh 'ls'
+                }
+            }                       
+        }
+        stage('build'){
+            steps{
+                script{
+                    container('wix'){
+                        dir('pos'){
+                            sh 'ls'
+                            sh 'wixquix/quix-frontend:latest candle -?'
+                            // def wixVersion = sh(script: 'docker run --rm wixquix/quix-frontend:latest candle -? | grep WiX', returnStatus: true).trim()
+                    
+                            // if (wixVersion == 0) {
+                            //     echo "WiX is installed. Version: ${wixVersion}"
+                            // } else {
+                            //     error "WiX not found in the Docker image."
+                            // }
+                            sh "dotnet build SmartQ.Pos.Installer" 
+                        }
+                    } 
+                }    
+            }
+        }
+    }
+}

@@ -835,6 +835,7 @@ pipeline {
                                                     dir ('dispatch') {
                                                         sh "ls"                                                        
                                                         sh "gcloud app deploy --quiet index.yaml"
+                                                        sh "gcloud app deploy --quiet queue.yaml"
                                                     } 
                                                 }                                 
                                             }
@@ -854,13 +855,6 @@ pipeline {
                                                 }                               
                                             }
                                         } 
-                                        if ('params.RELEASE_SCOPE.contains("prod")') {
-                                            dir ('dispatch') {
-                                                sh "ls *.yaml"
-                                                sh "gcloud app deploy index.yaml"
-                                                sh "gcloud app deploy queue.yaml"
-                                            }   
-                                        }
                                         //if (params.APP_ENGINE_PROJECT_ID.contains("-india")) {  
                                             //    if('cncms' in ARR_SELECTED_SERVICE ) {// ! For India only - Skip this when the condition is false
                                             //         parallelJobs[py3_services.find { it.key == 'cncms' }] = {

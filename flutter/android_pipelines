@@ -174,7 +174,7 @@ spec:
                                     sh 'chmod +x gradlew'
                                     sh './gradlew bundleJumprRelease'
                                     sh 'ls'
-                                    dir('build/outputs') {
+                                    dir('app/build/outputs/apk/release/') {
                                         sh 'ls'
                                     }
                                 }
