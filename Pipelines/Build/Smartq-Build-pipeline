@@ -74,7 +74,7 @@ def checkoutControlDesk(branch) {
 }
 def buildControlDesk() {
     echo "Build Control Desk"  
-        container('node-js') {
+        container('node-cd-js') {
             sh 'echo ${WORKSPACE}'
             sh 'ls'
                 dir('controldesk') {
@@ -571,14 +571,20 @@ pipeline {
             - cat
             tty: true
 
-          - name: node-js
-            image: node:20.12.0
+          - name: node-cd-js
+            image: node:14.17.4
             requests:
                 memory: "4096Mi"  # Increase the requested memory
                 cpu: "500m"
             limits:
                 memory: "8192Mi"  # Increase the maximum allowed memory
                 cpu: "1000m"
+            command:
+            - cat
+            tty: true
+
+          - name: node-js
+            image: node:20.12.0
             command:
             - cat
             tty: true
