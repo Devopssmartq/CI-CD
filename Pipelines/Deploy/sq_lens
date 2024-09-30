@@ -164,6 +164,7 @@ pipeline {
                         echo "ProjectName = ${params.Project_Name}"
                         def sqlensid = params.Lens_ID
                         india_url = 'https://cpgplc.webhook.office.com/webhookb2/3551864e-0ef7-4705-bba6-33753e480bc2@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/bb48707d576c4bda8630f83a0f2eab21/91dca507-8de4-4171-90be-c552b60ab3b9'
+                        international_url = 'https://cpgplc.webhook.office.com/webhookb2/3551864e-0ef7-4705-bba6-33753e480bc2@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/9f538d3d1ac84d1792d26cb79b195435/1c5e4526-7112-42fd-91d6-fcf3b5f709dd'
 
                         if (Region_Name == "smqdebug") {
                             bucketName = 'gs://samplemendixprojectfiles/'
