@@ -62,6 +62,7 @@ def checkoutControlDesk(branch) {
                 userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/control-desk.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
+            sh 'git status'
             def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
             sh "echo ${commitId}"
             newId = "${commitId}"
@@ -76,17 +77,21 @@ def buildControlDesk() {
     echo "Build Control Desk"  
         container('phrase') {
             dir('controldesk') {
-                //sh 'phrase-cli install'
                 sh 'phrase version'
-                sh 'phrase push'
+                //sh 'phrase push'
                 sh 'phrase pull'
+                sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/phrase_test/controldesk'
+                sh 'git status'
             }
         }
         container('node-cd-js') {
             sh 'echo ${WORKSPACE}'
             sh 'ls'
                 dir('controldesk') {
+                    sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/phrase_test/controldesk'
+                    sh 'git status'
                     sh 'npm install --force'
+                    sh 'npm install @emotion/styled'
                     sh 'npm install react-checkbox-tree@1.5.0 --force'
                     sh 'CI=false npm run build'
                         dir ('${WORKSPACE}/controldesk/build') {
@@ -629,6 +634,7 @@ pipeline {
               ls -l && mv phrase_linux_amd64 usr/local/bin/phrase && \
               chmod +x /usr/local/bin/phrase && \
               phrase version && \
+              apt-get update && apt-get install -y git && \
               sleep 99d
         '''        
         }
@@ -695,7 +701,7 @@ pipeline {
                     } else if (bitBucketProject == 'control-desk') {
                         checkoutControlDesk(branch)
                         buildControlDesk()
-                        //uploadControlDeskToGCS(bucketname)
+                        uploadControlDeskToGCS(bucketname)
                         buildPipeline = true 
                     } else if (bitBucketProject == 'ewallet') {
                         checkoutEWallet(branch)

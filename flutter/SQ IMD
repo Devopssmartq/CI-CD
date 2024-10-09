@@ -1,27 +1,35 @@
 pipeline {
-  agent {
+    agent {
         kubernetes {
             yaml '''
         apiVersion: v1
         kind: Pod
-        environment:
-            name: "NODE_OPTIONS"
-            value: "--max-old-space-size=4096"
         spec:
           containers:
-          - name: jnlp  
+          - name: flutter
+            image: mingc/android-build-box:master
             resources:
               requests:
-                memory: "2048Mi"
+                memory: "4096Mi"  # Increase the requested memory
                 cpu: "500m"
               limits:
-                memory: "4096Mi"
+                memory: "8192Mi"  # Increase the maximum allowed memory
                 cpu: "1000m"
-          - name: native-android
-            image: androidsdk/android-31:latest
+            env:  # Environment variables should be defined here
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=4096"
             command:
-            - cat
-            tty: true
+            - sh
+            args:
+            - -c
+            - |
+              set -e  # Exit immediately if a command exits with a non-zero status
+              apt-get update && \
+              apt-get install -y wget && \
+              wget https://services.gradle.org/distributions/gradle-8.7-all.zip && \
+			        unzip gradle-8.7-all.zip && \
+              ls -l && \
+              sleep 99d
 
           - name: gcloud
             image: google/cloud-sdk:latest
@@ -31,42 +39,75 @@ pipeline {
         '''        
         }
     }
-    //environment {
-      //  APP_ENGINE_PROJECT_ID = 'sqinternational-cicd'
-        //APP_ENGINE_SERVICE = 'taskqservice'
-        //APP_ENGINE_VERSION = '1'
-    //}
-    stages {
-      stage('Checkout flutter') { 
-        steps { 
-            sh "mkdir -p tds-flutter"
-            dir('tds-flutter') {
-                git branch: 'auto-sprint',
-                credentialsId: 'git-devops',
-                url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/TDS.git'
-                sh 'ls'
-            }
-        }                       
+    environment {
+        // Define the keystore-related environment variables
+        KEYSTORE_ALIAS = 'smartq'
+        KEYSTORE_PASSWORD = 'Smartq@123'
+        KEY_PASSWORD = 'Smartq@123'
     }
-        
+    stages {
+        stage('Checkout flutter') { 
+            steps { 
+                sh "mkdir -p imd"
+                dir('imd') {
+                    git branch: 'auto-sprint',
+                    credentialsId: 'git/devops/new',
+                    url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/IMD-flutter.git'
+                    sh 'ls'
+                        dir('build-config'){
+                            sh 'ls'
+                            sh 'pwd'
+                        }
+                }
+            }                       
+        }
         stage('Build tds-flutter') {
-          steps {
-              container('flutter') {
-                 sh 'echo ${WORKSPACE}'
-                 dir('tds-flutter') {
-                  sh 'flutter clean'
-                  sh 'flutter build apk --release'
-                  dir ('${WORKSPACE}/build') {
-                      sh 'echo changing to directory'
-                      dir('app'){
-                          dir('outputs/flutter-apk'){
-                              sh 'ls -lrt'
-                          }
-                      }
-                  }
-                 }
-             }             
-          }       
-      }
+            steps {
+                container('flutter') {
+                    withCredentials([file(credentialsId: 'IMD.jks', variable: 'KEYSTORE_PATH')]) {
+                        dir('imd') {
+                            sh """
+                            echo "storePassword=${KEYSTORE_PASSWORD}" > android/key.properties
+                            echo "keyPassword=${KEY_PASSWORD}" >> android/key.properties
+                            echo "keyAlias=${KEYSTORE_ALIAS}" >> android/key.properties
+                            echo "storeFile=${KEYSTORE_PATH}" >> android/key.properties
+                            """
+                            // Print the keystore path (optional, for debugging purposes)
+                            echo "Keystore path: ${KEYSTORE_PATH}"
+                            sh 'flutter pub get'
+                            sh 'flutter build apk --release '
+                            dir ('${WORKSPACE}/build') {
+                                sh 'echo changing to directory'
+                                dir('app') {
+                                    sh 'ls'
+                                    dir('outputs/flutter-apk') {
+                                        sh 'ls -lrt'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }             
+            }       
+        }
+        stage('copy apk file'){
+            steps {
+                container('gcloud'){
+                    dir('imd'){
+                        dir ('${WORKSPACE}/build') {                            
+                        sh 'echo changing to directory'
+                            dir('app'){
+                                dir('outputs/flutter-apk'){
+                                    sh 'ls -lrt'
+                                    sh "mv app-release.apk IMD.apk"
+                                    sh "mv app-release.apk.sha1 IMD.apk.sha1"
+                                    sh 'gcloud storage cp * gs://smartqdemo_pub/ --recursive'
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
