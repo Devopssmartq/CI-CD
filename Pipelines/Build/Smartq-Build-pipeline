@@ -754,14 +754,14 @@ pipeline {
         }
     }
 
-    // post{
-    //     always{
-    //         script {
-    //             office365ConnectorSend webhookUrl: "${mail_url}",
-    //             message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nApplication  Name: ${bitBucketProject}.\nGCP Cloud URL: ${CLOUD_URL}.\n Version Number: ${VERSION_NUMBER} ",
-    //             status: "Build Status# ${currentBuild.currentResult}"
-    //         }
-    //     }
-    // }
+    post{
+        always{
+            script {
+                office365ConnectorSend webhookUrl: "${mail_url}",
+                message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nApplication  Name: ${bitBucketProject}.\nGCP Cloud URL: ${CLOUD_URL}.\n Version Number: ${VERSION_NUMBER} ",
+                status: "Build Status# ${currentBuild.currentResult}"
+            }
+        }
+    }
 }
 
