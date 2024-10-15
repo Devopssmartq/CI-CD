@@ -74,10 +74,21 @@ def checkoutControlDesk(branch) {
 }
 def buildControlDesk() {
     echo "Build Control Desk"  
+        container('phrase') {
+            dir('controldesk') {
+                sh 'phrase version'
+                sh 'phrase push'
+                sh 'phrase pull'
+                sh 'git config --global --add safe.directory ${WORKSPACE}/controldesk'
+                sh 'git status'
+            }
+        }
         container('node-cd-js') {
             sh 'echo ${WORKSPACE}'
             sh 'ls'
                 dir('controldesk') {
+                    sh 'git config --global --add safe.directory ${WORKSPACE}/controldesk'
+                    sh 'git status'
                     sh 'npm install --force'
                     sh 'npm install @emotion/styled'
                     sh 'npm install react-checkbox-tree@1.5.0 --force'
@@ -606,7 +617,24 @@ pipeline {
             image: instrumentisto/flutter:latest
             command:
             - cat
-            tty: true     
+            tty: true 
+
+          - name: phrase
+            image: ubuntu:latest
+            command:
+            - sh
+            args:
+            - -c
+            - |
+              apt-get update && apt-get install -y wget tar && \
+              wget https://github.com/phrase/phrase-cli/releases/download/2.3.0/phrase_linux_amd64.tar.gz && \
+              tar -xzf phrase_linux_amd64.tar.gz && \
+              cd usr/local/bin && ls -l && cd ../../.. && \
+              ls -l && mv phrase_linux_amd64 usr/local/bin/phrase && \
+              chmod +x /usr/local/bin/phrase && \
+              phrase version && \
+              apt-get update && apt-get install -y git && \
+              sleep 99d    
         '''        
         }
     }
@@ -726,14 +754,14 @@ pipeline {
         }
     }
 
-    post{
-        always{
-            script {
-                office365ConnectorSend webhookUrl: "${mail_url}",
-                message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nApplication  Name: ${bitBucketProject}.\nGCP Cloud URL: ${CLOUD_URL}.\n Version Number: ${VERSION_NUMBER} ",
-                status: "Build Status# ${currentBuild.currentResult}"
-            }
-        }
-    }
+    // post{
+    //     always{
+    //         script {
+    //             office365ConnectorSend webhookUrl: "${mail_url}",
+    //             message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nApplication  Name: ${bitBucketProject}.\nGCP Cloud URL: ${CLOUD_URL}.\n Version Number: ${VERSION_NUMBER} ",
+    //             status: "Build Status# ${currentBuild.currentResult}"
+    //         }
+    //     }
+    // }
 }
 

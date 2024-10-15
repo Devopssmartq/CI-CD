@@ -78,7 +78,7 @@ def buildControlDesk() {
         container('phrase') {
             dir('controldesk') {
                 sh 'phrase version'
-                //sh 'phrase push'
+                sh 'phrase push'
                 sh 'phrase pull'
                 sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/phrase_test/controldesk'
                 sh 'git status'

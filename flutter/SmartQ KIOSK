@@ -8,15 +8,6 @@ apiVersion: v1
 kind: Pod
 spec:
   containers:
-  - name: jnlp  
-    resources:
-      requests:
-        memory: "2048Mi"
-        cpu: "500m"
-      limits:
-        memory: "4096Mi"
-        cpu: "1000m"
-
   - name: gcloud
     image: google/cloud-sdk:latest
     command:
@@ -25,27 +16,31 @@ spec:
     - 99d
     
   - name: native-android
-    image: jetbrains/qodana-jvm-android:latest
-    env:
-      GRADLE_OPTS: -Dorg.gradle.jvmargs="-XX:MaxMetaspaceSize=1g"
+    image: mingc/android-build-box:master
     resources:
       requests:
-        memory: "2048Mi"
+        memory: "4096Mi"  # Increase the requested memory
         cpu: "500m"
       limits:
-        memory: "4096Mi"
+        memory: "8192Mi"  # Increase the maximum allowed memory
         cpu: "1000m"
     command:
-    - sleep
+    - sh
     args:
-    - 99d
+    - -c
+    - |
+      apt-get update && apt-get install -y wget tar && \
+      wget https://download.oracle.com/java/23/latest/jdk-23_linux-aarch64_bin.tar.gz && \
+      tar -xzf jdk-23_linux-aarch64_bin.tar.gz && \
+      java -version && \
+      sleep 99d
     tty: true 
     '''
     }
   }
    parameters {
 
-    choice(name: 'ProjectVariant', choices: ['Release', 'Smartq', 'TimeToEat', 'BonAppetit'], description: 'Select project variant')
+    choice(name: 'ProjectVariant', choices: ['smartq', 'timeToEat', 'bonAppetit'], description: 'Select project variant')
     }
     //environment {
       //  APP_ENGINE_PROJECT_ID = 'sqinternational-cicd'
@@ -61,7 +56,7 @@ spec:
                     branches: [[name: "auto-sprint"]], 
                     doGenerateSubmoduleConfigurations: false, 
                     extensions: [[$class: 'CleanCheckout']], 
-                    userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/smartq-kiosk-native.git', credentialsId: 'git-devops',]]])
+                    userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/smartq-kiosk-native.git', credentialsId: 'git/devops/new',]]])
                         
                     sh 'ls -lrt'
                 }
@@ -71,13 +66,72 @@ spec:
         stage('Build') {
             steps {
                 container('native-android') {
-                  //def selectVariant = params.ProjectVariant
                     dir('kiosk'){
+                      withCredentials([file(credentialsId: 'IMD.jks', variable: 'KEYSTORE_PATH')]) {
                       sh 'ls -a'
-                      sh './gradlew assembleSmartq'
-                    }                    
+                          sh './gradlew --refresh-dependencies'
+                          sh './gradlew --no-daemon --parallel :app:assembleDebug'
+                          sh 'ls'
+                      dir ('app') { 
+                            sh 'ls'
+                            dir('${WORKPSACE}/build'){
+                                sh 'ls'
+                                dir('outputs'){
+                                  sh 'ls -lrt'
+                                  dir('apk'){
+                                      sh 'ls'
+                                      dir('smartq/release'){
+                                        sh 'ls'
+                                      }
+                                      dir('bonAppetit/release'){
+                                        sh 'ls'
+                                      }
+                                      dir('timeToEat/release'){
+                                        sh 'ls'
+                                      }
+                                  }
+                                }
+                            }
+                      }
+                    } 
+                  }                     
                 }
             }
-        }    
+        } 
+        stage('copy apk file'){
+            steps {
+                container('gcloud'){
+                    dir('kiosk'){
+                        dir ('${WORKSPACE}/build') {                            
+                        sh 'echo changing to directory'
+                            dir ('app') { 
+                              sh 'ls'
+                              dir('${WORKPSACE}/build'){
+                                  sh 'ls'
+                                  dir('outputs'){
+                                    sh 'ls -lrt'
+                                    dir('apk'){
+                                        sh 'ls'
+                                        dir('smartq/release'){
+                                          sh 'ls'
+                                          sh 'gcloud storage cp * gs://smartqdemo_pub/ --recursive'
+                                        }
+                                        dir('bonAppetit/release'){
+                                          sh 'ls'
+                                          sh 'gcloud storage cp * gs://smartqdemo_pub/ --recursive'
+                                        }
+                                        dir('timeToEat/release'){
+                                          sh 'ls'
+                                          sh 'gcloud storage cp * gs://smartqdemo_pub/ --recursive'
+                                        }
+                                    }
+                                  }
+                              }
+                          }
+                        }
+                    }
+                }
+            }
+         }   
     }
 }

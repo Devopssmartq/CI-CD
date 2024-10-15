@@ -753,7 +753,7 @@ pipeline {
                                             sso_previous_version = PREVIOUS_VERSION
                                             parallelJobs[py3_services.find { it.key == 'sso' }] = {
                                                 dir ('sq_microservices_backend') {
-                                                    sh 'cp -r commonlib sso_flex'
+                                                    //sh 'cp -r commonlib sso_flex'
                                                     dir ('sso_flex') {
                                                         sh "ls *.yaml"                                                        
                                                         sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_SSO_YAML --no-promote"
