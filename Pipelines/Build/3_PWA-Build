@@ -49,9 +49,9 @@ pipeline {
             steps { 
                 sh "mkdir -p time2eatweb"
                 dir('time2eatweb') {
-                    git branch: 'feature/sprint-april25lnp/preprod',
-                    credentialsId: '205fee1d-5909-4587-abe4-8c50bdc37556',
-                    url: 'https://vrp63531@bitbucket.org/bottlelabtech/time2eatweb.git'
+                    git branch: 'auto-sprint',
+                    credentialsId: 'git/devops/new',
+                    url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/time2eatweb.git'
                 }
             }                       
         }

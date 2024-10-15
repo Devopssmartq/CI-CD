@@ -1,0 +1,39 @@
+name: 02-workflow_event
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'main'
+        type: choice
+        options: 
+          - master
+          - auto-sprint
+          - auto-release
+      region:
+        description: 'Deployment region'
+        required: true
+        default: 'us'
+        type: choice
+        options:
+          - japan
+          - us
+          - uk
+      services:
+        description: 'Services to deploy'
+        required: true
+        default: 'app'
+        type: choice
+        options:
+          - app
+          - dashboard
+
+
+jobs: 
+  echo:
+    runs-on: ubuntu-latest  # Correct property name with a hyphen
+    steps:
+      - name: show the trigger
+        run: echo "I've been triggered by a(n) ${{ github.event_name }} event"

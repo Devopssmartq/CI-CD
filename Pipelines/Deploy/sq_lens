@@ -1,0 +1,285 @@
+def printDigestFromFile(Map args) {
+    def outputFile = args.outputFile
+    def digestOutput = readFile(outputFile).trim()
+    echo "Digest Output from ${outputFile}: ${digestOutput}"
+
+    // Extract and print digest if it follows the pattern "digest: sha256:<digest>"
+    def matcher = digestOutput =~ /digest: sha256:[a-f0-9]+/
+    if (matcher) {
+        def fullDigest = matcher[0]
+        def digest = fullDigest.replace('digest: ', '')
+        echo "Latest Digest from ${outputFile}: ${digest}"
+        env.DIGEST = digest
+    } else {
+        echo "Digest not found in output from ${outputFile}."
+    }
+}
+
+
+
+properties([
+    parameters([
+        [$class: 'ChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select the region',
+            filterLength: 1,
+            filterable: false,
+            name: 'DEPLOYMENT_TYPE',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["india", "international"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                    return ["india", "international"]
+                '''
+                ]
+            ]
+        ],
+        [$class: 'CascadeChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select the Project',
+            filterLength: 1,
+            filterable: false,
+            name: 'Project_Name',
+            referencedParameters: 'DEPLOYMENT_TYPE',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["sqlens", "compass_lens"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        if (DEPLOYMENT_TYPE == 'india') {
+                            return ["sqlens", "compass_lens"]
+                        } else if (DEPLOYMENT_TYPE == 'international') {
+                            return ["compass_lens"]
+                        }
+                    '''
+                ]
+            ] 
+        ],
+        [$class: 'CascadeChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select the Region',
+            filterLength: 1,
+            filterable: false,
+            name: 'Region_Name',
+            referencedParameters: 'DEPLOYMENT_TYPE,Project_Name',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["smqdebug:selected", "smartqprd-india"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def deploymentType = DEPLOYMENT_TYPE.toString()
+                        def projectName = Project_Name.toString()
+
+                        if (deploymentType == 'india') {
+                            if (projectName == 'sqlens') {
+                                return ["smartqprd-india", "smqdebug:selected"]
+                            } else if (projectName == 'compass_lens') {
+                                return ["smartqprd-india", "smqdebug:selected"]
+                            }
+                        } else if (DEPLOYMENT_TYPE == 'international') {
+                            return ["smartqdemo-hk:selected", "smartqprd-hk"]
+                        }
+                        return []
+                    '''
+                ]
+            ] 
+        ],  
+        string(name: 'Lens_ID',defaultValue: '', description: 'Enter the ID'),           
+    ])
+])
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+            apiVersion: v1      
+            kind: Pod
+            spec:
+              containers:
+              - name: jnlp  
+                resources:
+                  requests:
+
+                    memory: "2048Mi"
+                    cpu: "500m"
+                  limits:
+                    memory: "4096Mi"
+                    cpu: "1000m"
+                    
+              - name: nodejs
+                image: node:18-alpine
+                command:
+                - cat
+                tty: true
+                env:
+                - name: "NODE_OPTIONS"
+                  value: "--max-old-space-size=4096"
+
+              - name: gcloud
+                image: google/cloud-sdk:latest
+                command:
+                - cat
+                tty: true
+            '''        
+        }
+    }
+    
+    stages {  
+        stage('Checkout mendix_auto_deployer') { 
+            steps { 
+                sh "mkdir -p mendix_auto_deployer"
+                dir('mendix_auto_deployer') {
+                    git branch: 'cicd-main',
+                    credentialsId: 'git/devops/new',
+                    url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/mendix_auto_deployer.git'
+                    sh 'ls -l'
+                }
+            }                       
+        }
+        stage('Listing the files in cloud storage') {
+            steps {
+                script {
+                    container('gcloud') {
+                        def project_id = params.Region_Name
+                        echo "Project_ID = ${project_id}"
+                        echo "Deployment_type = ${params.DEPLOYMENT_TYPE}"
+                        echo "ProjectName = ${params.Project_Name}"
+                        def sqlensid = params.Lens_ID
+                        india_url = 'https://cpgplc.webhook.office.com/webhookb2/3551864e-0ef7-4705-bba6-33753e480bc2@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/bb48707d576c4bda8630f83a0f2eab21/91dca507-8de4-4171-90be-c552b60ab3b9'
+                        international_url = 'https://cpgplc.webhook.office.com/webhookb2/3551864e-0ef7-4705-bba6-33753e480bc2@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/9f538d3d1ac84d1792d26cb79b195435/1c5e4526-7112-42fd-91d6-fcf3b5f709dd'
+
+                        if (Region_Name == "smqdebug") {
+                            bucketName = 'gs://samplemendixprojectfiles/'
+                        } else if (Region_Name == "smartqprd-india") {
+                            bucketName = 'gs://prdin_mendixbuilds/'
+                        } else if (Region_Name == "smartqdemo-hk") {
+                            bucketName = 'gs://demohk_mendixbuilds/'
+                        } else if (Region_Name == "smartqprd-hk") {
+                            bucketName = 'gs://prdhk_mendixbuilds/'
+                        } else {
+                            error("Invalid Region")
+                        }
+                        echo "BucketName = ${bucketName}"
+
+                        sh "gcloud config set project ${project_id}"
+                        def command = "gcloud storage ls -l ${bucketName} | grep '.mda' | awk '{print \$3}' | awk -F '/' '{print \$NF}'"
+                        def result = sh(script: command, returnStdout: true).trim()
+                        echo "Filtered .mda files:\n${result}"
+                    }    
+                }
+            }
+        }
+        stage('Build the Image') {
+            steps {
+                script {
+                    container('gcloud') {
+                        dir('mendix_auto_deployer') {
+                            def sqlensid = params.Lens_ID
+                            echo "${sqlensid}"
+                            
+                            if (!sqlensid) {
+                                error("PLEASE ENTER VALID ID")
+                            }
+        
+                            // Define output files for each case
+                            def smqdebugoutputFile = "smqdebug_output.txt"
+                            def smartqprd_indiaoutputFile = "smartqprd_india_output.txt"
+                            def smartqdemo_hkoutputFile = "smartqdemo_hk_output.txt"
+                            def smartqprd_hkoutputFile = "smartqprd_hk_output.txt"
+        
+                            if (DEPLOYMENT_TYPE == "india" && Project_Name == "sqlens" && Region_Name == "smqdebug") {
+                                sh "./autodeploy.sh indiademo gs://samplemendixprojectfiles/SQLens_Shield_1.0.0.${sqlensid}.mda"
+        
+                            } else if (DEPLOYMENT_TYPE == "india" && Project_Name == "sqlens" && Region_Name == "smartqprd-india") {
+                                sh "./autodeploy.sh indiaprd gs://prdin_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
+        
+                            } else if (Region_Name == "smqdebug" && Project_Name == "compass_lens") {
+                                sh "sh ./docker_creator.sh indiademo gs://samplemendixprojectfiles/SQLens_Shield_1.0.0.${sqlensid}.mda compassdemo > ${smqdebugoutputFile}"
+                                printDigestFromFile(outputFile: smqdebugoutputFile)
+                                sh "./autodeploy_restart_on_crash.sh indiademo gs://samplemendixprojectfiles/SQLens_Shield_1.0.0.${sqlensid}.mda compassdemo"
+        
+                            } else if (Region_Name == "smartqprd-india" && Project_Name == "compass_lens") {
+                                sh "sh ./docker_creator.sh indiaprd gs://prdin_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda compassprd > ${smartqprd_indiaoutputFile}"
+                                printDigestFromFile(outputFile: smartqprd_indiaoutputFile)
+                                sh "./autodeploy_restart_on_crash.sh indiaprd gs://prdin_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda compassprd"
+        
+                            } else if (Region_Name == "smartqdemo-hk" && Project_Name == "compass_lens") {
+                                sh "sh ./docker_creator.sh hkdemo gs://demohk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda > ${smartqdemo_hkoutputFile}"
+                                printDigestFromFile(outputFile: smartqdemo_hkoutputFile)
+                                sh "./autodeploy_restart_on_crash.sh hkdemo gs://demohk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
+        
+                            } else if (Region_Name == "smartqprd-hk" && Project_Name == "compass_lens") {
+                                sh "sh ./docker_creator.sh hkprd gs://prdhk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda > ${smartqprd_hkoutputFile}"
+                                printDigestFromFile(outputFile: smartqprd_hkoutputFile)
+                                sh "./autodeploy_restart_on_crash.sh hkprd gs://prdhk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
+        
+                            } 
+                        }       
+                    }
+                }
+            }
+        }
+
+        stage('Updating to rolling update') {
+            steps{
+                script {
+                    container('gcloud') {
+                        dir('mendix_auto_deployer') {
+                            echo "${env.DIGEST}"
+
+                            if (Region_Name == "smqdebug" && Project_Name == "compass_lens") {
+                                sh "echo 'smqdebug'"
+                                sh "gcloud container clusters get-credentials autopilot-compasslens-demo-cluster --region us-central1 --project smqdebug"
+                                sh "kubectl set image Deployment/compasslens-demo-nginx sqlensdemo-sha256-1=gcr.io/smqdebug/sqlensdebug/sqlensdemo@${env.DIGEST}"
+                            } else if (Region_Name == "smartqprd-india" && Project_Name == "compass_lens") {
+                                sh "echo 'smartqprd-india'"
+                                sh "gcloud container clusters get-credentials compasslens-autopilot-cluster --region asia-south1 --project smartqprd-india"
+                                sh "kubectl set image Deployment/compasslens-nginx compasslensprd-sha256-1=gcr.io/smartqprd-india/compasslens/compasslensprd@${env.DIGEST}"
+                            } else if (Region_Name == "smartqdemo-hk" && Project_Name == "compass_lens") {
+                                sh "gcloud container clusters get-credentials autopilot-hksqlens-demo-cluster --region asia-east2 --project smartqdemo-hk"
+                                sh "kubectl set image Deployment/hksqlens-demo hksqlensdemo-sha256-1=gcr.io/smartqdemo-hk/hksqlens/hksqlensdemo@${env.DIGEST}"
+                            } else if (Region_Name == "smartqprd-hk" && Project_Name == "compass_lens") {
+                                sh "echo 'smartqprd-hk'"
+                                sh "gcloud container clusters get-credentials sqlens-autopilot-cluster --region asia-east2 --project smartqprd-hk"
+                                sh "kubectl set image Deployment/hksqlens hksqlensprd-sha256-1=gcr.io/smartqprd-hk/hksqlens/hksqlensprd@${env.DIGEST}"
+                            } 
+                        }       
+                    }
+                }
+            }
+        }
+    }
+    post{
+        always{
+            script {
+                if (DEPLOYMENT_TYPE == "india") {
+                    office365ConnectorSend webhookUrl: "${india_url}",
+                    message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nProject Name: ${Project_Name}.\nRegion Name: ${Region_Name}.\nLens ID: ${Lens_ID}.\nLatest Build ID: ${env.DIGEST}",
+                    status: "Build Status# ${currentBuild.currentResult}"
+                } else if (DEPLOYMENT_TYPE == "international") {
+                    office365ConnectorSend webhookUrl: "${international_url}",
+                    message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nProject Name: ${Project_Name}.\nRegion Name: ${Region_Name}.\nLens ID: ${Lens_ID}.\nLatest Build ID: ${env.DIGEST}",
+                    status: "Build Status# ${currentBuild.currentResult}"
+                }
+            }
+        }
+    }
+}

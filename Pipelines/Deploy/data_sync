@@ -1,0 +1,54 @@
+
+pipeline {
+    agent {
+        kubernetes {
+            defaultContainer 'jnlp'
+            yaml '''
+                apiVersion: v1
+                kind: Pod
+                environment:
+                    name: "NODE_OPTIONS"
+                    value: "--max-old-space-size=4096"
+                spec:
+                  containers:
+                  - name: jnlp  
+                    resources:
+                      requests:
+                        memory: "2048Mi"
+                        cpu: "500m"
+                      limits:
+                        memory: "4096Mi"
+                        cpu: "1000m"
+                  - name: gcloud
+                    image: google/cloud-sdk:latest
+                    command:
+                    - cat
+                    tty: true
+                  - name: zip
+                    image: joshkeegan/zip:latest
+                    command:
+                    - cat
+                    tty: true    
+            '''        
+        }
+    }
+    
+    stages {
+        stage('Copy and Zip') {
+            steps { 
+                script {
+                    container('gcloud') {
+                        sh "gcloud config set project smartqprd-india"
+                        sh "gcloud config get-value project"
+                        //sh 'echo "Today\'s Date: $(date +%Y)-$(date +%m)-$(date +%d)"'
+                        //sh "gcloud scheduler jobs run Data_BackUp_Master_2"
+                        // sh "gcloud scheduler jobs run Data_BackUp_Master_Finance"
+                        //sh "gcloud services enable storagetransfer.googleapis.com"
+                        sh "gcloud transfer jobs list --project smartqprd-india"
+                    }
+                }  
+            }            
+        }
+    }
+}
+
