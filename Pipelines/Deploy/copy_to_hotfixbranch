@@ -1,0 +1,73 @@
+def get_Storage_Object_Source_Path(Map args) { 
+    def source_path = sh (
+        script: "gcloud storage ls -l 'gs://sqinternational-cicd.appspot.com/${Region}/${Branch}/${args.app_name}' | sed '/TOTAL/d' | sort -k 2 -r  | head -1 | awk '{print \$3}'",
+        returnStdout: true
+    ).trim()
+    storage_path = "${source_path}"
+    echo "${source_path}"
+    return "${source_path}"
+}
+
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+        apiVersion: v1
+        kind: Pod
+        environment:
+            name: "NODE_OPTIONS"
+            value: "--max-old-space-size=4096"
+        spec:
+          containers:
+          - name: jnlp  
+            resources:
+              requests:
+                memory: "2048Mi"
+                cpu: "500m"
+              limits:
+                memory: "4096Mi"
+                cpu: "1000m"
+                
+          - name: flutter
+            image: instrumentisto/flutter:latest
+            command:
+            - cat
+            tty: true
+
+          - name: gcloud
+            image: google/cloud-sdk:latest
+            command:
+            - cat
+            tty: true
+        '''        
+        }
+    }
+    parameters {
+
+    choice(name: 'Branch', choices: ['auto-sprint', 'auto-release'], description: 'Select Branch')
+    choice(name: 'Region', choices: ['India_Region', 'UK_Region', 'Global_Region'], description: 'Select the Region')
+    string(name: 'Hotfix_Branch', description: 'Enter the branch name')
+    }
+    stages {
+        stage('Checkout flutter') { 
+            steps { 
+                script {
+                    container('gcloud'){
+                        STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "ewallet")
+                        sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${Region}/${Hotfix_Branch}/ewallet/ --recursive"
+
+                        STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "generic-admin-dashboard")
+                        sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${Region}/${Hotfix_Branch}/generic-admin-dashboard/ --recursive"
+
+                        STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "vendor-dashboard")
+                        sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${Region}/${Hotfix_Branch}/vendor-dashboard/ --recursive"
+
+                        STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "controldeskflutter")
+                        sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${Region}/${Hotfix_Branch}/controldeskflutter/ --recursive"
+                    }
+                }        
+            }                       
+        }
+        
+    }
+}

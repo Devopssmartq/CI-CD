@@ -52,7 +52,7 @@ def is_Version_Exists(Map args) {
 }
 def get_Storage_Object_Source_Path(Map args) { 
     def source_path = sh (
-        script: "gcloud storage ls -l 'gs://${GCS_BUCKET_NAME}/${ENVIRONMENT}/${args.app_name}' | sed '/TOTAL/d' | sort -k 2 -r  | head -1 | awk '{print \$3}'",
+        script: "gcloud storage ls -l 'gs://${GCS_BUCKET_NAME}/UK_Region/${ENVIRONMENT}/${args.app_name}' | sed '/TOTAL/d' | sort -k 2 -r  | head -1 | awk '{print \$3}'",
         returnStdout: true
     ).trim()
     storage_path = "${source_path}"
@@ -68,7 +68,7 @@ def get_AppEngine_Version(Map args) {
 
      container('gcloud') {
         def STORAGE_OBJECT_SOURCE_PATH = sh (
-                script: "gcloud storage ls -l gs://${GCS_BUCKET_NAME}/${ENVIRONMENT}/${args.app_name} | cat | sed '/TOTAL/d' | sort -k 2 -r | head -1 | awk '{print \$3}'",
+                script: "gcloud storage ls -l gs://${GCS_BUCKET_NAME}/UK_Region/${ENVIRONMENT}/${args.app_name} | cat | sed '/TOTAL/d' | sort -k 2 -r | head -1 | awk '{print \$3}'",
                 returnStdout: true
         ).trim()
         APP_ENGINE_VERSION = sh (
@@ -123,7 +123,7 @@ def Write_To_File() {
         println(data)
         container('gcloud') {
             dir("${env.WORKSPACE}") {
-                sh "gcloud storage cp ${filePath} gs://sqinternational-cicd.appspot.com/release_summary/released/${APP_ENGINE_PROJECT_ID}/${env.VERSION_NUMBER} --recursive"
+                sh "gcloud storage cp ${filePath} gs://sqinternational-cicd.appspot.com/UK_Region/release_summary/released/${APP_ENGINE_PROJECT_ID}/${env.VERSION_NUMBER} --recursive"
             }
         }
     }
@@ -542,7 +542,7 @@ pipeline {
                                             branches: [[name: "${PY2_SERVICE_APP_ENGINE_VERSION}"]], 
                                             doGenerateSubmoduleConfigurations: false, 
                                             extensions: [[$class: 'CleanCheckout']], 
-                                            userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/smartq-cloud-backend.git', credentialsId: 'git/devops/new',]]]) 
+                                            userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/cloud-backend-uk.git', credentialsId: 'git/devops/new',]]]) 
                                         dir ('py3_project/py3_backend/bqreports/admindashboard/') {
                                                 sh 'rm -rf ./{*,.*}'
                                         }
@@ -689,7 +689,7 @@ pipeline {
                                             branches: [[name: "${PY3_SERVICE_APP_ENGINE_VERSION}"]], 
                                             doGenerateSubmoduleConfigurations: false, 
                                             extensions: [[$class: 'CleanCheckout']], 
-                                            userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_microservices_backend.git', credentialsId: 'git/devops/new',]]])
+                                            userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/microservices-backend-uk.git', credentialsId: 'git/devops/new',]]])
                                                     
                                     sh 'ls -lrt'
                                     }
