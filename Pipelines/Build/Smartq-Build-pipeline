@@ -634,7 +634,8 @@ pipeline {
               chmod +x /usr/local/bin/phrase && \
               phrase version && \
               apt-get update && apt-get install -y git && \
-              sleep 99d    
+              sleep 99d 
+            tty:true     
         '''        
         }
     }

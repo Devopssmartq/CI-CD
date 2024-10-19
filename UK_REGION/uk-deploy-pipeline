@@ -87,8 +87,8 @@ def get_AppEngine_Version(Map args) {
 def promote_Service(Map args) {
     def PROMOTED_SERVICE
     if (args.service_name.contains("cloud_run")) {
-        // Change directory to sq_microservices_backend before running gcloud run command
-        dir('sq_microservices_backend') {
+        // Change directory to microservices-backend-uk before running gcloud run command
+        dir('microservices-backend-uk') {
             dir('cloud_run_longrun_script'){
                 PROMOTED_SERVICE = sh(
                     script: "gcloud run services update-traffic bigquerysync-${params.APP_ENGINE_PROJECT_ID} --flags-file promote_flags/${params.APP_ENGINE_PROJECT_ID}.json",
@@ -535,9 +535,9 @@ pipeline {
                         stage('Py2:Clone smartq-backend') { 
                             steps { 
                                 script {
-                                    PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')
-                                    sh "mkdir -p smartq-cloud-backend"
-                                    dir('smartq-cloud-backend') {  
+                                    PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'cloud-backend-uk')
+                                    sh "mkdir -p cloud-backend-uk"
+                                    dir('cloud-backend-uk') {  
                                         checkout([$class: 'GitSCM', 
                                             branches: [[name: "${PY2_SERVICE_APP_ENGINE_VERSION}"]], 
                                             doGenerateSubmoduleConfigurations: false, 
@@ -559,7 +559,7 @@ pipeline {
                         }
                         stage('Py2:Copy build output - ewallet, admin & vendor dash-board') {
                             steps {                
-                                dir ('smartq-cloud-backend') {
+                                dir ('cloud-backend-uk') {
                                     container('gcloud') {
                                         script {  
                                             sh "echo ${WORKSPACE}"
@@ -612,10 +612,10 @@ pipeline {
                                     script {
                                         def parallelJobs = [:]   
                                         if ('appservice' in ARR_SELECTED_SERVICE ) {
-                                           PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')
+                                           PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'cloud-backend-uk')
                                            PREVIOUS_VERSION = get_Previous_Version(service_name: "appservice")
                                             parallelJobs[py2_services.find { it.key == 'appservice' }] = {
-                                                dir ('smartq-cloud-backend'){
+                                                dir ('cloud-backend-uk'){
                                                     sh "ls *.yaml"
                                                     sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $APP_SERVICE_YAML --no-promote"
                                                 }
@@ -623,20 +623,20 @@ pipeline {
                                             }
                                         }
                                         if ('backgroundtasks' in ARR_SELECTED_SERVICE ) {
-                                            PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')
+                                            PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'cloud-backend-uk')
                                             PREVIOUS_VERSION = get_Previous_Version(service_name: "backgroundtasks")
                                             parallelJobs[py2_services.find { it.key == 'backgroundtasks' }] = {
-                                                dir ('smartq-cloud-backend') {                                                    
+                                                dir ('cloud-backend-uk') {                                                    
                                                     sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $BACKGROUND_YAML --no-promote"
                                                 }
                                                 ARR_VERIFY_SERVICE.add([service_name: 'backgroundtasks', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload'])  
                                             }
                                         }
                                         if ('taskqservice' in ARR_SELECTED_SERVICE ) {
-                                            PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')
+                                            PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'cloud-backend-uk')
                                             PREVIOUS_VERSION = get_Previous_Version(service_name: "taskqservice")
                                             parallelJobs[py2_services.find { it.key == 'taskqservice' }] = {
-                                                dir ('smartq-cloud-backend'){                                                    
+                                                dir ('cloud-backend-uk'){                                                    
                                                     sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $TASKQSERVICE_YAML --no-promote"
                                                 }
                                                 ARR_VERIFY_SERVICE.add([service_name: 'taskqservice', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload'])                                                              
@@ -654,10 +654,10 @@ pipeline {
                                     container('gcloud') {                                        
                                         def py2_bqreports = [:]
                                         if ('bqreports' in ARR_SELECTED_SERVICE ) {
-                                            PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'smartq-cloud-backend')
+                                            PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'cloud-backend-uk')
                                             PREVIOUS_VERSION = get_Previous_Version(service_name: "bqreports")
                                             py2_bqreports[py2_services.find { it.key == 'bqreports' }] = {
-                                                dir ('smartq-cloud-backend') {                                                    
+                                                dir ('cloud-backend-uk') {                                                    
                                                     dir ('py3_project') {
                                                         sh "ls *.yaml"                                                        
                                                         sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $BQREPORTS_YAML --no-promote"
@@ -682,9 +682,9 @@ pipeline {
                         stage('Py3:Clone') { 
                             steps { 
                                 script {
-                                    PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend')
-                                    sh "mkdir -p sq_microservices_backend"
-                                    dir('sq_microservices_backend') {                        
+                                    PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'microservices-backend-uk')
+                                    sh "mkdir -p microservices-backend-uk"
+                                    dir('microservices-backend-uk') {                        
                                         checkout([$class: 'GitSCM', 
                                             branches: [[name: "${PY3_SERVICE_APP_ENGINE_VERSION}"]], 
                                             doGenerateSubmoduleConfigurations: false, 
@@ -703,10 +703,10 @@ pipeline {
                                         sh "echo ${WORKSPACE}"
                                         def parallelJobs = [:]
                                         if ('py3_default' in ARR_SELECTED_SERVICE ) {
-                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend')
+                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'microservices-backend-uk')
                                             PREVIOUS_VERSION = get_Previous_Version(service_name: "default") 
                                             parallelJobs[py3_services.find { it.key == 'py3_default' }] = {
-                                                dir ('sq_microservices_backend') {
+                                                dir ('microservices-backend-uk') {
                                                     sh 'cp -r commonlib appms'
                                                     dir ('appms') {
                                                         sh "ls *.yaml"                                                        
@@ -718,10 +718,10 @@ pipeline {
                                             }
                                         }
                                         if ('dashboard' in ARR_SELECTED_SERVICE ) {
-                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'microservices-backend-uk') 
                                             PREVIOUS_VERSION = get_Previous_Version(service_name: "dashboard")
                                             parallelJobs[py3_services.find { it.key == 'dashboard' }] = {
-                                                dir ('sq_microservices_backend') {
+                                                dir ('microservices-backend-uk') {
                                                     sh 'cp -r commonlib dashboardms'
                                                     dir ('dashboardms') {
                                                         sh "ls *.yaml"                                        
@@ -733,11 +733,11 @@ pipeline {
                                             }
                                         }
                                         if ('sso' in ARR_SELECTED_SERVICE ) {
-                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'microservices-backend-uk') 
                                             PREVIOUS_VERSION = get_Previous_Version(service_name: "sso")
                                             sso_previous_version = PREVIOUS_VERSION
                                             parallelJobs[py3_services.find { it.key == 'sso' }] = {
-                                                dir ('sq_microservices_backend') {
+                                                dir ('microservices-backend-uk') {
                                                     //sh 'cp -r commonlib sso_flex'
                                                     dir ('sso_flex') {
                                                         sh "ls *.yaml"                                                        
@@ -749,10 +749,10 @@ pipeline {
                                         }
                                         //if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {
                                             if('pricebook' in ARR_SELECTED_SERVICE) {// ! For India only - Skip this when the condition is false
-                                                PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend')
+                                                PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'microservices-backend-uk')
                                                 PREVIOUS_VERSION = get_Previous_Version(service_name: "pricebook")
                                                 parallelJobs[py3_services.find { it.key == 'pricebook' }] = {
-                                                    dir ('sq_microservices_backend') {
+                                                    dir ('microservices-backend-uk') {
                                                         sh 'cp -r commonlib pricebook'
                                                         dir ('pricebook') {
                                                             sh "ls *.yaml"
@@ -765,10 +765,10 @@ pipeline {
                                         //}  
                                         //if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {  
                                             if(INTERNATIONAL_FLAG && 'integration' in ARR_SELECTED_SERVICE ) {// 
-                                                PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                                                PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'microservices-backend-uk') 
                                                 PREVIOUS_VERSION = get_Previous_Version(service_name: "integration")
                                                 parallelJobs[py3_services.find { it.key == 'integration' }] = {
-                                                    dir ('sq_microservices_backend') {
+                                                    dir ('microservices-backend-uk') {
                                                         sh 'cp -r commonlib appms'
                                                         dir ('appms') {
                                                             sh "ls *.yaml"
@@ -780,9 +780,9 @@ pipeline {
                                             }
                                         //} 
                                         if ('cloud_run' in ARR_SELECTED_SERVICE ) {
-                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'microservices-backend-uk') 
                                             parallelJobs[py3_services.find { it.key == 'cloud_run' }] = {
-                                                dir ('sq_microservices_backend') {
+                                                dir ('microservices-backend-uk') {
                                                     sh 'ls'
                                                     dir ('cloud_run_longrun_script') {
                                                         sh "ls"                                                        
@@ -795,9 +795,9 @@ pipeline {
                                             }
                                         } 
                                         if ('menucacheupdate' in ARR_SELECTED_SERVICE ) {
-                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'microservices-backend-uk') 
                                             parallelJobs[py3_services.find { it.key == 'menucacheupdate' }] = {
-                                                dir ('sq_microservices_backend') {
+                                                dir ('microservices-backend-uk') {
                                                     sh 'ls'
                                                     //if (params.APP_ENGINE_PROJECT_ID.contains("-india")) {
                                                         dir ('menucacheupdate') {
@@ -811,14 +811,14 @@ pipeline {
                                             }
                                         }   
                                         if ('index' in ARR_SELECTED_SERVICE ) {
-                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'microservices-backend-uk') 
                                             parallelJobs[py3_services.find { it.key == 'index' }] = {
-                                                dir ('sq_microservices_backend') {
+                                                dir ('microservices-backend-uk') {
                                                     sh 'ls'
                                                     dir ('dispatch') {
                                                         sh "ls"                                                        
                                                         sh "gcloud app deploy --quiet index.yaml"
-                                                        sh "gcloud app deploy --quiet queue.yaml"
+                                                        //sh "gcloud app deploy --quiet queue.yaml"
                                                     } 
                                                 }                                 
                                             }
