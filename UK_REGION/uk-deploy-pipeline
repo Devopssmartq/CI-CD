@@ -454,41 +454,41 @@ pipeline {
                     steps {
                         container('gcloud') {
                             script { 
-                                def PWA_APP_NAME = "time2eat" 
-                                if('smartq-pwa' in ARR_SELECTED_SERVICE || 'foodbook-web' in ARR_SELECTED_SERVICE || 'time2eat' in ARR_SELECTED_SERVICE || 'jumpr-pwa' in ARR_SELECTED_SERVICE || 'baweb' in ARR_SELECTED_SERVICE) {                                    
-                                    configFileProvider([configFile(fileId: 'deploy-PWQ-script', targetLocation: 'deploy_time2eat.groovy')]) {
-                                        TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
+                                def PWA_APP_NAME = "time2eatweb-uk" 
+                                if('time2eat' in ARR_SELECTED_SERVICE || 'jumpr-pwa' in ARR_SELECTED_SERVICE || 'baweb' in ARR_SELECTED_SERVICE) {                                    
+                                    configFileProvider([configFile(fileId: 'deploy-PWQ-uk-script', targetLocation: 'deploy_time2eat_uk.groovy')]) {
+                                        TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eatweb-uk')
                                         //PWA_STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "time2eat")
 
-                                        load("deploy_time2eat.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat"))
+                                        load("deploy_time2eat_uk.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eatweb-uk"))
                                     }                            
                                 }
                                 def parallelJobs = [:]
                                     // if controldesk in selected list , then we have to deploy flutter also                                                                     
                                 if ('controldesk' in ARR_SELECTED_SERVICE ) {    
-                                    configFileProvider([configFile(fileId: 'deploy-controldesk-script', targetLocation: 'deploy_controldesk.groovy')]) {
-                                        CONTROLDESK_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldesk')
+                                    configFileProvider([configFile(fileId: 'deploy-controldesk-uk-script', targetLocation: 'deploy_controldesk_uk.groovy')]) {
+                                        CONTROLDESK_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'control-desk-uk')
                                         //controldesk_PATH = get_Storage_Object_Source_Path(app_name: "controldesk")
                                         PREVIOUS_VERSION = get_Previous_Version(service_name: "controldesk")
                                         parallelJobs[nodeapps.find { it.key == 'controldesk' }] = {
-                                            load("deploy_controldesk.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "controldesk"), CONTROLDESK_APP_ENGINE_VERSION)
+                                            load("deploy_controldesk_uk.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "control-desk-uk"), CONTROLDESK_APP_ENGINE_VERSION)
                                             ARR_VERIFY_SERVICE.add([service_name: 'controldesk', version_name: "$CONTROLDESK_APP_ENGINE_VERSION", url_suffix: 'control-desk/login'])
                                         }                                                                            
                                     }
                                 }                               
                                 if ('controldesk' in ARR_SELECTED_SERVICE ) {    
-                                    configFileProvider([configFile(fileId: 'deploy-controldeskflutter-script', targetLocation: 'deploy_controldeskflutter.groovy')]) {
-                                        CONTROLDESK_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'controldeskflutter')
+                                    configFileProvider([configFile(fileId: 'deploy-controldeskflutter-uk-script', targetLocation: 'deploy_controldeskflutter_uk.groovy')]) {
+                                        CONTROLDESK_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'control-desk-flutter-uk')
                                         //controldeskflutter_PATH = get_Storage_Object_Source_Path(app_name: "controldeskflutter")
                                         PREVIOUS_VERSION = get_Previous_Version(service_name: "control-desk-flutter")
                                         parallelJobs[nodeapps.find { it.key == 'controldeskflutter' }] = {
-                                            load("deploy_controldeskflutter.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "controldeskflutter"), CONTROLDESK_FLUTTER_APP_ENGINE_VERSION)
+                                            load("deploy_controldeskflutter_uk.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "control-desk-flutter-uk"), CONTROLDESK_FLUTTER_APP_ENGINE_VERSION)
                                             ARR_VERIFY_SERVICE.add([service_name: 'control-desk-flutter', version_name: "$CONTROLDESK_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'control-desk-v2/login'])
                                         }                                                                                                                              
                                     }
                                 }    
                                 if ('time2eat' in ARR_SELECTED_SERVICE ) {
-                                    TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
+                                    TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eatweb-uk')
                                     PREVIOUS_VERSION = get_Previous_Version(service_name: "time2eat")
                                     parallelJobs[nodeapps.find { it.key == 'time2eat' }] = {
                                         dir("${PWA_APP_NAME}-latest") {                                           
@@ -498,24 +498,24 @@ pipeline {
                                     }
                                 }                                                                                                                                   
                                 if ('web-ort' in ARR_SELECTED_SERVICE ) {                                                                                               
-                                    configFileProvider([configFile(fileId: 'deploy-groovy-script', targetLocation: 'deploy_web-ort.groovy')]) {
-                                        WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'web-ort')
-                                        //web_ort_PATH = get_Storage_Object_Source_Path(app_name: "web-ort")
+                                    configFileProvider([configFile(fileId: 'deploy-groovy-uk-script', targetLocation: 'deploy_web-ort_uk.groovy')]) {
+                                        WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ort-uk')
+                                        //web_ort_PATH = get_Storage_Object_Source_Path(app_name: "ort-uk")
                                         PREVIOUS_VERSION = get_Previous_Version(service_name: "web-ort")
                                         parallelJobs[nodeapps.find { it.key == 'web-ort' }] = {
-                                            load("deploy_web-ort.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "web-ort"), WEBORT_APP_ENGINE_VERSION)
+                                            load("deploy_web-ort_uk.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "ort-uk"), WEBORT_APP_ENGINE_VERSION)
                                             ARR_VERIFY_SERVICE.add([service_name: 'web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main'])                                           
                                         }
                                     }
                                 }    
                                 //if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {                                    
                                     // if ('time2eat-flutter' in ARR_SELECTED_SERVICE ) {                                                                                                                                           
-                                    //     configFileProvider([configFile(fileId: 'deploy-time2eat-flutter-script', targetLocation: 'deploy_time2eat-flutter.groovy')]) {
+                                    //     configFileProvider([configFile(fileId: 'deploy-time2eat-flutter-uk-script', targetLocation: 'deploy_time2eat-flutter_uk.groovy')]) {
                                     //         TIME2EAT_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat-flutter')
                                     //         //STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "time2eat-flutter")
                                     //         PREVIOUS_VERSION = get_Previous_Version(service_name: "time2eat-flutter")
                                     //         parallelJobs[nodeapps.find { it.key == 'time2eat-flutter' }] = {
-                                    //             load("deploy_time2eat-flutter.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat-flutter"), TIME2EAT_FLUTTER_APP_ENGINE_VERSION)
+                                    //             load("deploy_time2eat-flutter_uk.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat-flutter"), TIME2EAT_FLUTTER_APP_ENGINE_VERSION)
                                     //             ARR_VERIFY_SERVICE.add([service_name: 'time2eat-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'time2eat-v2/'])                                           
                                     //         }                                                                                                                                                                                                           
                                     //     }
@@ -563,23 +563,23 @@ pipeline {
                                     container('gcloud') {
                                         script {  
                                             sh "echo ${WORKSPACE}"
-                                            APP_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ewallet')
-                                            ADMIN_DASHBOARD_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'generic-admin-dashboard')
+                                            APP_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ewallet-uk')
+                                            ADMIN_DASHBOARD_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'admin-dashboard-uk')
                                             BQREPORTS_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'vendor-dashboard')
                                             //1. copy generic-admin-dashboard - making it ready for deployment
-                                            def APP_NAME = "generic-admin-dashboard" 
+                                            def APP_NAME = "admin-dashboard-uk" 
                                             def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
-                                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/smartq-cloud-backend/py3_project/py3_backend/bqreports/admindashboard --recursive"
+                                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/cloud-backend-uk/py3_project/py3_backend/bqreports/admindashboard --recursive"
                                             
                                             //2. copy vendor-dashboard - making it ready for deployment
                                             APP_NAME = "vendor-dashboard" 
                                             STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
-                                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/smartq-cloud-backend/py3_project/py3_backend/bqreports/reports --recursive"
+                                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/cloud-backend-uk/py3_project/py3_backend/bqreports/reports --recursive"
                                             
                                             //3.copy ewallet - making it ready for deployment
-                                            APP_NAME = "ewallet" 
+                                            APP_NAME = "ewallet-uk" 
                                             STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "${APP_NAME}")
-                                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/smartq-cloud-backend/eWallet --recursive"
+                                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* ${WORKSPACE}/cloud-backend-uk/eWallet --recursive"
                                             
                                             dir ('py3_project/py3_backend/bqreports/admindashboard') {
                                                 sh 'ls -lrt'

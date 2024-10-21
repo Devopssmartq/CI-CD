@@ -1,0 +1,19 @@
+def setProperties(String appName, String versionName) {
+    
+	def APP_NAME = "ort-uk"
+	sh "mkdir -p ${APP_NAME}-latest"
+	sh "echo webort enter"
+	
+	//sh "echo ${web_ort_PATH}"
+	sh "gcloud storage cp ${appName}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
+	
+	dir("${APP_NAME}-latest") {
+		sh 'ls'
+		sh 'ls; pwd'
+		sh "tar -xzvf ${versionName}.tar.gz"
+		
+		sh "gcloud app deploy --version=$versionName --quiet $WEBORT_YAML --no-promote"    		
+	}	                       
+}
+
+return this

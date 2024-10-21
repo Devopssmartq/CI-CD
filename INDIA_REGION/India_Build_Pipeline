@@ -1,15 +1,15 @@
 
 
-def checkoutWebORT(branch) {
-    echo "Checkout webort"
+def checkoutortindia(branch) {
+    echo "Checkout ort-india"
     echo "${branch}"   
-        sh "mkdir -p webort"
-        dir('webort') {
+        sh "mkdir -p ort-india"
+        dir('ort-india') {
             checkout([$class: 'GitSCM', 
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/web-ort', credentialsId: 'git/devops/new',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/ort-india', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -17,49 +17,49 @@ def checkoutWebORT(branch) {
             newId = "${commitId}"
         }
 }
-def buildWebORT() {
+def buildortindia() {
     container('nodejs') {
         sh 'echo ${WORKSPACE}'
         sh 'echo $BUILD_NUMBER'
-            dir('webort') {
+            dir('ort-india') {
                 sh 'ls'
                 sh 'npm install --force'
                 sh 'CI=false npm run build'
-                    dir ('${WORKSPACE}/webort/build') {
+                    dir ('${WORKSPACE}/ort-india/build') {
                         sh 'ls'
                         sh 'echo changing to directory'
                     }
                 }
             }
 }
-def uploadWebOrtToGCS(bucketname) {
+def uploadortindiaToGCS(bucketname) {
    echo "Upload to GCS"  
    echo "My branch & GCS Bucket name is  ${branch}"
         container('gcloud') {
-            dir('webort') {
+            dir('ort-india') {
                 sh 'ls'
                 sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
-    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/India_Region/${bucketname}/web-ort/ --recursive"
+    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/India_Region/${bucketname}/ort-india/ --recursive"
     		    sh "tar -xzvf ${newId}.tar.gz"
-                //sh "gcloud storage cp ${WORKSPACE}/webort/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/web-ort/webort@$VERSION_NUMBER --recursive"
+                //sh "gcloud storage cp ${WORKSPACE}/ort-india/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/ort-india/ort-india@$VERSION_NUMBER --recursive"
             }
             
-            // sh "gcloud storage cp ${WORKSPACE}/webort/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/web-ort/webort@$VERSION_NUMBER/build --recursive"
+            // sh "gcloud storage cp ${WORKSPACE}/ort-india/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/ort-india/ort-india@$VERSION_NUMBER/build --recursive"
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
 }
 
-def checkoutControlDesk(branch) {
-    echo "Checkout Controldesk"
-        sh "mkdir -p controldesk"
-        echo "test controldesk"
+def checkoutcontroldeskindia(branch) {
+    echo "Checkout control-desk-india"
+        sh "mkdir -p control-desk-india"
+        echo "test control-desk-india"
         echo "My Branch ${branch}"
-            dir('controldesk') {
+            dir('control-desk-india') {
                 checkout([$class: 'GitSCM', 
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/control-desk.git', credentialsId: 'git/devops/new',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/control-desk-india', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -72,28 +72,28 @@ def checkoutControlDesk(branch) {
             }
 
 }
-def buildControlDesk() {
+def buildcontroldeskindia() {
     echo "Build Control Desk"  
     container('phrase') {
-        dir('controldesk') {
+        dir('control-desk-india') {
             sh 'phrase version'
             sh 'phrase push'
             sh 'phrase pull'
-            sh 'git config --global --add safe.directory ${WORKSPACE}/controldesk'
+            sh 'git config --global --add safe.directory ${WORKSPACE}/control-desk-india'
             sh 'git status'
         }
     }
     container('node-cd-js') {
         sh 'echo ${WORKSPACE}'
         sh 'ls'
-        dir('controldesk') {
-            sh 'git config --global --add safe.directory ${WORKSPACE}/controldesk'
+        dir('control-desk-india') {
+            sh 'git config --global --add safe.directory ${WORKSPACE}/control-desk-india'
             sh 'git status'
             sh 'npm install --force'
             sh 'npm install @emotion/styled'
             sh 'npm install react-checkbox-tree@1.5.0 --force'
             sh 'CI=false npm run build'
-            dir ('${WORKSPACE}/controldesk/build') {
+            dir ('${WORKSPACE}/control-desk-india/build') {
                 sh 'echo changing to directory'
                 sh 'ls'
             
@@ -101,32 +101,32 @@ def buildControlDesk() {
         }
     }   
 }
-def uploadControlDeskToGCS(bucketname) {
+def uploadcontroldeskindiaToGCS(bucketname) {
     echo "Upload Control Desk to GCS" 
     echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {
-            dir('controldesk') {
+            dir('control-desk-india') {
                 sh 'ls'
                 sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
-    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/India_Region/${bucketname}/controldesk/ --recursive"
+    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/India_Region/${bucketname}/control-desk-india/ --recursive"
     		    sh "tar -xzvf ${newId}.tar.gz"
-                //sh "gcloud storage cp ${WORKSPACE}/controldesk/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/controldesk/controldesk@$VERSION_NUMBER --recursive"
+                //sh "gcloud storage cp ${WORKSPACE}/control-desk-india/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/control-desk-india/control-desk-india@$VERSION_NUMBER --recursive"
             }
             
-            //sh "gcloud storage cp ${WORKSPACE}/controldesk/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/controldesk/controldesk@$VERSION_NUMBER/build --recursive"
+            //sh "gcloud storage cp ${WORKSPACE}/control-desk-india/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/control-desk-india/control-desk-india@$VERSION_NUMBER/build --recursive"
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }   
 }
 
-def checkoutEWallet(branch) {
-    echo "Checkout ewallet"
-        sh "mkdir -p ewallet"
-            dir('ewallet') {
+def checkoutewalletindia(branch) {
+    echo "Checkout ewallet-india"
+        sh "mkdir -p ewallet-india"
+            dir('ewallet-india') {
                 checkout([$class: 'GitSCM', 
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/eWallet.git', credentialsId: 'git/devops/new',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/ewallet-india.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -134,12 +134,12 @@ def checkoutEWallet(branch) {
             newId = "${commitId}"
                 // git branch: "${branch}",
                 // credentialsId: 'serviceaccount', 
-                // url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/ewallet.git' 
+                // url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/ewallet-india.git' 
             }
 }
-def buildEWallet() {
-    echo "Building eWallet"
-        dir('ewallet'){
+def buildewalletindia() {
+    echo "Building ewallet-india"
+        dir('ewallet-india'){
             container('node-js') {
                 sh 'npm install'
                 sh 'CI=false npm run build'
@@ -150,32 +150,32 @@ def buildEWallet() {
             }
         }
 }
-def uploadEWalletToGCS(bucketname) {
-    echo "Upload eWallet to GCS"
+def uploadewalletindiaToGCS(bucketname) {
+    echo "Upload ewallet-india to GCS"
     echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {
-            dir('ewallet'){
+            dir('ewallet-india'){
                 sh "tar -czvf ${newId}.tar.gz build/*"
     		    sh 'ls'
-    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/India_Region/${bucketname}/ewallet/ --recursive"
+    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/India_Region/${bucketname}/ewallet-india/ --recursive"
     		    sh "tar -xzvf ${newId}.tar.gz" 
             }    
-            // sh "gcloud storage cp ${WORKSPACE}/ewallet/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/ewallet/ewallet@$VERSION_NUMBER --recursive"
+            // sh "gcloud storage cp ${WORKSPACE}/ewallet-india/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/ewallet-india/ewallet-india@$VERSION_NUMBER --recursive"
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
 
             
 }
 
-def checkouttime2eatweb(branch) {
+def checkouttime2eatwebindia(branch) {
     echo "Checkout PWA"
-        sh "mkdir -p time2eatweb"
-            dir('time2eatweb') {
+        sh "mkdir -p time2eatweb-india"
+            dir('time2eatweb-india') {
                 checkout([$class: 'GitSCM', 
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/time2eatweb.git', credentialsId: 'git/devops/new',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/time2eatweb-india.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -183,15 +183,15 @@ def checkouttime2eatweb(branch) {
             newId = "${commitId}"
                 // git branch: "${branch}",
                 // credentialsId: 'serviceaccount',
-                // url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/time2eatweb.git'
+                // url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/time2eatweb-india.git'
             }
 
 }
-def buildtime2eatweb() {
+def buildtime2eatwebindia() {
     echo "Build PWA"
         container('node-js') {
              sh 'echo ${WORKSPACE}'
-                dir('time2eatweb') {
+                dir('time2eatweb-india') {
                     sh 'npm install --force'
                     //sh 'npm update'
                     //sh 'export NODE_OPTIONS=--openssl-legacy-provider'
@@ -200,26 +200,26 @@ def buildtime2eatweb() {
                     sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app3'
                     sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app4'
                     sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app5'
-                        dir ('${WORKSPACE}/time2eatweb/build') {
+                        dir ('${WORKSPACE}/time2eatweb-india/build') {
                             sh 'echo changing to directory'
                        }
                     }
                 }
 
 }
-def uploadtime2eatwebToGCS(bucketname) {
-    echo "Upload time2eatweb to GCS"
+def uploadtime2eatwebindiaToGCS(bucketname) {
+    echo "Upload time2eatweb-india to GCS"
     echo "My branch & GCS Bucket name is ${branch}"
     container('gcloud') {
-        dir('time2eatweb') {
+        dir('time2eatweb-india') {
             sh 'ls'
             sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
-    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/India_Region/${bucketname}/time2eat/ --recursive"
+    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/India_Region/${bucketname}/time2eatweb-india/ --recursive"
     	    sh "tar -xzvf ${newId}.tar.gz"
-            //sh "gcloud storage cp ${WORKSPACE}/time2eatweb/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/time2eat/time2eat@$VERSION_NUMBER --recursive"
+            //sh "gcloud storage cp ${WORKSPACE}/time2eatweb-india/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/time2eatweb-india/time2eatweb-india@$VERSION_NUMBER --recursive"
         }
        
-        //sh "gcloud storage cp ${WORKSPACE}/time2eatweb/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/time2eat/time2eat@$VERSION_NUMBER/build --recursive"
+        //sh "gcloud storage cp ${WORKSPACE}/time2eatweb-india/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/time2eatweb-india/time2eatweb-india@$VERSION_NUMBER/build --recursive"
         CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
     }
 
@@ -276,16 +276,16 @@ def uploadvendordashboardToGCS(bucketname) {
 
 }
 
-def checkoutgenericadmindashboard(branch) {
-    echo "Checkout generic-admin-dashboard"
+def checkoutadmindashboardindia(branch) {
+    echo "Checkout admin-dashboard-india"
     echo "${branch}"
-        sh "mkdir -p generic-admin-dashboard"                
-        dir('generic-admin-dashboard') {
+        sh "mkdir -p admin-dashboard-india"                
+        dir('admin-dashboard-india') {
              checkout([$class: 'GitSCM', 
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/generic-admin-dashboard.git', credentialsId: 'git/devops/new',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/admin-dashboard-india.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -293,13 +293,13 @@ def checkoutgenericadmindashboard(branch) {
             newId = "${commitId}"
             // git branch: "${branch}",
             // credentialsId: 'serviceaccount',
-            // url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/generic-admin-dashboard.git' 
+            // url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/admin-dashboard-india.git' 
             // sh 'ls'
         }
 }
-def buildgenericadmindashboard() {
-    echo"Building generic-admin-dashboard"
-        dir('generic-admin-dashboard') {         
+def buildadmindashboardindia() {
+    echo"Building admin-dashboard-india"
+        dir('admin-dashboard-india') {         
             container('node-js') {
                 sh 'npm install --force'
                 sh 'CI=false npm run build'
@@ -310,16 +310,16 @@ def buildgenericadmindashboard() {
             }             
         }
 }
-def uploadgenericadmindashboardToGCS(bucketname) {
-    echo "Uploading generic-admin-dashboard to GCS Bucket"   
+def uploadadmindashboardindiaToGCS(bucketname) {
+    echo "Uploading admin-dashboard-india to GCS Bucket"   
     echo "My branch & GCS Bucket name is ${branch}"     
     container('gcloud') {
-        dir('generic-admin-dashboard') { 
+        dir('admin-dashboard-india') { 
             sh 'ls'
             sh "tar -czvf ${newId}.tar.gz build/*"
-    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/India_Region/${bucketname}/generic-admin-dashboard/ --recursive"
+    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/India_Region/${bucketname}/admin-dashboard-india/ --recursive"
     	    sh "tar -xzvf ${newId}.tar.gz"
-            // sh "gcloud storage cp ${WORKSPACE}/generic-admin-dashboard/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/generic-admin-dashboard/admindashboard@$VERSION_NUMBER --recursive"
+            // sh "gcloud storage cp ${WORKSPACE}/admin-dashboard-india/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/admin-dashboard-india/admindashboard@$VERSION_NUMBER --recursive"
         }
         CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
     }    
@@ -400,21 +400,21 @@ def uploadsqmicroservicesbackendToGCS(bucketname) {
         }
 }
 
-def checkoutcontroldeskflutter(branch) {
+def checkoutcontroldeskflutterindia(branch) {
     echo "Checkout controldeskflutter"
     echo "${branch}"   
-        sh "mkdir -p controldeskflutter"
-        dir('controldeskflutter') {
+        sh "mkdir -p control-desk-flutter-india"
+        dir('control-desk-flutter-india') {
             checkout([$class: 'GitSCM', 
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/control-desk-flutter.git', credentialsId: 'git/devops/new',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/control-desk-flutter-india.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             // git branch: "${branch}",
             // credentialsId: 'bitbucket api',
-            // url: 'https://yash123devops@bitbucket.org/bottlelabtech/control-desk-flutter.git'
+            // url: 'https://yash123devops@bitbucket.org/bottlelabtech/control-desk-flutter-india.git'
             // sh 'ls'
             
             // Get the commit ID of the current HEAD
@@ -426,11 +426,11 @@ def checkoutcontroldeskflutter(branch) {
             newId = "${commitId}"
         }
 }
-def buildcontroldeskflutter() {
+def buildcontroldeskflutterindia() {
     container('flutter') {
         sh 'echo ${WORKSPACE}'
         sh 'echo $BUILD_NUMBER'
-            dir('controldeskflutter') {
+            dir('control-desk-flutter-india') {
                 sh 'flutter clean'
                 sh 'flutter pub get'
                 sh 'flutter build web --web-renderer canvaskit'
@@ -443,20 +443,20 @@ def buildcontroldeskflutter() {
             }
     }
 }
-def uploadcontroldeskflutterToGCS(bucketname) {
+def uploadcontroldeskflutterindiaToGCS(bucketname) {
   echo "Upload to GCS"  
   echo "My branch & GCS Bucket name is ${branch}"
         container('gcloud') {
-            dir('controldeskflutter') {
+            dir('control-desk-flutter-india') {
                 sh 'ls'
 		        sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
-                sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/India_Region/${bucketname}/controldeskflutter/  --recursive"
+                sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/India_Region/${bucketname}/control-desk-flutter-india/  --recursive"
 		        sh "tar -xzvf ${newId}.tar.gz"
             }
-            //sh "tar -czvf ${newId}.tar.gz controldeskflutter/*.yaml controldeskflutter/build/*"
+            //sh "tar -czvf ${newId}.tar.gz control-desk-flutter-india/*.yaml control-desk-flutter-india/build/*"
 		    //sh 'ls'
 		    
-            //sh "gcloud storage cp ${WORKSPACE}/controldeskflutter/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/controldeskflutter/controldeskflutter.tar.gz-${newId} --recursive"
+            //sh "gcloud storage cp ${WORKSPACE}/control-desk-flutter-india/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/control-desk-flutter-india/control-desk-flutter-india.tar.gz-${newId} --recursive"
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
 }
@@ -475,7 +475,7 @@ def checkouttime2eat_flutter(branch) {
             sh 'ls -lrt'
             // git branch: "${branch}",
             // credentialsId: 'bitbucket api',
-            // url: 'https://yash123devops@bitbucket.org/bottlelabtech/control-desk-flutter.git'
+            // url: 'https://yash123devops@bitbucket.org/bottlelabtech/control-desk-flutter-india.git'
             // sh 'ls'
             
             // Get the commit ID of the current HEAD
@@ -535,7 +535,7 @@ def checkoutphrase_translate(branch) {
             def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
             sh "echo ${commitId}"
             newId = "${commitId}"
-            // git branch: "${branch}",
+            // git branch: "${branch}",plea
             // credentialsId: 'serviceaccount',
             // url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/microservices-backend-india.git'
             // sh 'ls -lrt'
@@ -641,7 +641,7 @@ pipeline {
 
     parameters {
 
-    choice(name: 'BitBucketProject', choices: ['web-ort', 'control-desk', 'ewallet', 'time2eatweb', 'vendor-dashboard','generic-admin-dashboard', 'cloud-backend-india', 'microservices-backend-india','controldeskflutter', 'time2eat_flutter', 'phrase_translate'], description: 'Select BitBucket Project')
+    choice(name: 'BitBucketProject', choices: ['ort-india', 'control-desk-india', 'ewallet-india', 'time2eatweb-india', 'vendor-dashboard','admin-dashboard-india', 'cloud-backend-india', 'microservices-backend-india','control-desk-india-flutter', 'time2eat_flutter', 'phrase_translate'], description: 'Select BitBucket Project')
     choice(name: 'Branch', choices: ['auto-sprint', 'auto-release', 'master', 'hotfix'], description: 'Select Branch')
     string(name: 'Hotfix_Branch', description: 'Enter the branch name')
     string(name: 'CommitId', defaultValue:" ", trim: true, description: 'Enter the commitId')
@@ -692,35 +692,35 @@ pipeline {
                     def buildPipeline = false
 
 
-                    if (bitBucketProject == 'web-ort') {
-                        checkoutWebORT(branch)
-                        buildWebORT()
-                        uploadWebOrtToGCS(bucketname)
+                    if (bitBucketProject == 'ort-india') {
+                        checkoutortindia(branch)
+                        buildortindia()
+                        uploadortindiaToGCS(bucketname)
                         buildPipeline = true
-                    } else if (bitBucketProject == 'control-desk') {
-                        checkoutControlDesk(branch)
-                        buildControlDesk()
-                        uploadControlDeskToGCS(bucketname)
+                    } else if (bitBucketProject == 'control-desk-india') {
+                        checkoutcontroldeskindia(branch)
+                        buildcontroldeskindia()
+                        uploadcontroldeskindiaToGCS(bucketname)
                         buildPipeline = true 
-                    } else if (bitBucketProject == 'ewallet') {
-                        checkoutEWallet(branch)
-                        buildEWallet()
-                        uploadEWalletToGCS(bucketname)
+                    } else if (bitBucketProject == 'ewallet-india') {
+                        checkoutewalletindia(branch)
+                        buildewalletindia()
+                        uploadewalletindiaToGCS(bucketname)
                         buildPipeline = true
-                    } else if (bitBucketProject == 'time2eatweb') {
-                        checkouttime2eatweb(branch)
-                        buildtime2eatweb()
-                        uploadtime2eatwebToGCS(bucketname)
+                    } else if (bitBucketProject == 'time2eatweb-india') {
+                        checkouttime2eatwebindia(branch)
+                        buildtime2eatwebindia()
+                        uploadtime2eatwebindiaToGCS(bucketname)
                         buildPipeline = true
                     } else if (bitBucketProject == 'vendor-dashboard') {
                         checkoutvendordashboard(branch)
                         buildvendordashboard()
                         uploadvendordashboardToGCS(bucketname)
                         buildPipeline = true
-                    } else if (bitBucketProject == 'generic-admin-dashboard') {
-                        checkoutgenericadmindashboard(branch)
-                        buildgenericadmindashboard()
-                        uploadgenericadmindashboardToGCS(bucketname)
+                    } else if (bitBucketProject == 'admin-dashboard-india') {
+                        checkoutadmindashboardindia(branch)
+                        buildadmindashboardindia()
+                        uploadadmindashboardindiaToGCS(bucketname)
                         buildPipeline = true                    
                     } else if (bitBucketProject == 'cloud-backend-india') {
                         checkoutsmartqcloudbackend(branch)
@@ -730,10 +730,10 @@ pipeline {
                         checkoutsqmicroservicesbackend(branch)
                         uploadsqmicroservicesbackendToGCS(bucketname)
                         buildPipeline = true
-                    } else if (bitBucketProject == 'controldeskflutter') {
-                        checkoutcontroldeskflutter(branch)
-                        buildcontroldeskflutter()
-                        uploadcontroldeskflutterToGCS(bucketname)
+                    } else if (bitBucketProject == 'control-desk-india-flutter') {
+                        checkoutcontroldeskflutterindia(branch)
+                        buildcontroldeskflutterindia()
+                        uploadcontroldeskflutterindiaToGCS(bucketname)
                         buildPipeline = true  
                     } else if (bitBucketProject == 'time2eat_flutter') {
                         checkouttime2eat_flutter(branch)

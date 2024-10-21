@@ -1,0 +1,18 @@
+def setProperties(String appName, String versionName) {
+    
+	def CONTROLDESK_FLUTTER_YAML = 'control-desk.yaml' //To-Do: need to get it from config variable, as like others
+    //controldeskflutter
+    def APP_NAME = "control-desk-flutter-india"
+    sh "mkdir -p ${APP_NAME}-latest"
+    
+    echo "${APP_NAME}"
+    sh "gcloud storage cp ${appName}* ${WORKSPACE}/${APP_NAME}-latest/ --recursive"
+    dir("${APP_NAME}-latest") {
+        sh 'ls'
+        sh "tar -xzvf ${versionName}.tar.gz"
+        sh 'ls; pwd'
+        sh "gcloud app deploy --version=$versionName --quiet $CONTROLDESK_FLUTTER_YAML --no-promote"
+    }                   
+}
+
+return this
