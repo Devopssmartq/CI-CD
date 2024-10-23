@@ -75,8 +75,8 @@ pipeline {
                             STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "vendor-dashboard")
                             sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${params.Region}/${params.Hotfix_Branch}/vendor-dashboard/ --recursive"
 
-                            STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "controldeskflutter")
-                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${params.Region}/${params.Hotfix_Branch}/controldeskflutter/ --recursive"    
+                            STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "control-desk-flutter-india")
+                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${params.Region}/${params.Hotfix_Branch}/control-desk-flutter-india/ --recursive"    
                         
                         } else if (params.Region == "UK_Region") {
                             STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "ewallet-uk")
