@@ -73,15 +73,25 @@ def checkingVersion(ARR_SELECTED_SERVICE){
                     
                     echo "Number of versions for $service: $serviceVersionCount"
 
-                    if (serviceVersionCount > 5) {
-                        echo "Listing versions for $service"
-                        def versionsList = sh(script: "gcloud app versions list --service=$service --sort-by=~last_deployed_time --format=\"csv[no-heading](id)\" | sed '1,8d'", returnStdout: true).trim()
-                        echo "Versions for $service: $versionsList"
-                        echo "Deleting old versions for $service"
-                        versionsList.split().each { version ->
-                            sh "gcloud app versions delete $version --service=$service --quiet"
+                    if (params.APP_ENGINE_PROJECT_ID.contains("-india")) {
+                        if (serviceVersionCount > 5) {
+                            echo "Listing versions for $service"
+                            def versionsList = sh(script: "gcloud app versions list --service=$service --sort-by=~last_deployed_time --format=\"csv[no-heading](id)\" | sed '1,8d'", returnStdout: true).trim()
+                            echo "Versions for $service: $versionsList"
+                            echo "Deleting old versions for $service"
+                            versionsList.split().each { version ->
+                                sh "gcloud app versions delete $version --service=$service --quiet"
+                            }
                         }
-                    }
+                    } else if (serviceVersionCount > 8) {
+                            echo "Listing versions for $service"
+                            def versionsList = sh(script: "gcloud app versions list --service=$service --sort-by=~last_deployed_time --format=\"csv[no-heading](id)\" | sed '1,8d'", returnStdout: true).trim()
+                            echo "Versions for $service: $versionsList"
+                            echo "Deleting old versions for $service"
+                            versionsList.split().each { version ->
+                                sh "gcloud app versions delete $version --service=$service --quiet"
+                            }
+                        }   
                 }
             }
         }    

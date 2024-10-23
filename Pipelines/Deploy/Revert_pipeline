@@ -46,16 +46,17 @@ properties([
                         if (scope == "sprint") {
                             options = ["smartqdemo-au", "smartqdemo-de", "smartqdemo-hk", "smartqdemo-nz", "smartqdemo-us", "smartqdemo-uk", "sqpentest", "sqinternational-cicd", "smartqdemo:selected"]
                         } else if (scope == "preprod") {
-                            options = ["sqpreprod-india", "sqpreprod-uk", "sqpreprod-us:selected"]
+                            options = ["sqpreprod-india", "sqpreprod-uk", "sqpreprod-us:selected", "sqpreprod-spain", "sqpreprod-de", "sqpreprod-au", "sqpreprod-hk", "sqpreprod-jp", "sqpreprod-sng", "sqpreprod-nz"]
                         } else if (scope == "beta") {
                             options = ["smartqprd-india", "smartqprd-uk", "smartqprd-us:selected"]
                         } else if (scope == "prod") {
-                            options = [ "smartqprd-au", "smartqprd-be", "smartqprd-chi", "smartqprd-cn", "smartqprd-de", "smartqprd-fi", "smartqprd-hk", "smartqprd-ie", "smartqprd-india",
-                                        "smartqprd-it", "smartqprd-jp", "smartqprd-mex", "smartqprd-nl",  "smartqprd-nz", "smartqprd-sng", "smartqprd-spain", "smartqprd-uae", "smartqprd-uk", "smartqprd-us:selected"]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+                            options = [ "smartqprd-au", "smartqprd-be", "smartqprd-chi", "smartqprd-cn", "smartqprd-de", "smartqprd-fi", "smartqprd-hk", "smartqprd-ie", "smartqprd-india", "smartqprd-ph", 
+                                        "smartqprd-it", "smartqprd-jp", "smartqprd-mex", "smartqprd-nl",  "smartqprd-nz", "smartqprd-sng", "smartqprd-spain", "smartqprd-uae", "smartqprd-uk", "smartqprd-us:selected", "smartqprd-se"]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
                         } else if (scope == "hot-fix") {
-                            options = [ "sqpreprod-india", "sqpreprod-uk", "sqpreprod-us:selected", "smartqprd-au", "smartqprd-be", "smartqprd-chi", "smartqprd-cn", "smartqprd-de", "smartqprd-fi", "smartqprd-hk",
+                            options = [ "sqpreprod-india", "sqpreprod-uk", "sqpreprod-us:selected", "sqpreprod-spain", "sqpreprod-de", "sqpreprod-au", "sqpreprod-hk", "sqpreprod-jp", "sqpreprod-sng", "sqpreprod-nz",
+                                        "smartqprd-au", "smartqprd-be", "smartqprd-chi", "smartqprd-cn", "smartqprd-de", "smartqprd-fi", "smartqprd-hk",
                                         "smartqprd-ie",  "smartqprd-india", "smartqprd-it", "smartqprd-jp", "smartqprd-mex", "smartqprd-nl", "smartqprd-nz", "smartqprd-sng", "smartqprd-spain",  "smartqprd-uae",
-                                        "smartqprd-uk", "smartqprd-us"]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+                                        "smartqprd-uk", "smartqprd-us", "smartqprd-ph", "smartqprd-se"]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
                         }
                         return options
                     '''
@@ -117,46 +118,62 @@ pipeline{
             steps {
                 container('gcloud') {
                     script {
-                        sh "gcloud storage cp  gs://sqinternational-cicd.appspot.com/release_summary/released/${params.APP_ENGINE_PROJECT_ID}/${MIGRATE_TRAFFIC} ${WORKSPACE}/releasedfile --recursive"
+                        // Download the file from Google Cloud Storage
+                        sh "gcloud storage cp gs://sqinternational-cicd.appspot.com/release_summary/released/${params.APP_ENGINE_PROJECT_ID}/${MIGRATE_TRAFFIC} ${WORKSPACE}/releasedfile --recursive"
                         sh "ls"
-                        def inputFile = 'releasedfile' 
+        
+                        def inputFile = 'releasedfile'
                         // Read lines from the input file
-                        def lines = readFile inputFile
-                        lines = lines.split('\n')
+                        def lines = readFile(inputFile).split('\n')
                         def content = lines.join('\n')
                         println(content)
+        
                         def servicePreviousVersions = []
-                        for (line in lines) {
+                        lines.each { line ->
+                            // Remove square brackets and split by comma followed by space
                             def keyValuePairs = line.replaceAll("[\\[\\]]", "").split(', ')
+        
                             def params = [:]
-                            
+        
+                            // Iterate through the key-value pairs and split by ':'
                             keyValuePairs.each { pair ->
                                 def parts = pair.split(':')
-                                params[parts[0].trim()] = parts[1].trim()
+                                if (parts.size() == 2) {  // Check to avoid ArrayIndexOutOfBoundsException
+                                    params[parts[0].trim()] = parts[1].trim()
+                                } else {
+                                    println("Invalid key-value pair format: $pair")
+                                }
                             }
-    
+        
+                            // Extract service name and previous version
                             def service_name = params['service_name']
                             def previous_version = params['previous_version']
-    
+        
                             if (service_name && previous_version) {
-                                servicePreviousVersions.add("service_name: $service_name, previous_version: $previous_version")
-                                sh "gcloud app services set-traffic ${service_name} --splits ${previous_version}=1 --project=${APP_ENGINE_PROJECT_ID} --quiet"
+                                if (service_name == 'cloud_run') {
+                                    sh "gcloud run services update-traffic ${service_name} --region europe-west3 --to-revisions ${previous_version}=100 --project=${APP_ENGINE_PROJECT_ID} --quiet"
+                                } else {
+                                    // Add service and previous version to the list
+                                    servicePreviousVersions.add("service_name: $service_name, previous_version: $previous_version")
+                                    sh "gcloud app services set-traffic ${service_name} --splits ${previous_version}=1 --project=${APP_ENGINE_PROJECT_ID} --quiet"
                             } else {
                                 println("Invalid line format: $line")
                             }
                         }
-                        // Write results to a file
+        
+                        // Write the list of services and versions to a file
                         def filePath = "${env.WORKSPACE}/revert_traffic-${env.VERSION_NUMBER}.txt"
                         def list = servicePreviousVersions.join('\n')
-                        writeFile file: filePath, text: list
+                        writeFile(file: filePath, text: list)
                         echo "Items written to ${filePath}"
-
-                        // Copy file to GCP Storage
+        
+                        // Copy the result file to GCP Storage
                         sh "gcloud storage cp ${filePath} gs://sqinternational-cicd.appspot.com/release_summary/revert_traffic/${APP_ENGINE_PROJECT_ID}/${env.VERSION_NUMBER} --recursive"
                     }
                 }
             }
         }
+
     }
 }
 
