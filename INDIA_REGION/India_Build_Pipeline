@@ -74,21 +74,21 @@ def checkoutcontroldeskindia(branch) {
 }
 def buildcontroldeskindia() {
     echo "Build Control Desk"  
-    container('phrase') {
-        dir('control-desk-india') {
-            sh 'phrase version'
-            sh 'phrase push'
-            sh 'phrase pull'
-            sh 'git config --global --add safe.directory ${WORKSPACE}/control-desk-india'
-            sh 'git status'
-        }
-    }
+    // container('phrase') {
+    //     dir('control-desk-india') {
+    //         sh 'phrase version'
+    //         sh 'phrase push'
+    //         sh 'phrase pull'
+    //         sh 'git config --global --add safe.directory ${WORKSPACE}/control-desk-india'
+    //         sh 'git status'
+    //     }
+    // }
     container('node-cd-js') {
         sh 'echo ${WORKSPACE}'
         sh 'ls'
         dir('control-desk-india') {
-            sh 'git config --global --add safe.directory ${WORKSPACE}/control-desk-india'
-            sh 'git status'
+            //sh 'git config --global --add safe.directory ${WORKSPACE}/control-desk-india'
+           // sh 'git status'
             sh 'npm install --force'
             sh 'npm install @emotion/styled'
             sh 'npm install react-checkbox-tree@1.5.0 --force'
@@ -470,7 +470,7 @@ def checkouttime2eat_flutter(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_flutter_main_app', credentialsId: 'git/devops/new',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/main-app-india.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             // git branch: "${branch}",
@@ -491,15 +491,25 @@ def buildtime2eat_flutter() {
     container('time2eatflutter') {
         sh 'echo ${WORKSPACE}'
         sh 'echo $BUILD_NUMBER'
-            dir('time2eat_flutter') {
+            dir('time2eat_flutter') { 
+                sh 'ls'
+                sh 'echo "My secret value is: $MY_SECRET"'
+                //sh "git config --global credential.helper"
+                sh "git config --global credential.helper store"
+                sh "echo 'https://Devopssmartq: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@github.com' > ~/.git-credentials"
+                //sh "git config --global credential.helper"
+                sh "git config --list"
+                sh "git clone https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_ui_lib.git"
                 sh 'flutter clean'
+                sh 'flutter pub get'
+                sh 'dart run phrase'
+                sh 'flutter pub upgrade'
                 sh 'flutter build web'
                 sh 'ls'
                 dir ('${WORKSPACE}/build/web') {
                     sh 'ls'
                     sh 'pwd'
-                    //sh 'echo changing to directory'
-                }
+                }                   
             }
     }
 }
@@ -613,10 +623,17 @@ pipeline {
             tty: true 
             
           - name: time2eatflutter
-            image: instrumentisto/flutter:latest
+            image: instrumentisto/flutter:3.24.3
+            resources:
+            requests:
+                memory: "4096Mi"  # Increase the requested memory
+                cpu: "500m"
+            limits:
+                memory: "8192Mi"  # Increase the maximum allowed memory
+                cpu: "1000m"
             command:
             - cat
-            tty: true   
+            tty: true    
 
           - name: phrase
             image: ubuntu:latest
@@ -653,6 +670,7 @@ pipeline {
         //environment='SPRINT'
         //def newid = '${NewID}'
 	//echo "${newid}"
+        MY_SECRET = credentials('git/devops/new')
         def CLOUD_URL = 'Your_URL'
         VERSION_NUMBER = VersionNumber([
             versionNumberString: '${BUILD_DATE_FORMATTED, "yyyy"}-${BUILDS_TODAY}',  

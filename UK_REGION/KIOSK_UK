@@ -224,8 +224,7 @@ pipeline {
         stage('copy apk file'){
             steps {
                 container('gcloud'){
-                    dir('smartq-kiosk-native'){
-                        dir ('${WORKSPACE}/build') {                            
+                    dir('smartq-kiosk-native'){                          
                         sh 'echo changing to directory'
                             dir ('app') { 
                               sh 'ls'
@@ -237,21 +236,20 @@ pipeline {
                                         sh 'ls'
                                         dir('smartq/release'){
                                           sh 'ls'
-                                          sh 'gcloud storage cp * gs://smartqdemo_pub/ --recursive'
+                                          sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/UK_Region/${params.BRANCH_NAME}/KIOSK/ --recursive"
                                         }
                                         dir('bonAppetit/release'){
                                           sh 'ls'
-                                          sh 'gcloud storage cp * gs://smartqdemo_pub/ --recursive'
+                                          sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/UK_Region/${params.BRANCH_NAME}/KIOSK/ --recursive"
                                         }
                                         dir('timeToEat/release'){
                                           sh 'ls'
-                                          sh 'gcloud storage cp * gs://smartqdemo_pub/ --recursive'
+                                          sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/UK_Region/${params.BRANCH_NAME}/KIOSK/ --recursive"
                                         }
                                     }
                                   }
                               }
                           }
-                        }
                     }
                 }
             }

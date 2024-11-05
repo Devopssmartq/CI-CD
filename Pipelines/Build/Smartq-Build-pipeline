@@ -492,15 +492,25 @@ def buildtime2eat_flutter() {
     container('time2eatflutter') {
         sh 'echo ${WORKSPACE}'
         sh 'echo $BUILD_NUMBER'
-            dir('time2eat_flutter') {
+            dir('time2eat_flutter') { 
+                sh 'ls'
+                sh 'echo "My secret value is: $MY_SECRET"'
+                //sh "git config --global credential.helper"
+                sh "git config --global credential.helper store"
+                sh "echo 'https://Devopssmartq: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@github.com' > ~/.git-credentials"
+                //sh "git config --global credential.helper"
+                sh "git config --list"
+                sh "git clone https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_ui_lib.git"
                 sh 'flutter clean'
+                sh 'flutter pub get'
+                sh 'dart run phrase'
+                sh 'flutter pub upgrade'
                 sh 'flutter build web'
                 sh 'ls'
                 dir ('${WORKSPACE}/build/web') {
                     sh 'ls'
                     sh 'pwd'
-                    //sh 'echo changing to directory'
-                }
+                }                   
             }
     }
 }
