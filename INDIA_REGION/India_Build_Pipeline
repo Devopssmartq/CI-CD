@@ -496,7 +496,7 @@ def buildtime2eat_flutter() {
                 sh 'echo "My secret value is: $MY_SECRET"'
                 //sh "git config --global credential.helper"
                 sh "git config --global credential.helper store"
-                sh "echo 'https://Devopssmartq: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@github.com' > ~/.git-credentials"
+                sh "echo 'https://Devopssmartq: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@github.com' > ~/.git-credentials"
                 //sh "git config --global credential.helper"
                 sh "git config --list"
                 sh "git clone https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_ui_lib.git"
