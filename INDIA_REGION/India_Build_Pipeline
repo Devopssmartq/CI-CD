@@ -470,7 +470,7 @@ def checkouttime2eat_flutter(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/main-app-india.git', credentialsId: 'git/devops/new',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_flutter_main_app.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             // git branch: "${branch}",
@@ -491,12 +491,15 @@ def buildtime2eat_flutter() {
     container('time2eatflutter') {
         sh 'echo ${WORKSPACE}'
         sh 'echo $BUILD_NUMBER'
+        withCredentials([
+            usernamePassword(credentialsId: 'git/devops/new', usernameVariable: 'Devopssmartq', passwordVariable: 'GIT_PASSWORD')
+        ]) {
             dir('time2eat_flutter') { 
                 sh 'ls'
                 sh 'echo "My secret value is: $MY_SECRET"'
                 //sh "git config --global credential.helper"
                 sh "git config --global credential.helper store"
-                sh "echo 'https://Devopssmartq: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@github.com' > ~/.git-credentials"
+                sh "echo 'https://Devopssmartq:${GIT_PASSWORD}@github.com' > ~/.git-credentials"
                 //sh "git config --global credential.helper"
                 sh "git config --list"
                 sh "git clone https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_ui_lib.git"
@@ -511,6 +514,7 @@ def buildtime2eat_flutter() {
                     sh 'pwd'
                 }                   
             }
+        }    
     }
 }
 def uploadtime2eat_flutterToGCS(bucketname) {
@@ -519,7 +523,7 @@ def uploadtime2eat_flutterToGCS(bucketname) {
         container('gcloud') {
             dir('time2eat_flutter') {
                 sh 'ls'
-		        sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
+		        sh "tar -czvf ${newId}.tar.gz build.sh *.yaml build/*"
                 sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/India_Region/${bucketname}/time2eat-flutter/  --recursive"
 		        sh "tar -xzvf ${newId}.tar.gz"
             }

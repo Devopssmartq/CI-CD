@@ -5,7 +5,7 @@ import groovy.transform.Field
 
 
 def webapps = [
-    [key: 'smartq-kiosk-native']
+    [key: 'kiosk-android-india']
 ]
 def checkoutProject(String projectName, String branch) {
     sh "mkdir -p ${projectName}"
@@ -14,7 +14,7 @@ def checkoutProject(String projectName, String branch) {
             branches: [[name: branch]], 
             doGenerateSubmoduleConfigurations: false, 
             extensions: [[$class: 'CleanCheckout']], 
-            userRemoteConfigs: [[url: "https://github.com/Bottle-Lab-Technologies-PVT-LTD/smartq-kiosk-native.git", credentialsId: 'git/devops/new']]])
+            userRemoteConfigs: [[url: "https://github.com/Bottle-Lab-Technologies-PVT-LTD/kiosk-android-india.git", credentialsId: 'git/devops/new']]])
 
         sh 'ls -lrt'
         def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -61,13 +61,13 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true,
-                    script: 'return ["smartq-kiosk-native:selected"]'
+                    script: 'return ["kiosk-android-india:selected"]'
                 ],
                 script: [
                     classpath: [],
                     sandbox: true,
                     script: '''
-                        def choices = ["smartq-kiosk-native:selected"]
+                        def choices = ["kiosk-android-india:selected"]
                         return choices
                     '''
                 ]
@@ -130,7 +130,7 @@ pipeline {
                     //mail_url = 'https://cpgplc.webhook.office.com/webhookb2/6d5ff299-54f8-4bb3-911b-4ef2d419e335@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/3b95c290077440da9d684a0c498039e1/1b69cb54-bc9e-4431-98fa-5afcb910e9d4'
 
                     if(params.PROJECT_NAME == "All" || params.PROJECT_NAME.isEmpty()){
-                        def options = 'smartq-kiosk-native'
+                        def options = 'kiosk-android-india'
                         ARR_SELECTED_SERVICE = "$options".split(',')
                     }
                     else {
@@ -169,7 +169,7 @@ pipeline {
                     def parallelJobs = [:]
                     ARR_SELECTED_SERVICE.each { service ->
                         parallelJobs["Checkout ${service}"] = {
-                            if (service in ['smartq-kiosk-native']) {
+                            if (service in ['kiosk-android-india']) {
                                 checkoutProject(service, branch)
                             }
                         }    
@@ -182,14 +182,14 @@ pipeline {
             steps {
                 script {
                     def parallelJobs = [:]
-                    if ('smartq-kiosk-native' in ARR_SELECTED_SERVICE) {
+                    if ('kiosk-android-india' in ARR_SELECTED_SERVICE) {
                         //parallelJobs['Build IMD-flutter'] = {
                             container('native-android') {
-                              dir('smartq-kiosk-native'){
+                              dir('kiosk-android-india'){
                                 withCredentials([file(credentialsId: 'KIOSK.JKS', variable: 'KEYSTORE_PATH')]) {
                                 sh 'ls -a'
                                     sh './gradlew --refresh-dependencies'
-                                    sh './gradlew --no-daemon --parallel :app:assembleDebug'
+                                    sh './gradlew --no-daemon --parallel :app:assembleRelease'
                                     sh 'ls'
                                     dir ('app') { 
                                       sh 'ls'
@@ -200,12 +200,6 @@ pipeline {
                                             dir('apk'){
                                                 sh 'ls'
                                                 dir('smartq/release'){
-                                                  sh 'ls'
-                                                }
-                                                dir('bonAppetit/release'){
-                                                  sh 'ls'
-                                                }
-                                                dir('timeToEat/release'){
                                                   sh 'ls'
                                                 }
                                             }
@@ -224,8 +218,7 @@ pipeline {
         stage('copy apk file'){
             steps {
                 container('gcloud'){
-                    dir('smartq-kiosk-native'){
-                                                  
+                    dir('kiosk-android-india'){
                         sh 'echo changing to directory'
                             dir ('app') { 
                               sh 'ls'
@@ -237,15 +230,7 @@ pipeline {
                                         sh 'ls'
                                         dir('smartq/release'){
                                           sh 'ls'
-                                          sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/India_Region/${params.BRANCH_NAME}/KIOSK/ --recursive"
-                                        }
-                                        dir('bonAppetit/release'){
-                                          sh 'ls'
-                                          sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/India_Region/${params.BRANCH_NAME}/KIOSK/ --recursive"
-                                        }
-                                        dir('timeToEat/release'){
-                                          sh 'ls'
-                                          sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/India_Region/${params.BRANCH_NAME}/KIOSK/ --recursive"
+                                          //sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/India_Region/${params.BRANCH_NAME}/KIOSK/smartq/ --recursive"
                                         }
                                     }
                                   }

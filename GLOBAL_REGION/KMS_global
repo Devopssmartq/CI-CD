@@ -189,11 +189,13 @@ pipeline {
                         //parallelJobs['Build kms'] = {
                             container('flutter-kms') {
                                 sh "flutter --version"
-                                //withCredentials([file(credentialsId: 'IMD.jks', variable: 'KEYSTORE_PATH')]) {
+                                withCredentials([
+                                    usernamePassword(credentialsId: 'git/devops/new', usernameVariable: 'Devopssmartq', passwordVariable: 'GIT_PASSWORD')
+                                ]) {
                                     dir('kms') {
                                         sh 'echo "My secret value is: $MY_SECRET"'
                                         sh "git config --global credential.helper store"
-                                        sh "echo 'https://Devopssmartq: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@github.com' > ~/.git-credentials"
+                                        sh "echo 'https://Devopssmartq:${GIT_PASSWORD}@github.com' > ~/.git-credentials"
                                         sh "git config --list"
                                         sh "git clone https://github.com/Bottle-Lab-Technologies-PVT-LTD/common_libs_flutter.git"
                                         sh 'flutter pub get'
@@ -208,7 +210,7 @@ pipeline {
                                             }
                                         }
                                     }
-                                //}
+                                }
                             }             
                         //}                        
                     }
@@ -228,9 +230,9 @@ pipeline {
                                         sh 'ls'
                                         dir('outputs/apk/release'){
                                             sh 'ls -lrt'
-                                            //sh "mv app-release.apk IMD.apk"
+                                            sh "rm output-metadata.json"
                                             //sh "mv app-release.apk.sha1 IMD.apk.sha1"
-                                            sh "gcloud storage cp * gs://smartqdemo_pub/kms/ --recursive"
+                                            sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/Global_Region/${params.BRANCH_NAME}/kms/ --recursive"
                                         }
                                     }
                                 }
