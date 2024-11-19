@@ -149,7 +149,8 @@ def nodeapps = [
             [key: 'foodbook-web'],
             [key: 'time2eat'],
             [key: 'baweb'],
-            [key: 'web-ort']
+            [key: 'web-ort'],
+            [key: 'time2eat-flutter']
         ]
 def py2_services = [
             [key: 'appservice'],
@@ -272,7 +273,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["All:selected","controldesk","web-ort","time2eat","baweb","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","index","phrase","menucacheupdate"]'
+                    script: 'return ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","baweb","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","index","phrase","menucacheupdate"]'
                 ],
                 script: [
                     classpath: [],
@@ -281,7 +282,7 @@ properties([
                         def type = DEPLOYMENT_TYPE ?: "International" 
                         def options = []
                         if (type == "International") {
-                            options = ["All:selected","controldesk","web-ort","time2eat","baweb","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","index","phrase","menucacheupdate"]
+                            options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","baweb","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","index","phrase","menucacheupdate"]
                         }
                         return options
                     '''
@@ -398,7 +399,7 @@ pipeline {
                         echo "type of deplyoment is : ${type}"
                         def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,cloud_run,index,phrase,menucacheupdate'
                         if (type == "International") {
-                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,time2eat-flutter,pricebook,cloud_run,index,phrase,menucacheupdate'
+                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,cloud_run,index,phrase,menucacheupdate'
                         }       
                         //echo "SERVICE_NAME_LIST updated - $options"
                         ARR_SELECTED_SERVICE = "$options".split(',')                        
@@ -535,7 +536,49 @@ pipeline {
                                             ARR_VERIFY_SERVICE.add([service_name: 'web-ort', version_name: "$WEBORT_APP_ENGINE_VERSION", url_suffix: 'web-ort/main'])                                           
                                         }
                                     }
-                                }       
+                                } 
+                                if (params.APP_ENGINE_PROJECT_ID.contains("-us")) {                                    
+                                    if ('time2eat-flutter' in ARR_SELECTED_SERVICE ) {                                                                                                                                           
+                                        configFileProvider([configFile(fileId: 'deploy-time2eat-flutter-script', targetLocation: 'deploy_time2eat-flutter.groovy')]) {
+                                            TIME2EAT_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat-flutter')
+                                            //STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "time2eat-flutter")
+                                            PREVIOUS_VERSION = get_Previous_Version(service_name: "baweb-flutter")
+                                            def projectID = params.APP_ENGINE_PROJECT_ID
+                                            def variant_Name = "bonappetit"
+                                            parallelJobs[nodeapps.find { it.key == 'time2eat-flutter' }] = {
+                                                load("deploy_time2eat-flutter.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat-flutter"), TIME2EAT_FLUTTER_APP_ENGINE_VERSION, APP_ENGINE_PROJECT_ID, variant_Name)
+                                                ARR_VERIFY_SERVICE.add([service_name: 'baweb-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'bonappetit-v2/'])                                           
+                                            }                                                                                                                                                                                                           
+                                        }
+                                    }
+                                } 
+                                if (params.APP_ENGINE_PROJECT_ID.contains("-au")) {                                    
+                                    if ('time2eat-flutter' in ARR_SELECTED_SERVICE ) {                                                                                                                                           
+                                        configFileProvider([configFile(fileId: 'deploy-time2eat-flutter-script', targetLocation: 'deploy_time2eat-flutter.groovy')]) {
+                                            TIME2EAT_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat-flutter')
+                                            //STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "time2eat-flutter")
+                                            PREVIOUS_VERSION = get_Previous_Version(service_name: "jumpr-flutter")
+                                            def projectID = params.APP_ENGINE_PROJECT_ID
+                                            def variant_Name = "jumpr"
+                                            parallelJobs[nodeapps.find { it.key == 'time2eat-flutter' }] = {
+                                                load("deploy_time2eat-flutter.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat-flutter"), TIME2EAT_FLUTTER_APP_ENGINE_VERSION, APP_ENGINE_PROJECT_ID, variant_Name)
+                                                ARR_VERIFY_SERVICE.add([service_name: 'jumpr-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'jumpr-v2/'])                                           
+                                            }                                                                                                                                                                                                           
+                                        }
+                                    }
+                                } else if ('time2eat-flutter' in ARR_SELECTED_SERVICE ) {                                                                                                                                           
+                                    configFileProvider([configFile(fileId: 'deploy-time2eat-flutter-script', targetLocation: 'deploy_time2eat-flutter.groovy')]) {
+                                        TIME2EAT_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat-flutter')
+                                        //STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "time2eat-flutter")
+                                        PREVIOUS_VERSION = get_Previous_Version(service_name: "time2eat-flutter")
+                                        def projectID = params.APP_ENGINE_PROJECT_ID
+                                        def variant_Name = "timetoeat"
+                                        parallelJobs[nodeapps.find { it.key == 'time2eat-flutter' }] = {
+                                            load("deploy_time2eat-flutter.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat-flutter"), TIME2EAT_FLUTTER_APP_ENGINE_VERSION, APP_ENGINE_PROJECT_ID, variant_Name)
+                                            ARR_VERIFY_SERVICE.add([service_name: 'time2eat-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'time2eat-v2/'])                                           
+                                        }                                                                                                                                                                                                           
+                                    }
+                                }
                                 //2.1 Add new application block here
                                 parallel(parallelJobs)
                             }
