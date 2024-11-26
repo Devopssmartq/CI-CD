@@ -35,13 +35,13 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true,
-                    script: 'return ["all:selected", "US", "GLobal"]'
+                    script: 'return ["all:selected", "US", "Global"]'
                 ],
                 script: [
                     classpath: [],
                     sandbox: true,
                     script: '''
-                        def choices = ["all:selected", "US", "GLobal"]
+                        def choices = ["all:selected", "US", "Global"]
                         return choices
                     '''
                 ]
@@ -198,6 +198,25 @@ pipeline {
                                         dir('app') {
                                             sh 'ls'
                                             dir("${WORKSPACE}/build/outputs/apk/bonAppetit/release") {
+                                                sh 'ls'
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } 
+                    if (params.REGION_NAME.contains("Global") || params.REGION_NAME.contains("all")) {
+                        parallelJobs['Build for Global'] = {
+                            container('native-android') {
+                                dir('smartq-kiosk-native') {
+                                    withCredentials([file(credentialsId: 'KIOSK.JKS', variable: 'KEYSTORE_PATH')]) {
+                                        sh 'ls -a'
+                                        sh './gradlew --refresh-dependencies'
+                                        sh './gradlew --no-daemon --parallel :app-v2:assembleRelease'
+                                        dir('app') {
+                                            sh 'ls'
+                                            dir("${WORKSPACE}/build/timeToEat/release") {
                                                 sh 'ls'
                                             }
                                         }
