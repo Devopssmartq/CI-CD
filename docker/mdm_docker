@@ -1,0 +1,64 @@
+FROM ubuntu:22.04
+
+# Avoid prompts from apt
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install base dependencies
+RUN apt-get update && apt-get install -y \
+    gnupg \
+    wget \
+    software-properties-common \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    systemd \
+    dos2unix \
+    procps
+
+# Install required dependencies
+RUN apt-get update && apt-get install -y \
+    postgresql \
+    postgresql-contrib \
+    tomcat9 \
+    tomcat9-admin \
+    vim \
+    certbot \
+    unzip \
+    net-tools \
+    git \
+    maven \
+    openjdk-11-jdk
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /var/log/tomcat9 && \
+    chmod 755 /var/log/tomcat9 && \
+    chown -R tomcat:tomcat /var/log/tomcat9 && \
+    mkdir -p /usr/share/tomcat9/logs && \
+    chmod 755 /usr/share/tomcat9/logs && \
+    chown -R tomcat:tomcat /usr/share/tomcat9/logs
+
+# Prepare PostgreSQL and Tomcat configurations
+RUN mkdir -p /var/run/postgresql && \
+    chown -R postgres:postgres /var/run/postgresql && \
+    mkdir -p /var/lib/postgresql/14/main && \
+    chown -R postgres:postgres /var/lib/postgresql
+
+# Create working directory
+WORKDIR /opt/hmdm-install
+
+# Copy and prepare scripts
+COPY hmdm_install.sh .
+COPY entrypoint.sh /entrypoint.sh
+RUN dos2unix hmdm_install.sh && chmod +x hmdm_install.sh && \
+    dos2unix /entrypoint.sh && chmod +x /entrypoint.sh
+
+# Download Headwind MDM WAR file 
+RUN wget --no-check-certificate https://h-mdm.com/files/hmdm-5.29.1-os.war -O ROOT.war || \
+    (echo "Failed to download WAR file" && exit 1)
+
+# Expose ports
+EXPOSE 8080 443
+
+# Set the entrypoint
+CMD ["/bin/bash"]
+# CMD [ "tail", "-f", "/dev/null", "&" ]

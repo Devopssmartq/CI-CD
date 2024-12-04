@@ -187,7 +187,7 @@ pipeline {
                 script {
                     def parallelJobs = [:]
                     
-                    if (params.REGION_NAME.contains("us") || params.REGION_NAME.contains("all")) {
+                    if (params.REGION_NAME.contains("US") || params.REGION_NAME.contains("all")) {
                         parallelJobs['Build for US'] = {
                             container('native-android') {
                                 dir('smartq-kiosk-native') {
@@ -197,8 +197,20 @@ pipeline {
                                         sh './gradlew --no-daemon --parallel :app:assembleRelease'
                                         dir('app') {
                                             sh 'ls'
-                                            dir("${WORKSPACE}/build/outputs/apk/bonAppetit/release") {
+                                            dir('${WORKPSACE}/build') {
                                                 sh 'ls'
+                                                dir('outputs') {
+                                                    sh 'ls'
+                                                    dir('apk') {
+                                                        sh 'ls'
+                                                        dir('bonAppetit') {
+                                                            sh 'ls'
+                                                            dir('release') {
+                                                                sh 'ls'
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -216,8 +228,11 @@ pipeline {
                                         sh './gradlew --no-daemon --parallel :app-v2:assembleRelease'
                                         dir('app') {
                                             sh 'ls'
-                                            dir("${WORKSPACE}/build/timeToEat/release") {
+                                            dir("${WORKSPACE}/build") {
                                                 sh 'ls'
+                                                dir("timeToEat/release") {
+                                                    sh 'ls'
+                                                }
                                             }
                                         }
                                     }
@@ -225,27 +240,6 @@ pipeline {
                             }
                         }
                     }
-                    
-                    if (params.REGION_NAME.contains("Global") || params.REGION_NAME.contains("all")) {
-                        parallelJobs['Build for Global'] = {
-                            container('native-android') {
-                                dir('smartq-kiosk-native') {
-                                    withCredentials([file(credentialsId: 'KIOSK.JKS', variable: 'KEYSTORE_PATH')]) {
-                                        sh 'ls -a'
-                                        sh './gradlew --refresh-dependencies'
-                                        sh './gradlew --no-daemon --parallel :app-v2:assembleRelease'
-                                        dir('app') {
-                                            sh 'ls'
-                                            dir("${WORKSPACE}/build/timeToEat/release") {
-                                                sh 'ls'
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
                     parallel parallelJobs
                 }
             }
@@ -255,18 +249,34 @@ pipeline {
                 script {
                     container('gcloud') {
                         dir('smartq-kiosk-native') {                           
-                            if (params.REGION_NAME.contains("us") || params.REGION_NAME.contains("all")) {
+                            if (params.REGION_NAME.contains("US") || params.REGION_NAME.contains("all")) {
                                 dir('app') {
-                                    dir("${WORKSPACE}/build/outputs/apk/bonAppetit/release") {
+                                    sh 'ls'
+                                    dir('${WORKPSACE}/build') {
                                         sh 'ls'
-                                        sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/Global_Region/${params.BRANCH_NAME}/KIOSK/bonAppetit/ --recursive"
+                                        dir('outputs') {
+                                            sh 'ls'
+                                            dir('apk') {
+                                                sh 'ls'
+                                                dir('bonAppetit') {
+                                                    sh 'ls'
+                                                    dir('release') {
+                                                        sh 'ls'
+                                                        sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/Global_Region/${params.BRANCH_NAME}/KIOSK/bonAppetit/ --recursive"
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             } else if (params.REGION_NAME.contains("Global") || params.REGION_NAME.contains("all")) {
                                 dir('app') {
-                                    dir("${WORKSPACE}/build/timeToEat/release") {
+                                    dir("${WORKSPACE}/build") {
                                         sh 'ls'
-                                        sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/Global_Region/${params.BRANCH_NAME}/KIOSK/timeToEat/ --recursive"
+                                        dir("timeToEat/release") {
+                                            sh 'ls'
+                                            sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/Global_Region/${params.BRANCH_NAME}/KIOSK/timeToEat/ --recursive"
+                                        }
                                     }
                                 }
                             }
