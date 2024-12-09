@@ -4,7 +4,7 @@
 DOMAIN="thesmartq.com"
 
 # Prepare Tomcat configuration
-TOMCAT_CONFIG_DIR="/var/lib/tomcat9/conf/Catalina/localhost"
+TOMCAT_CONFIG_DIR="/usr/share/tomcat9/conf/"
 mkdir -p "$TOMCAT_CONFIG_DIR"
 
 # Deploy the application
