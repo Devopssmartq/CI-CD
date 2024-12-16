@@ -6,7 +6,11 @@ on:
 jobs:
   my-job:
     runs-on: ubuntu-latest
+
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
       - name: Write GCP credentials to file
         run: echo "${{ secrets.CICD_SECRET }}" > ${{ runner.temp }}/gcloud.json
 
@@ -20,7 +24,10 @@ jobs:
           gcloud config set project ${{ secrets.Project_ID }}
           echo "Project ID: ${{ secrets.Project_ID }}"
 
+      - name: Test GCloud Authentication
+        run: gcloud auth list
+
       - name: Use Secret
         env:
           MY_ORG_SECRET: ${{ secrets.CICD_SECRET }}
-        run: echo $MY_ORG_SECRET
+        run: echo "Secret loaded successfully"
