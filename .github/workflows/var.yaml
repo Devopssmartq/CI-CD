@@ -1,27 +1,31 @@
 name: variable_testing
 on:
-    push:
-      branches: [ "yash" ]
+  push:
+    branches: [ "yash" ]
+
 jobs:
-    my-job:
-        runs-on: ubuntu-latest
-        steps:
-          - name: Write GCP credentials to file
-            run: echo "${{ secrets.CICD_SECRET }}" > ${{ runner.temp }}/gcloud.json
+  my-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug Secret Injection
+        run: |
+          echo "CICD_SECRET length: ${#{{ secrets.CICD_SECRET }}}"
+          echo "Project_ID: ${{ secrets.Project_ID }}"
 
-          - name: Authenticate to Google Cloud
-            uses: google-github-actions/auth@v1
-            with:
-                credentials_json: ${{ secrets.CICD_SECRET }} 
-                project_id: ${{ secrets.CICD_SECRET }} 
+      - name: Write GCP credentials to file
+        run: echo "${{ secrets.CICD_SECRET }}" > ${{ runner.temp }}/gcloud.json
 
-          - name: Set Google Cloud Project
-            run: |
-                gcloud config set project ${{ secrets.Project_ID }}   
-                echo "Project ID: ${{ secrets.Project_ID }}"  
-                   
-          - name: Use Secret
-            env:
-              MY_ORG_SECRET: ${{ secrets.CICD_SECRET }}
-            run: echo $MY_ORG_SECRET
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.CICD_SECRET }}
 
+      - name: Set Google Cloud Project
+        run: |
+          gcloud config set project ${{ secrets.Project_ID }}
+          echo "Project ID: ${{ secrets.Project_ID }}"
+
+      - name: Use Secret
+        env:
+          MY_ORG_SECRET: ${{ secrets.CICD_SECRET }}
+        run: echo $MY_ORG_SECRET
