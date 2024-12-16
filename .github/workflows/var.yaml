@@ -6,17 +6,22 @@ jobs:
     my-job:
         runs-on: ubuntu-latest
         steps:
-          - name: Set Google Cloud Project
-            run: |
-                gcloud config set project ${{ secrets.Project_ID }}   
-                echo "Project ID: ${{ secrets.Project_ID }}"     
-          - name: Use Secret
-            env:
-              MY_ORG_SECRET: ${{ secrets.CICD_SECRET }}
-            run: echo $MY_ORG_SECRET
+          - name: Write GCP credentials to file
+            run: echo "${{ secrets.CICD_SECRET }}" > ${{ runner.temp }}/gcloud.json
 
           - name: Authenticate to Google Cloud
             uses: google-github-actions/auth@v1
             with:
                 credentials_json: ${{ secrets.CICD_SECRET }} 
                 project_id: ${{ secrets.CICD_SECRET }} 
+
+          - name: Set Google Cloud Project
+            run: |
+                gcloud config set project ${{ secrets.Project_ID }}   
+                echo "Project ID: ${{ secrets.Project_ID }}"  
+                   
+          - name: Use Secret
+            env:
+              MY_ORG_SECRET: ${{ secrets.CICD_SECRET }}
+            run: echo $MY_ORG_SECRET
+
