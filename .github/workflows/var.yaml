@@ -1,4 +1,4 @@
-name: variable_testing
+name: GCP Authentication Workflow
 on:
   push:
     branches: [ "yash" ]
@@ -11,21 +11,41 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      # Validate if CICD_SECRET exists
+      - name: Verify GCP credentials secret
+        run: |
+          if [[ -z "${{ secrets.CICD_SECRET }}" ]]; then
+            echo "Error: CICD_SECRET is not defined. Ensure it is set in the repository secrets."
+            exit 1
+          fi
+
       - name: Write GCP credentials to file
         run: echo "${{ secrets.CICD_SECRET }}" > ${{ runner.temp }}/gcloud.json
 
+      # Authenticate to Google Cloud (using either credentials_json or workload_identity_provider)
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
         with:
+          # Option 1: If using Service Account JSON (CICD_SECRET should contain the JSON key)
           credentials_json: ${{ secrets.CICD_SECRET }}
+
+          # Option 2: If using Workload Identity Federation (Uncomment and configure)
+          # workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          # service_account: my-service-account@my-project.iam.gserviceaccount.com
 
       - name: Set Google Cloud Project
         run: |
+          if [[ -z "${{ secrets.Project_ID }}" ]]; then
+            echo "Error: Project_ID is not defined. Ensure it is set in the repository secrets."
+            exit 1
+          fi
           gcloud config set project ${{ secrets.Project_ID }}
           echo "Project ID: ${{ secrets.Project_ID }}"
 
       - name: Test GCloud Authentication
-        run: gcloud auth list
+        run: |
+          echo "Listing authenticated accounts:"
+          gcloud auth list
 
       - name: Use Secret
         env:
