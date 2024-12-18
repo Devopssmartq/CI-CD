@@ -1,0 +1,29 @@
+FROM ubuntu:22.04 
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y \
+    curl \
+    wget \
+    unzip \
+    git \
+    python3 \
+    python3-pip \
+    sudo \
+    postgresql \
+    systemd \
+    openjdk-11-jre \
+    && apt-get clean
+
+RUN apt install -y aapt tomcat9 postgresql vim certbot unzip net-tools \
+    && apt-get clean \
+    add-apt-repository -y -s "deb http://archive.ubuntu.com/ubuntu/ jammy main universe"
+
+COPY hmdm_install.sh /scripts/hmdm_install.sh
+RUN chmod +x /scripts/hmdm_install.sh  
+
+RUN wget https://h-mdm.com/files/hmdm-5.29-install-ubuntu.zip \
+    ls\
+    unzip hmdm-5.29-install-ubuntu.zip \
+    ls

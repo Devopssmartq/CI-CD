@@ -517,7 +517,7 @@ def uploadtime2eat_flutterToGCS(bucketname) {
         container('gcloud') {
             dir('time2eat_flutter') {
                 sh 'ls'
-		        sh "tar -czvf ${newId}.tar.gz build.sh flavors *.yaml build/*"
+		        sh "tar -czvf ${newId}.tar.gz build.sh flavors *.yaml build/* web/*"
                 sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/Global_Region/${bucketname}/time2eat-flutter/  --recursive"
 		        sh "tar -xzvf ${newId}.tar.gz"
             }

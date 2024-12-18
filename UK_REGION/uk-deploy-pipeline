@@ -26,15 +26,24 @@ def getURL_Status(Map args) {
 }
 def get_Previous_Version(Map args) {
     container('gcloud') {
-        if (args.service_name.contains('cloud_run')) {
-            echo "Skipping previous version check for service: ${args.service_name}"
-            return null // Skipping the check for 'cloud_run' service
-        } else {
-            def previous_version = sh( 
-                script: "gcloud app versions list --service=${args.service_name} --limit=1 --format='value(VERSION.ID)' --filter='traffic_split>0'", 
+        // Fetch REGION within the function
+        def region = sh(script: "gcloud run services list --format=\"table(NAME,REGION)\" --filter=\"metadata.name=bigquerysync-${params.APP_ENGINE_PROJECT_ID}\" --project=${params.APP_ENGINE_PROJECT_ID} | head -n 2 | tail -1 | awk '{print \$2}'", returnStdout: true).trim()
+        
+        echo "region = ${region}"
+        
+        if (args.service_name.contains("cloud_run")) {
+            def previous_version = sh(
+                script: "gcloud run services describe bigquerysync-${params.APP_ENGINE_PROJECT_ID} --region ${region} --format=\"value(status.traffic[].revisionName)\"",
                 returnStdout: true
             ).trim()
-            echo "previous_version- ${previous_version}"       
+            echo "previous_version- ${previous_version}"
+            return previous_version
+        } else {    
+            def previous_version = sh(
+                script: "gcloud app versions list --service=${args.service_name} --limit=1 --format='value(VERSION.ID)' --filter='traffic_split>0'",
+                returnStdout: true
+            ).trim()
+            echo "previous_version- ${previous_version}"
             return previous_version
         }
     }
@@ -783,6 +792,7 @@ pipeline {
                                         //} 
                                         if ('cloud_run' in ARR_SELECTED_SERVICE ) {
                                             PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'microservices-backend-uk') 
+                                            PREVIOUS_VERSION = get_Previous_Version(service_name: "cloud_run")
                                             parallelJobs[py3_services.find { it.key == 'cloud_run' }] = {
                                                 dir ('microservices-backend-uk') {
                                                     sh 'ls'

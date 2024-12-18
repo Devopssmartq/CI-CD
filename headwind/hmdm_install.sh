@@ -8,9 +8,12 @@ if ! psql --version &>/dev/null; then
     echo "Installing PostgreSQL..."
     apt-get install -y postgresql
     service postgresql start
-    sudo -u postgres psql -c "CREATE DATABASE mdm_db;"
-    sudo -u postgres psql -c "CREATE USER mdm_user WITH PASSWORD 'mdm_password';"
-    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE mdm_db TO mdm_user;"
+    su - postgres
+    psql
+    postgres=# CREATE USER hmdm WITH PASSWORD 'topsecret';
+    postgres=# CREATE DATABASE hmdm WITH OWNER=hmdm;
+    postgres=# \q
+    exit
 fi
 
 # Install any other dependencies for MDM
