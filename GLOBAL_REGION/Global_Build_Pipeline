@@ -684,7 +684,7 @@ pipeline {
                     def hotfixbranch = params.Hotfix_Branch 
                     def commitid = params.CommitId
                     def bucketname = params.Branch
-                    mail_url = 'https://cpgplc.webhook.office.com/webhookb2/6d5ff299-54f8-4bb3-911b-4ef2d419e335@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/3b95c290077440da9d684a0c498039e1/1b69cb54-bc9e-4431-98fa-5afcb910e9d4'
+                    mail_url = 'https://cpgplc.webhook.office.com/webhookb2/789219c5-cacd-4a1e-88b2-13105d090c78@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/40503e57c23744fdbd3120ffc16488d4/91dca507-8de4-4171-90be-c552b60ab3b9/V2vAhkd2lBmdwz6NcEUQwAQ8PVSpmVPIEEv3TIUHitQRo1'
                     
                     if (Hotfix_Branch != '') {
                     	bucketname="${hotfixbranch}"
