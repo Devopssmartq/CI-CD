@@ -57,6 +57,7 @@ def setProperties() {
     PY3_SSO_YAML = RELEASE_SCOPE == "beta" ? '' : 'app.yaml'
     PY3_PRICEBOOK_YAML = RELEASE_SCOPE == "beta" ? '' : "${params.APP_ENGINE_PROJECT_ID}.yaml"
     PY3_INTEGRATION_YAML = RELEASE_SCOPE == "beta" ? '' :''// not for India. only for international
+    PY3_FOODCOURTLIST_YAML = RELEASE_SCOPE == "beta" ? '' : (RELEASE_SCOPE == "sprint") ? "smartqdemo-foodcourtlist.yaml" : (RELEASE_SCOPE == "preprod") ? "sqpreprod-india-foodcourtlist.yaml" : "smartqprd-india-foodcourtlist.yaml"
     PY3_BACKEND_WEBORT_YAML = (RELEASE_SCOPE == "beta") ? '' : (RELEASE_SCOPE == "sprint") ? "smartqdemo-webort.yaml" : (RELEASE_SCOPE == "preprod") ? "sqpreprod-india-webort.yaml" : "smartqprd-india-webort.yaml"
 }
 return this
