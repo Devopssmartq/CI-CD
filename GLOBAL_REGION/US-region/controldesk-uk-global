@@ -61,7 +61,7 @@ pipeline {
         }
         
     }
-    // post{
+    // post{ 
 	   // always{
 		  //  script{
 			 //   mail bcc: '', body: "Testcase is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nJenkins Build URL: ${BUILD_URL}", 

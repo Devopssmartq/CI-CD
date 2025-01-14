@@ -365,31 +365,36 @@ properties([
             filterLength: 1,
             filterable: false,
             name: 'AUTOMATION_PIPELINE',
-            referencedParameters: 'APP_ENGINE_PROJECT_ID, RELEASE_SCOPE',
+            referencedParameters: 'APP_ENGINE_PROJECT_ID, RELEASE_SCOPE, SERVICE_NAME',
             script: [
                 $class: 'GroovyScript',
                 fallbackScript: [
                     classpath: [],
-                    sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return [APP_ENGINE_PROJECT_ID + "_Critical_Sanity", "none:selected"]'
+                    sandbox: true, // Keep sandbox true for safety
+                    script: '''
+                        return ["DefaultValue", "none:selected"]
+                    '''
                 ],
                 script: [
                     classpath: [],
-                    sandbox: true, // should be true, otherwise you have to manually approve the script
+                    sandbox: true,
                     script: '''
                         def scope = RELEASE_SCOPE ?: "sprint" // Default to 'SPRINT' if not selected
                         def options = []
+                        
                         if (scope == "sprint" || scope == "beta") {
-                            options = []
+                            options = ["none:selected"]
                         } else if (APP_ENGINE_PROJECT_ID == "smartqprd-spain") {
                             options = ["Spain-Translation-Test_Suite", "none:selected"]
+                        } else if (APP_ENGINE_PROJECT_ID == "sqpreprod-us" && SERVICE_NAME == "controldesk" || SERVICE_NAME == "All") {
+                            options = [APP_ENGINE_PROJECT_ID + "_Critical_Sanity", "CD_pipeline_US", "none:selected"]
                         } else if (APP_ENGINE_PROJECT_ID) {
                             options = [APP_ENGINE_PROJECT_ID + "_Critical_Sanity", "none:selected"]
                         } else {
                             options = ['DefaultValue']
-                        }    
-                                       
-                        //return options
+                        }
+                        
+                        return options
                     '''
                 ]
             ]
@@ -945,7 +950,7 @@ pipeline {
                                                     dir ('dispatch') {
                                                         sh "ls"                                                        
                                                         sh "gcloud app deploy --quiet index.yaml"
-                                                        sh "gcloud app deploy --quiet queue.yaml"
+                                                        //sh "gcloud app deploy --quiet queue.yaml"
                                                     } 
                                                 }                                 
                                             }
