@@ -195,10 +195,10 @@ def buildtime2eatwebindia() {
                     sh 'npm install --force'
                     //sh 'npm update'
                     //sh 'export NODE_OPTIONS=--openssl-legacy-provider'
-                    sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app1'
-                    sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app2'
+                    // sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app1'
+                    // sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app2'
                     sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app3'
-                    sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app4'
+                    //sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app4'
                     sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app5'
                         dir ('${WORKSPACE}/time2eatweb-india/build') {
                             sh 'echo changing to directory'
