@@ -197,9 +197,9 @@ def buildtime2eatweb() {
                     //sh 'export NODE_OPTIONS=--openssl-legacy-provider'
                     sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app1'
                     sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app2'
-                    sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app3'
+                    //sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app3'
                     sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app4'
-                    sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app5'
+                    //sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app5'
                         dir ('${WORKSPACE}/time2eatweb/build') {
                             sh 'echo changing to directory'
                        }
