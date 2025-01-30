@@ -638,7 +638,7 @@ pipeline {
                                             def parallelDeployJobs = [:]
                                             parallelJobs[nodeapps.find { it.key == 'baweb-flutter' }] = {
                                                 load("deploy_time2eat-flutter.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat-flutter"), TIME2EAT_FLUTTER_APP_ENGINE_VERSION, APP_ENGINE_PROJECT_ID, variant_Name)
-                                                ARR_VERIFY_SERVICE.add([service_name: 'baweb-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'bonappetit-v2/'])                                           
+                                                ARR_VERIFY_SERVICE.add([service_name: 'baweb-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'baweb-v2/'])                                           
                                             }
                                             parallel parallelDeployJobs                                                                                                                                                                                                               
                                         }
