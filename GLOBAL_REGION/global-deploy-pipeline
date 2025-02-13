@@ -199,7 +199,7 @@ def time2eat_flutter() {
             
             parallelJobs[nodeapps.find { it.key == 'time2eat-flutter' }] = {
                 load("deploy_time2eat-flutter.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat-flutter"), TIME2EAT_FLUTTER_APP_ENGINE_VERSION, APP_ENGINE_PROJECT_ID, variant_Name)
-                ARR_VERIFY_SERVICE.add([service_name: 'time2eat-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'time2eat-v2/'])                                           
+                ARR_VERIFY_SERVICE.add([service_name: 'time2eat-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'time2eat'])                                           
             }
             
             // Execute parallel jobs
@@ -578,20 +578,7 @@ pipeline {
                                             }
                                             ARR_VERIFY_SERVICE.add([service_name: 'jumpr-pwa', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'jumpr-pwa/main'])
                                         }  
-                                    } 
-                                    if ('time2eat-flutter' in ARR_SELECTED_SERVICE ) {                                                                                                                                           
-                                        configFileProvider([configFile(fileId: 'deploy-time2eat-flutter-script', targetLocation: 'deploy_time2eat-flutter.groovy')]) {
-                                            TIME2EAT_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat-flutter')
-                                            //STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "time2eat-flutter")
-                                            PREVIOUS_VERSION = get_Previous_Version(service_name: "jumpr-flutter")
-                                            def projectID = params.APP_ENGINE_PROJECT_ID
-                                            def variant_Name = "jumpr"
-                                            parallelJobs[nodeapps.find { it.key == 'time2eat-flutter' }] = {
-                                                load("deploy_time2eat-flutter.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat-flutter"), TIME2EAT_FLUTTER_APP_ENGINE_VERSION, APP_ENGINE_PROJECT_ID, variant_Name)
-                                                ARR_VERIFY_SERVICE.add([service_name: 'jumpr-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'jumpr-v2/'])                                           
-                                            }                                                                                                                                                                                                           
-                                        }
-                                    }                                                                                                                                
+                                    }                                                                                                                             
                                 } else  if ('time2eat' in ARR_SELECTED_SERVICE ) {
                                     TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
                                     PREVIOUS_VERSION = get_Previous_Version(service_name: "time2eat")
@@ -630,19 +617,33 @@ pipeline {
                                         time2eat_flutter()
                                     }          
                                     if ('baweb-flutter' in ARR_SELECTED_SERVICE) {                                                                                                                                           
-                                        configFileProvider([configFile(fileId: 'deploy-time2eat-flutter-script', targetLocation: 'deploy_time2eat-flutter.groovy')]) {
+                                        configFileProvider([configFile(fileId: 'deploy-baweb-jumpr-script', targetLocation: 'deploy_baweb_jumpr.groovy')]) {
                                             TIME2EAT_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat-flutter')
                                             PREVIOUS_VERSION = get_Previous_Version(service_name: "baweb-flutter")
                                             def projectID = params.APP_ENGINE_PROJECT_ID
                                             def variant_Name = "bonappetit"
                                             def parallelDeployJobs = [:]
                                             parallelJobs[nodeapps.find { it.key == 'baweb-flutter' }] = {
-                                                load("deploy_time2eat-flutter.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat-flutter"), TIME2EAT_FLUTTER_APP_ENGINE_VERSION, APP_ENGINE_PROJECT_ID, variant_Name)
+                                                load("deploy_baweb_jumpr.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat-flutter"), TIME2EAT_FLUTTER_APP_ENGINE_VERSION, APP_ENGINE_PROJECT_ID, variant_Name)
                                                 ARR_VERIFY_SERVICE.add([service_name: 'baweb-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'baweb-v2/'])                                           
                                             }
                                             parallel parallelDeployJobs                                                                                                                                                                                                               
                                         }
                                     }      
+                                } else if (params.APP_ENGINE_PROJECT_ID.contains("-au")) {
+                                    if ('time2eat-flutter' in ARR_SELECTED_SERVICE ) {                                                                                                                                           
+                                        configFileProvider([configFile(fileId: 'deploy-baweb-jumpr-script', targetLocation: 'deploy_baweb_jumpr.groovy')]) {
+                                            TIME2EAT_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat-flutter')
+                                            //STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "time2eat-flutter")
+                                            PREVIOUS_VERSION = get_Previous_Version(service_name: "jumpr-flutter")
+                                            def projectID = params.APP_ENGINE_PROJECT_ID
+                                            def variant_Name = "jumpr"
+                                            parallelJobs[nodeapps.find { it.key == 'time2eat-flutter' }] = {
+                                                load("deploy_baweb_jumpr.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat-flutter"), TIME2EAT_FLUTTER_APP_ENGINE_VERSION, APP_ENGINE_PROJECT_ID, variant_Name)
+                                                ARR_VERIFY_SERVICE.add([service_name: 'jumpr-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'jumpr-v2/'])                                           
+                                            }                                                                                                                                                                                                           
+                                        }
+                                    } 
                                 } else if ('time2eat-flutter' in ARR_SELECTED_SERVICE ) {  
                                     time2eat_flutter()
                                 } 

@@ -1,0 +1,20 @@
+def setProperties(String appName, String versionName, String projectId, String variantName) {
+    
+    def APP_NAME = "$variantName"
+    sh "mkdir -p ${APP_NAME}-latest"
+    sh "echo ${APP_NAME} enter"
+
+    sh "gcloud storage cp ${appName}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
+                                                                                
+    dir("${APP_NAME}-latest") {
+        sh 'ls'
+        sh "tar -xzvf ${versionName}.tar.gz"
+        sh 'ls; pwd'
+
+        sh "./cicd_deploy.sh $variantName $projectId $versionName v2"
+   
+        //sh "gcloud app deploy --version=$versionName --quiet $TIME2EAT_FLUTTER_YAML --no-promote"
+    }
+}
+
+return this
