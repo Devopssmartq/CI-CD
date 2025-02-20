@@ -496,16 +496,16 @@ pipeline {
                                         }                                                                                                                              
                                     }
                                 }    
-                                if ('time2eat' in ARR_SELECTED_SERVICE ) {
-                                    TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eatweb-uk')
-                                    PREVIOUS_VERSION = get_Previous_Version(service_name: "time2eat")
-                                    parallelJobs[nodeapps.find { it.key == 'time2eat' }] = {
-                                        dir("${PWA_APP_NAME}-latest") {                                           
-                                            sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $TIME2EAT_YAML --no-promote"
-                                        }
-                                        ARR_VERIFY_SERVICE.add([service_name: 'time2eat', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'time2eat/main'])   
-                                    }
-                                }                                                                                                                                   
+                                // if ('time2eat' in ARR_SELECTED_SERVICE ) {
+                                //     TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eatweb-uk')
+                                //     PREVIOUS_VERSION = get_Previous_Version(service_name: "time2eat")
+                                //     parallelJobs[nodeapps.find { it.key == 'time2eat' }] = {
+                                //         dir("${PWA_APP_NAME}-latest") {                                           
+                                //             sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $TIME2EAT_YAML --no-promote"
+                                //         }
+                                //         ARR_VERIFY_SERVICE.add([service_name: 'time2eat', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'time2eat/main'])   
+                                //     }
+                                // }                                                                                                                                   
                                 if ('web-ort' in ARR_SELECTED_SERVICE ) {                                                                                               
                                     configFileProvider([configFile(fileId: 'deploy-groovy-uk-script', targetLocation: 'deploy_web-ort_uk.groovy')]) {
                                         WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ort-uk')
@@ -517,7 +517,7 @@ pipeline {
                                         }
                                     }
                                 }    
-                                //if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {                                    
+                                if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {                                    
                                     if ('time2eat-flutter' in ARR_SELECTED_SERVICE ) {                                                                                                                                           
                                         configFileProvider([configFile(fileId: 'deploy-time2eat-flutter-script', targetLocation: 'deploy_time2eat-flutter.groovy')]) {
                                             TIME2EAT_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat-flutter')
@@ -531,7 +531,7 @@ pipeline {
                                             }                                                                                                                                                                                                           
                                         }
                                     }
-                                //}   
+                                }   
                                 //2.1 Add new application block here
                                 parallel(parallelJobs)
                             }
