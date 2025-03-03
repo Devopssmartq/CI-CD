@@ -38,6 +38,8 @@ def get_Previous_Version(Map args) {
             ).trim()
             echo "previous_version- ${previous_version}"
             return previous_version
+        } else if (args.service_name.contains("cache-builder")) {
+            echo "cache-builder"
         } else {    
             def previous_version = sh(
                 script: "gcloud app versions list --service=${args.service_name} --limit=1 --format='value(VERSION.ID)' --filter='traffic_split>0'",
@@ -101,6 +103,16 @@ def promote_Service(Map args) {
             dir('cloud_run_longrun_script'){
                 PROMOTED_SERVICE = sh(
                     script: "gcloud run services update-traffic bigquerysync-${params.APP_ENGINE_PROJECT_ID} --flags-file promote_flags/${params.APP_ENGINE_PROJECT_ID}.json",
+                    returnStdout: true
+                ).trim()
+            }    
+        }
+    } else if (args.service_name.contains("cache-builder")) {
+        // Change directory to microservices-backend-uk before running gcloud run command
+        dir('microservices-backend-uk') {
+            dir('new_caches_update'){
+                PROMOTED_SERVICE = sh(
+                    script: "gcloud run services update-traffic cache-builder --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json",
                     returnStdout: true
                 ).trim()
             }    
@@ -173,6 +185,7 @@ def py3_services = [
             [key: 'integration'],
             [key: 'cloud_run'],
             [key: 'index'],
+            [key: 'cache-builder'],
             [key: 'menucacheupdate']
         ]
 def phrase_translate = [
@@ -276,7 +289,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","index",,"phrase","menucacheupdate"]'
+                    script: 'return ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","cache-builder","index",,"phrase","menucacheupdate"]'
                 ],
                 script: [
                     classpath: [],
@@ -285,7 +298,7 @@ properties([
                         def type = DEPLOYMENT_TYPE ?: "International" 
                         def options = []
                         if (type == "International") {
-                            options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","index".,"phrase","menucacheupdate"]
+                            options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","cache-builder","index".,"phrase","menucacheupdate"]
                         }
                         return options
                     '''
@@ -400,9 +413,9 @@ pipeline {
                     {
                         def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
                         echo "type of deplyoment is : ${type}"
-                        def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,cloud_run,index,menucacheupdate'
+                        def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,cloud_run,index,menucacheupdate,cache-builder'
                         if (type == "International") {
-                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,cloud_run,index,phrase,menucacheupdate'
+                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,cloud_run,index,phrase,menucacheupdate,cache-builder'
                         }       
                         //echo "SERVICE_NAME_LIST updated - $options"
                         ARR_SELECTED_SERVICE = "$options".split(',')                        
@@ -496,16 +509,16 @@ pipeline {
                                         }                                                                                                                              
                                     }
                                 }    
-                                // if ('time2eat' in ARR_SELECTED_SERVICE ) {
-                                //     TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eatweb-uk')
-                                //     PREVIOUS_VERSION = get_Previous_Version(service_name: "time2eat")
-                                //     parallelJobs[nodeapps.find { it.key == 'time2eat' }] = {
-                                //         dir("${PWA_APP_NAME}-latest") {                                           
-                                //             sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $TIME2EAT_YAML --no-promote"
-                                //         }
-                                //         ARR_VERIFY_SERVICE.add([service_name: 'time2eat', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'time2eat/main'])   
-                                //     }
-                                // }                                                                                                                                   
+                                if ('time2eat' in ARR_SELECTED_SERVICE ) {
+                                    TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eatweb-uk')
+                                    PREVIOUS_VERSION = get_Previous_Version(service_name: "time2eat")
+                                    parallelJobs[nodeapps.find { it.key == 'time2eat' }] = {
+                                        dir("${PWA_APP_NAME}-latest") {                                           
+                                            sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $TIME2EAT_YAML --no-promote"
+                                        }
+                                        ARR_VERIFY_SERVICE.add([service_name: 'time2eat', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'time2eat/main'])   
+                                    }
+                                }                                                                                                                                   
                                 if ('web-ort' in ARR_SELECTED_SERVICE ) {                                                                                               
                                     configFileProvider([configFile(fileId: 'deploy-groovy-uk-script', targetLocation: 'deploy_web-ort_uk.groovy')]) {
                                         WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'ort-uk')
@@ -517,7 +530,7 @@ pipeline {
                                         }
                                     }
                                 }    
-                                if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {                                    
+                                //if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {                                    
                                     if ('time2eat-flutter' in ARR_SELECTED_SERVICE ) {                                                                                                                                           
                                         configFileProvider([configFile(fileId: 'deploy-time2eat-flutter-script', targetLocation: 'deploy_time2eat-flutter.groovy')]) {
                                             TIME2EAT_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat-flutter')
@@ -527,11 +540,11 @@ pipeline {
                                             def variant_Name = "timetoeat"
                                             parallelJobs[nodeapps.find { it.key == 'time2eat-flutter' }] = {
                                                 load("deploy_time2eat-flutter.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat-flutter"), TIME2EAT_FLUTTER_APP_ENGINE_VERSION, APP_ENGINE_PROJECT_ID, variant_Name)
-                                                ARR_VERIFY_SERVICE.add([service_name: 'time2eat-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'time2eat/'])                                           
+                                                ARR_VERIFY_SERVICE.add([service_name: 'time2eat-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'time2eat-v2/'])                                           
                                             }                                                                                                                                                                                                           
                                         }
                                     }
-                                }   
+                                //}   
                                 //2.1 Add new application block here
                                 parallel(parallelJobs)
                             }
@@ -819,6 +832,22 @@ pipeline {
                                                         }
                                                     //}
                                                     //ARR_VERIFY_SERVICE.add([service_name: 'menucacheupdate', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
+                                                }                                 
+                                            }
+                                        }   
+                                        if ('cache-builder' in ARR_SELECTED_SERVICE ) {
+                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'microservices-backend-uk') 
+                                            parallelJobs[py3_services.find { it.key == 'cache-builder' }] = {
+                                                dir ('microservices-backend-uk') {
+                                                    sh 'ls'
+                                                    //if (params.APP_ENGINE_PROJECT_ID.contains("-india")) {
+                                                        dir ('new_caches_update') {
+                                                            sh "ls"                                                        
+                                                            sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
+                                                            sh "gcloud run deploy cache-builder --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json"
+                                                        }
+                                                    //}
+                                                    ARR_VERIFY_SERVICE.add([service_name: 'cache-builder', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                                                 }                                 
                                             }
                                         }   
