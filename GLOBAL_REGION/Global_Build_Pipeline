@@ -89,9 +89,9 @@ def buildControlDesk() {
         dir('controldesk') {
             sh 'git config --global --add safe.directory ${WORKSPACE}/controldesk'
             sh 'git status'
-            sh 'npm install --force'
-            sh 'npm install @emotion/styled'
-            sh 'npm install react-checkbox-tree@1.5.0 --force'
+            sh 'npm install --force' 
+            // sh 'npm install @emotion/styled'
+            // sh 'npm install react-checkbox-tree@1.5.0 --force'
             sh 'CI=false npm run build'
             dir ('${WORKSPACE}/controldesk/build') {
                 sh 'echo changing to directory'
@@ -768,7 +768,21 @@ pipeline {
             }
         }
     }
-
+    stage('Initialize') {
+        steps {
+            script {
+                // Set the build name to include both build number and custom name
+                def buildNumber = env.BUILD_NUMBER
+                currentBuild.displayName = "#${buildNumber} - ${params.BitBucketProject}"
+                
+                // Optionally, add a description with additional details
+                currentBuild.description = "Build created with name: ${params.BitBucketProject} on ${new Date().format("yyyy-MM-dd")}"
+                
+                echo "Build name set to: ${currentBuild.displayName}"
+                // echo "Build description set to: ${currentBuild.description}"
+            }
+        }
+    }
     post{
         always{
             script {
