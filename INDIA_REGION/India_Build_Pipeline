@@ -683,6 +683,34 @@ pipeline {
     }
 
     stages {  
+        stage('Initialize') {
+            steps {
+                script {
+                    if (Hotfix_Branch != '') {
+                    	bucketname="${hotfixbranch}"
+                    	branch="${hotfixbranch}"
+                    } else if (CommitId != ''){
+                    	branch="${commitid}"                    	
+                    } else {
+                        branch = params.Branch
+                    }
+                    
+                    if (CommitId != '' && Hotfix_Branch != ''){
+                        branch="${commitId}"
+                    }
+
+                    // Set the build name to include both build number and custom name
+                    def buildNumber = env.BUILD_NUMBER
+                    currentBuild.displayName = "#${buildNumber} - ${params.BitBucketProject} - ${branch}"
+                    
+                    // Optionally, add a description with additional details
+                    currentBuild.description = "Build created with name: ${params.BitBucketProject} on ${new Date().format("yyyy-MM-dd")}"
+                    
+                    echo "Build name set to: ${currentBuild.displayName}"
+                    // echo "Build description set to: ${currentBuild.description}"
+                }
+            }
+        }
         stage('Building All Pipeline') {
             steps {
                 script {

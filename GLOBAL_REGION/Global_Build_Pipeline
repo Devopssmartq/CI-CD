@@ -675,7 +675,35 @@ pipeline {
         ])
     }
 
-    stages {  
+    stages { 
+        stage('Initialize') {
+            steps {
+                script {
+                    if (Hotfix_Branch != '') {
+                    	bucketname="${hotfixbranch}"
+                    	branch="${hotfixbranch}"
+                    } else if (CommitId != ''){
+                    	branch="${commitid}"                    	
+                    } else {
+                        branch = params.Branch
+                    }
+                    
+                    if (CommitId != '' && Hotfix_Branch != ''){
+                        branch="${commitId}"
+                    }
+
+                    // Set the build name to include both build number and custom name
+                    def buildNumber = env.BUILD_NUMBER
+                    currentBuild.displayName = "#${buildNumber} - ${params.BitBucketProject} - ${branch}"
+                    
+                    // Optionally, add a description with additional details
+                    currentBuild.description = "Build created with name: ${params.BitBucketProject} on ${new Date().format("yyyy-MM-dd")}"
+                    
+                    echo "Build name set to: ${currentBuild.displayName}"
+                    // echo "Build description set to: ${currentBuild.description}"
+                }
+            }
+        }
         stage('Building All Pipeline') {
             steps {
                 script {
@@ -684,7 +712,7 @@ pipeline {
                     def hotfixbranch = params.Hotfix_Branch 
                     def commitid = params.CommitId
                     def bucketname = params.Branch
-                    mail_url = 'https://cpgplc.webhook.office.com/webhookb2/789219c5-cacd-4a1e-88b2-13105d090c78@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/40503e57c23744fdbd3120ffc16488d4/91dca507-8de4-4171-90be-c552b60ab3b9/V2vAhkd2lBmdwz6NcEUQwAQ8PVSpmVPIEEv3TIUHitQRo1'
+                    mail_url = 'https://cpgplc.webhook.office.com/webhookb2/789219c5-cacd-4a1e-88b2-13105d090c78@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/896ff2c378de40b7b2c322ebc675774c/91dca507-8de4-4171-90be-c552b60ab3b9/V2XzhA1h3C8vXk9_CQ-OlvScCMOSh9Sal7GeZajwshGgY1'
                     
                     if (Hotfix_Branch != '') {
                     	bucketname="${hotfixbranch}"
@@ -765,21 +793,6 @@ pipeline {
                         error("Invalid combination of BitBucket Project and Branch.")
                     } 
                 }
-            }
-        }
-    }
-    stage('Initialize') {
-        steps {
-            script {
-                // Set the build name to include both build number and custom name
-                def buildNumber = env.BUILD_NUMBER
-                currentBuild.displayName = "#${buildNumber} - ${params.BitBucketProject}"
-                
-                // Optionally, add a description with additional details
-                currentBuild.description = "Build created with name: ${params.BitBucketProject} on ${new Date().format("yyyy-MM-dd")}"
-                
-                echo "Build name set to: ${currentBuild.displayName}"
-                // echo "Build description set to: ${currentBuild.description}"
             }
         }
     }
