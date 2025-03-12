@@ -686,6 +686,11 @@ pipeline {
         stage('Initialize') {
             steps {
                 script {
+                    def bitBucketProject = params.BitBucketProject.toLowerCase()
+                    def branch = params.Branch
+                    def hotfixbranch = params.Hotfix_Branch 
+                    def commitid = params.CommitId
+                    def bucketname = params.Branch
                     if (Hotfix_Branch != '') {
                     	bucketname="${hotfixbranch}"
                     	branch="${hotfixbranch}"
