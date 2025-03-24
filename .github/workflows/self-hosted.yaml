@@ -5,10 +5,17 @@ on:
       - yash
 
 jobs:
-  check-memory:  # Added a job name
+  check-memory:
     runs-on: self-hosted
     steps:
-      - name: Check Memory
+      - name: Check Memory (Linux & macOS)
         run: |
-          free -h
-          free -m
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            echo "Running on macOS"
+            vm_stat
+            sysctl hw.memsize
+          else
+            echo "Running on Linux"
+            free -h
+            free -m
+          fi

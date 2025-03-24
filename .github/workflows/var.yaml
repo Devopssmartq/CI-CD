@@ -1,7 +1,18 @@
 name: GCP Authentication Workflow
 on:
-  push:
-    branches: [ "yash" ]
+  workflow_dispatch:
+    inputs:
+      branch:
+        type: choice
+        description: 'Branch Name'
+        required: true
+        default: 'auto-sprint'
+        options:
+          - auto-sprint
+          - auto-rlease
+          - main
+          - hot-fix  
+      
 
 jobs:
   my-job:
