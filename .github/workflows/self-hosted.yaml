@@ -1,0 +1,14 @@
+name: self-hosted-runner
+on:
+  push:
+    branches:
+      - yash
+
+jobs:
+  check-memory:  # Added a job name
+    runs-on: self-hosted
+    steps:
+      - name: Check Memory
+        run: |
+          free -h
+          free -m
