@@ -1,8 +1,8 @@
 name: self-hosted-runner
 on:
   push:
-    branches:
-      - yash
+   tags:
+      - 'v*'
 
 jobs:
   check-memory:
