@@ -46,7 +46,7 @@ def setProperties() {
     TIME2EAT_FLUTTER_YAML = ''
     //py2 service yamls
     APP_SERVICE_YAML = RELEASE_SCOPE == "beta" ? '' : 'app.yaml'//for india ::: // for international 'time2eat_appservice.yaml'
-    DEFAULT_SERVICE_YAML = RELEASE_SCOPE == "beta" ? 'app_betaapp.yaml' : 'app.yaml'
+    DEFAULT_SERVICE_YAML = RELEASE_SCOPE == "beta" ? 'app_betaapp.yaml' : (RELEASE_SCOPE == "sprint") ? "app_demo.yaml" : (RELEASE_SCOPE == "preprod") ? "app_preprod.yaml" : (RELEASE_SCOPE == "hot-fix" && GIT_BRANCH == "auto-release") ? "app_preprod.yaml" : 'app.yaml'
     BACKGROUND_YAML = RELEASE_SCOPE == "beta" ? 'background_betaapp.yaml' : 'background.yaml'
     TASKQSERVICE_YAML = RELEASE_SCOPE == "beta" ? 'taskqservice_betaapp.yaml' : 'taskqservice.yaml'
     REPORTS_YAML = RELEASE_SCOPE == "beta" ? '' : 'reports.yaml'
@@ -57,6 +57,7 @@ def setProperties() {
     PY3_SSO_YAML = RELEASE_SCOPE == "beta" ? '' : 'app.yaml'
     PY3_PRICEBOOK_YAML = RELEASE_SCOPE == "beta" ? '' : "${params.APP_ENGINE_PROJECT_ID}.yaml"
     PY3_INTEGRATION_YAML = RELEASE_SCOPE == "beta" ? '' :''// not for India. only for international
+    PY3_FOODCOURTLIST_YAML = RELEASE_SCOPE == "beta" ? '' : (RELEASE_SCOPE == "sprint") ? "smartqdemo-foodcourtlist.yaml" : (RELEASE_SCOPE == "preprod") ? "sqpreprod-foodcourtlist.yaml" : "smartqprd-india-foodcourtlist.yaml"
     PY3_BACKEND_WEBORT_YAML = (RELEASE_SCOPE == "beta") ? '' : (RELEASE_SCOPE == "sprint") ? "smartqdemo-webort.yaml" : (RELEASE_SCOPE == "preprod") ? "sqpreprod-india-webort.yaml" : "smartqprd-india-webort.yaml"
 }
 return this

@@ -5,7 +5,7 @@ import groovy.transform.Field
 
 
 def webapps = [
-    [key: 'IMD-flutter']
+    [key: 'kms']
 ]
 def checkoutProject(String projectName, String branch) {
     sh "mkdir -p ${projectName}"
@@ -14,7 +14,7 @@ def checkoutProject(String projectName, String branch) {
             branches: [[name: branch]], 
             doGenerateSubmoduleConfigurations: false, 
             extensions: [[$class: 'CleanCheckout']], 
-            userRemoteConfigs: [[url: "https://github.com/Bottle-Lab-Technologies-PVT-LTD/${projectName}.git", credentialsId: 'git/devops/new']]])
+            userRemoteConfigs: [[url: "https://github.com/Bottle-Lab-Technologies-PVT-LTD/kms.git", credentialsId: 'git/devops/new']]])
 
         sh 'ls -lrt'
         def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -61,13 +61,13 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true,
-                    script: 'return ["IMD-flutter:selected"]'
+                    script: 'return ["kms:selected"]'
                 ],
                 script: [
                     classpath: [],
                     sandbox: true,
                     script: '''
-                        def choices = ["IMD-flutter:selected"]
+                        def choices = ["kms:selected"]
                         return choices
                     '''
                 ]
@@ -88,8 +88,8 @@ pipeline {
                 value: "--max-old-space-size=4096"
             spec:
               containers:
-              - name: flutter-imd
-                image: mingc/android-build-box:master
+              - name: flutter-kms
+                image: instrumentisto/flutter:3.19.5
                 resources:
                 requests:
                     memory: "4096Mi"  # Increase the requested memory
@@ -124,6 +124,7 @@ pipeline {
         KEYSTORE_ALIAS = 'smartq'
         KEYSTORE_PASSWORD = 'Smartq@123'
         KEY_PASSWORD = 'Smartq@123'
+        MY_SECRET = credentials('git/devops/new')
     }
     stages {
         stage('checking project'){
@@ -132,7 +133,7 @@ pipeline {
                     //mail_url = 'https://cpgplc.webhook.office.com/webhookb2/6d5ff299-54f8-4bb3-911b-4ef2d419e335@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/3b95c290077440da9d684a0c498039e1/1b69cb54-bc9e-4431-98fa-5afcb910e9d4'
 
                     if(params.PROJECT_NAME == "All" || params.PROJECT_NAME.isEmpty()){
-                        def options = 'IMD-flutter'
+                        def options = 'kms'
                         ARR_SELECTED_SERVICE = "$options".split(',')
                     }
                     else {
@@ -171,7 +172,7 @@ pipeline {
                     def parallelJobs = [:]
                     ARR_SELECTED_SERVICE.each { service ->
                         parallelJobs["Checkout ${service}"] = {
-                            if (service in ['IMD-flutter']) {
+                            if (service in ['kms']) {
                                 checkoutProject(service, branch)
                             }
                         }    
@@ -184,32 +185,30 @@ pipeline {
             steps {
                 script {
                     def parallelJobs = [:]
-                    if ('IMD-flutter' in ARR_SELECTED_SERVICE) {
-                        //parallelJobs['Build IMD-flutter'] = {
-                            container('flutter-imd') {
-                                withCredentials([file(credentialsId: 'IMD.jks', variable: 'KEYSTORE_PATH')]) {
-                                    dir('IMD-flutter') {
-                                        sh """
-                                        echo "storePassword=${KEYSTORE_PASSWORD}" > android/key.properties
-                                        echo "keyPassword=${KEY_PASSWORD}" >> android/key.properties
-                                        echo "keyAlias=${KEYSTORE_ALIAS}" >> android/key.properties
-                                        echo "storeFile=${KEYSTORE_PATH}" >> android/key.properties
-                                        """
-                                        // Print the keystore path (optional, for debugging purposes)
-                                        echo "Keystore path: ${KEYSTORE_PATH}"
+                    if ('kms' in ARR_SELECTED_SERVICE) {
+                        //parallelJobs['Build kms'] = {
+                            container('flutter-kms') {
+                                sh "flutter --version"
+                                //withCredentials([file(credentialsId: 'IMD.jks', variable: 'KEYSTORE_PATH')]) {
+                                    dir('kms') {
+                                        sh 'echo "My secret value is: $MY_SECRET"'
+                                        sh "git config --global credential.helper store"
+                                        sh "echo 'https://Devopssmartq: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@github.com' > ~/.git-credentials"
+                                        sh "git config --list"
+                                        sh "git clone https://github.com/Bottle-Lab-Technologies-PVT-LTD/common_libs_flutter.git"
                                         sh 'flutter pub get'
-                                        sh 'flutter build apk --release '
+                                        sh 'flutter build apk --split-per-abi --release'
                                         dir ('${WORKSPACE}/build') {
                                             sh 'echo changing to directory'
                                             dir('app') {
                                                 sh 'ls'
-                                                dir('outputs/apk/release') {
+                                                dir('outputs/flutter-apk') {
                                                     sh 'ls -lrt'
                                                 }
                                             }
                                         }
                                     }
-                                }
+                                //}
                             }             
                         //}                        
                     }
@@ -221,18 +220,17 @@ pipeline {
             steps {
                 script {
                     container('gcloud') {
-                        if ('IMD-flutter' in ARR_SELECTED_SERVICE) {
-                            dir('IMD-flutter') {
+                        if ('kms' in ARR_SELECTED_SERVICE) {
+                            dir('kms') {
                                 dir ('${WORKSPACE}/build') {
                                     sh 'echo changing to directory'
                                     dir('app') {
                                         sh 'ls'
                                         dir('outputs/apk/release'){
                                             sh 'ls -lrt'
-                                            sh "rm output-metadata.json"
                                             //sh "mv app-release.apk IMD.apk"
                                             //sh "mv app-release.apk.sha1 IMD.apk.sha1"
-                                            sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/Global_Region/${branch}/IMD-flutter/ --recursive"
+                                            sh "gcloud storage cp * gs://smartqdemo_pub/kms/ --recursive"
                                         }
                                     }
                                 }

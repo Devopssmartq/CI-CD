@@ -53,16 +53,17 @@ properties([
         ]
     ])
 ])
-def checkingVersion(ARR_SELECTED_SERVICE){
-    container('gcloud'){
+def checkingVersion(ARR_SELECTED_SERVICE) {
+    container('gcloud') {
         ARR_SELECTED_SERVICE.each { project ->
             echo "Selected APP_ENGINE_PROJECT_ID: $project"
             sh "gcloud config set project $project"
             def overallVersionCount = sh(script: 'gcloud app versions list --sort-by=~last_deployed_time --format="csv[no-heading](id)" | wc -l', returnStdout: true).trim().toInteger()
             echo "Overall Number of Versions: ${overallVersionCount}"
 
-            if (overallVersionCount > 180) {
-                def options = 'controldesk,web-ort,foodbook-web,smartq-pwa,default,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,reports,dashboard,sso,integration,time2eat-flutter,app,pricebook'                                                            
+            if (overallVersionCount > 160) {
+                def options = 'controldesk,control-desk-flutter,web-ort,foodbook-web,smartq-pwa,default,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,reports,dashboard,sso,integration,time2eat-flutter,app,pricebook,cncms,betaapp-web-ort,betaapp-taskqservice,' +
+                              'betaapp-default,betaapp-smartq-pwa,betaapp-app,betaapp-backgroundtasks,betaapp-bqreports,betaapp-dashboard,betaapp-controldesk,flutter-cnc,flutter-mis,misms,phrasesmartq-flutter,vendor-mis-backend'                                                            
 
                 def services = options.split(',')
 
@@ -72,20 +73,30 @@ def checkingVersion(ARR_SELECTED_SERVICE){
                     
                     echo "Number of versions for $service: $serviceVersionCount"
 
-                    if (serviceVersionCount > 8) {
-                        echo "Listing versions for $service"
-                        def versionsList = sh(script: "gcloud app versions list --service=$service --sort-by=~last_deployed_time --format=\"csv[no-heading](id)\" | sed '1,8d'", returnStdout: true).trim()
-                        echo "Versions for $service: $versionsList"
-                        echo "Deleting old versions for $service"
+                    // Set version threshold based on project
+                    def versionThreshold = project.contains("-india") ? 5 : 8
+
+                    if (serviceVersionCount > versionThreshold) {
+                        echo "Listing versions for $service to delete"
+                        // List versions to delete, keeping the most recent 'versionThreshold'
+                        def versionsList = sh(script: "gcloud app versions list --service=$service --sort-by=~last_deployed_time --format=\"csv[no-heading](id)\" | sed '1,${versionThreshold}d'", returnStdout: true).trim()
+                        echo "Versions for $service to delete: $versionsList"
+
+                        // Delete old versions
                         versionsList.split().each { version ->
+                            echo "Deleting version: $version for service: $service"
                             sh "gcloud app versions delete $version --service=$service --quiet"
                         }
+                    } else {
+                        echo "No versions to delete for $service."
                     }
                 }
             }
-        }    
+        }
     }
 }
+
+
 pipeline {
     agent {
         kubernetes {

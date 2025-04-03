@@ -39,7 +39,7 @@ def uploadWebOrtToGCS(bucketname) {
             dir('webort') {
                 sh 'ls'
                 sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
-    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/web-ort/ --recursive"
+    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/Global_Region/${bucketname}/web-ort/ --recursive"
     		    sh "tar -xzvf ${newId}.tar.gz"
                 //sh "gcloud storage cp ${WORKSPACE}/webort/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/web-ort/webort@$VERSION_NUMBER --recursive"
             }
@@ -74,33 +74,32 @@ def checkoutControlDesk(branch) {
 }
 def buildControlDesk() {
     echo "Build Control Desk"  
-        container('phrase') {
-            dir('controldesk') {
-                sh 'phrase version'
-                sh 'phrase push'
-                sh 'phrase pull'
-                sh 'git config --global --add safe.directory ${WORKSPACE}/controldesk'
-                sh 'git status'
+    container('phrase') {
+        dir('controldesk') {
+            sh 'phrase version'
+            sh 'phrase push'
+            sh 'phrase pull'
+            sh 'git config --global --add safe.directory ${WORKSPACE}/controldesk'
+            sh 'git status'
+        }
+    }
+    container('node-cd-js') {
+        sh 'echo ${WORKSPACE}'
+        sh 'ls'
+        dir('controldesk') {
+            sh 'git config --global --add safe.directory ${WORKSPACE}/controldesk'
+            sh 'git status'
+            sh 'npm install --force' 
+            // sh 'npm install @emotion/styled'
+            // sh 'npm install react-checkbox-tree@1.5.0 --force'
+            sh 'CI=false NODE_OPTIONS="--max-old-space-size=4096" npm run build'
+            dir ('${WORKSPACE}/controldesk/build') {
+                sh 'echo changing to directory'
+                sh 'ls'
+            
             }
         }
-        container('node-cd-js') {
-            sh 'echo ${WORKSPACE}'
-            sh 'ls'
-                dir('controldesk') {
-                    sh 'git config --global --add safe.directory ${WORKSPACE}/controldesk'
-                    sh 'git status'
-                    sh 'npm install --force'
-                    sh 'npm install @emotion/styled'
-                    sh 'npm install react-checkbox-tree@1.5.0 --force'
-                    sh 'CI=false npm run build'
-                        dir ('${WORKSPACE}/controldesk/build') {
-                            sh 'echo changing to directory'
-                            sh 'ls'
-                        
-                        }
-                    }
-                }
-    
+    }   
 }
 def uploadControlDeskToGCS(bucketname) {
     echo "Upload Control Desk to GCS" 
@@ -109,7 +108,7 @@ def uploadControlDeskToGCS(bucketname) {
             dir('controldesk') {
                 sh 'ls'
                 sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
-    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/controldesk/ --recursive"
+    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/Global_Region/${bucketname}/controldesk/ --recursive"
     		    sh "tar -xzvf ${newId}.tar.gz"
                 //sh "gcloud storage cp ${WORKSPACE}/controldesk/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/controldesk/controldesk@$VERSION_NUMBER --recursive"
             }
@@ -158,7 +157,7 @@ def uploadEWalletToGCS(bucketname) {
             dir('ewallet'){
                 sh "tar -czvf ${newId}.tar.gz build/*"
     		    sh 'ls'
-    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/ewallet/ --recursive"
+    		    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/Global_Region/${bucketname}/ewallet/ --recursive"
     		    sh "tar -xzvf ${newId}.tar.gz" 
             }    
             // sh "gcloud storage cp ${WORKSPACE}/ewallet/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/ewallet/ewallet@$VERSION_NUMBER --recursive"
@@ -198,9 +197,9 @@ def buildtime2eatweb() {
                     //sh 'export NODE_OPTIONS=--openssl-legacy-provider'
                     sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app1'
                     sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app2'
-                    sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app3'
+                    //sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app3'
                     sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app4'
-                    sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app5'
+                    //sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app5'
                         dir ('${WORKSPACE}/time2eatweb/build') {
                             sh 'echo changing to directory'
                        }
@@ -215,7 +214,7 @@ def uploadtime2eatwebToGCS(bucketname) {
         dir('time2eatweb') {
             sh 'ls'
             sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
-    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/time2eat/ --recursive"
+    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/Global_Region/${bucketname}/time2eat/ --recursive"
     	    sh "tar -xzvf ${newId}.tar.gz"
             //sh "gcloud storage cp ${WORKSPACE}/time2eatweb/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/time2eat/time2eat@$VERSION_NUMBER --recursive"
         }
@@ -268,7 +267,7 @@ def uploadvendordashboardToGCS(bucketname) {
             dir('unified_webstack/frontend/dist/vdashboard/') {
                 sh "tar -czvf ${newId}.tar.gz admindashboard/*"
         	    sh 'ls'
-        	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/vendor-dashboard/ --recursive"
+        	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/Global_Region/${bucketname}/vendor-dashboard/ --recursive"
         	    sh "tar -xzvf ${newId}.tar.gz"
             }    
             // sh "gcloud storage cp ${WORKSPACE}/unified_webstack/frontend/dist/vdashboard/admindashboard/* gs://sqinternational-cicd.appspot.com/${bucketname}/vendor-dashboard/vdashboard@$VERSION_NUMBER --recursive"
@@ -318,7 +317,7 @@ def uploadgenericadmindashboardToGCS(bucketname) {
         dir('generic-admin-dashboard') { 
             sh 'ls'
             sh "tar -czvf ${newId}.tar.gz build/*"
-    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/generic-admin-dashboard/ --recursive"
+    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/Global_Region/${bucketname}/generic-admin-dashboard/ --recursive"
     	    sh "tar -xzvf ${newId}.tar.gz"
             // sh "gcloud storage cp ${WORKSPACE}/generic-admin-dashboard/build/* gs://sqinternational-cicd.appspot.com/${bucketname}/generic-admin-dashboard/admindashboard@$VERSION_NUMBER --recursive"
         }
@@ -356,7 +355,7 @@ def uploadsmartqcloudbackendToGCS(bucketname) {
             sh "touch smartq-cloud-backend.txt"
             sh "tar -czvf ${newId}.tar.gz smartq-cloud-backend.txt"
     	    sh 'ls'
-    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/smartq-cloud-backend/ --recursive"
+    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/Global_Region/${bucketname}/smartq-cloud-backend/ --recursive"
     	    //sh "tar -xzvf ${newId}.tar.gz"
             //sh "gcloud storage cp ${WORKSPACE}/smartq-cloud-backend/smartqcloudbackend.txt gs://sqinternational-cicd.appspot.com/${bucketname}/smartq-cloud-backend/smartq-cloud-backend@$VERSION_NUMBER --recursive"
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
@@ -395,7 +394,7 @@ def uploadsqmicroservicesbackendToGCS(bucketname) {
             sh "touch sqmicroservicesbackend.txt"
             sh "tar -czvf ${newId}.tar.gz sqmicroservicesbackend.txt"
     	    sh 'ls'
-    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/sq_microservices_backend/ --recursive"
+    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/Global_Region/${bucketname}/sq_microservices_backend/ --recursive"
             //sh "gcloud storage cp ${WORKSPACE}/sq_microservices_backend/sqmicroservicesbackend.txt gs://sqinternational-cicd.appspot.com/${bucketname}/sq_microservices_backend/sq_microservices_backend@$VERSION_NUMBER-${newId}/default --recursive"
            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
@@ -411,13 +410,7 @@ def checkoutcontroldeskflutter(branch) {
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
                 userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/control-desk-flutter.git', credentialsId: 'git/devops/new',]]])
-                    
             sh 'ls -lrt'
-            // git branch: "${branch}",
-            // credentialsId: 'bitbucket api',
-            // url: 'https://yash123devops@bitbucket.org/bottlelabtech/control-desk-flutter.git'
-            // sh 'ls'
-            
             // Get the commit ID of the current HEAD
             def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     
@@ -451,7 +444,7 @@ def uploadcontroldeskflutterToGCS(bucketname) {
             dir('controldeskflutter') {
                 sh 'ls'
 		        sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
-                sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/controldeskflutter/  --recursive"
+                sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/Global_Region/${bucketname}/controldeskflutter/  --recursive"
 		        sh "tar -xzvf ${newId}.tar.gz"
             }
             //sh "tar -czvf ${newId}.tar.gz controldeskflutter/*.yaml controldeskflutter/build/*"
@@ -471,7 +464,7 @@ def checkouttime2eat_flutter(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_flutter_main_app', credentialsId: 'git/devops/new',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_flutter_main_app.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             // git branch: "${branch}",
@@ -492,26 +485,30 @@ def buildtime2eat_flutter() {
     container('time2eatflutter') {
         sh 'echo ${WORKSPACE}'
         sh 'echo $BUILD_NUMBER'
-            dir('time2eat_flutter') { 
-                sh 'ls'
-                sh 'echo "My secret value is: $MY_SECRET"'
-                //sh "git config --global credential.helper"
-                sh "git config --global credential.helper store"
-                sh "echo 'https://Devopssmartq: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@github.com' > ~/.git-credentials"
-                //sh "git config --global credential.helper"
-                sh "git config --list"
-                sh "git clone https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_ui_lib.git"
-                sh 'flutter clean'
-                sh 'flutter pub get'
-                sh 'dart run phrase'
-                sh 'flutter pub upgrade'
-                sh 'flutter build web'
-                sh 'ls'
-                dir ('${WORKSPACE}/build/web') {
+            withCredentials([
+                usernamePassword(credentialsId: 'git/devops/new', usernameVariable: 'Devopssmartq', passwordVariable: 'GIT_PASSWORD')
+            ]) {
+                dir('time2eat_flutter') { 
                     sh 'ls'
-                    sh 'pwd'
-                }                   
-            }
+                    sh 'echo "My secret value is: $MY_SECRET"'
+                    //sh "git config --global credential.helper"
+                    sh "git config --global credential.helper store"
+                    sh "echo 'https://Devopssmartq:${GIT_PASSWORD}@github.com' > ~/.git-credentials"
+                    //sh "git config --global credential.helper"
+                    sh "git config --list"
+                    sh "git clone https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_ui_lib.git"
+                    sh 'flutter clean'
+                    sh 'flutter pub get'
+                    sh 'dart run phrase'
+                    sh 'flutter pub upgrade'
+                    sh './cicd_build.sh'
+                    sh 'ls'
+                    dir ('${WORKSPACE}/build/web') {
+                        sh 'ls'
+                        sh 'pwd'
+                    }                   
+                }
+            }    
     }
 }
 def uploadtime2eat_flutterToGCS(bucketname) {
@@ -520,8 +517,8 @@ def uploadtime2eat_flutterToGCS(bucketname) {
         container('gcloud') {
             dir('time2eat_flutter') {
                 sh 'ls'
-		        sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
-                sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/time2eat-flutter/  --recursive"
+		        sh "tar -czvf ${newId}.tar.gz cicd_deploy.sh flavors *.yaml build/* web/*"
+                sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/Global_Region/${bucketname}/time2eat-flutter/  --recursive"
 		        sh "tar -xzvf ${newId}.tar.gz"
             }
             //sh "tar -czvf ${newId}.tar.gz time2eat_flutter/*.yaml time2eat_flutter/build/*"
@@ -561,7 +558,7 @@ def uploadphrase_translateToGCS(bucketname) {
             sh "touch phrase_translate.txt"
             sh "tar -czvf ${newId}.tar.gz phrase_translate.txt"
     	    sh 'ls'
-    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/${bucketname}/phrase_translate/ --recursive"
+    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/Global_Region/${bucketname}/phrase_translate/ --recursive"
             //sh "gcloud storage cp ${WORKSPACE}/sq_microservices_backend/sqmicroservicesbackend.txt gs://sqinternational-cicd.appspot.com/${bucketname}/sq_microservices_backend/sq_microservices_backend@$VERSION_NUMBER-${newId}/default --recursive"
            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
@@ -624,10 +621,17 @@ pipeline {
             tty: true 
             
           - name: time2eatflutter
-            image: instrumentisto/flutter:latest
+            image: instrumentisto/flutter:3.24.3
+            resources:
+            requests:
+                memory: "4096Mi"  # Increase the requested memory
+                cpu: "500m"
+            limits:
+                memory: "8192Mi"  # Increase the maximum allowed memory
+                cpu: "1000m"
             command:
             - cat
-            tty: true 
+            tty: true   
 
           - name: phrase
             image: ubuntu:latest
@@ -644,8 +648,7 @@ pipeline {
               chmod +x /usr/local/bin/phrase && \
               phrase version && \
               apt-get update && apt-get install -y git && \
-              sleep 99d 
-            tty:true     
+              sleep 99d         
         '''        
         }
     }
@@ -664,6 +667,7 @@ pipeline {
         //environment='SPRINT'
         //def newid = '${NewID}'
 	//echo "${newid}"
+        MY_SECRET = credentials('git/devops/new')
         def CLOUD_URL = 'Your_URL'
         VERSION_NUMBER = VersionNumber([
             versionNumberString: '${BUILD_DATE_FORMATTED, "yyyy"}-${BUILDS_TODAY}',  
@@ -671,7 +675,40 @@ pipeline {
         ])
     }
 
-    stages {  
+    stages { 
+        stage('Initialize') {
+            steps {
+                script {
+                    def bitBucketProject = params.BitBucketProject.toLowerCase()
+                    def branch = params.Branch
+                    def hotfixbranch = params.Hotfix_Branch 
+                    def commitid = params.CommitId
+                    def bucketname = params.Branch
+                    if (Hotfix_Branch != '') {
+                    	bucketname="${hotfixbranch}"
+                    	branch="${hotfixbranch}"
+                    } else if (CommitId != ''){
+                    	branch="${commitid}"                    	
+                    } else {
+                        branch = params.Branch
+                    }
+                    
+                    if (CommitId != '' && Hotfix_Branch != ''){
+                        branch="${commitId}"
+                    }
+
+                    // Set the build name to include both build number and custom name
+                    def buildNumber = env.BUILD_NUMBER
+                    currentBuild.displayName = "#${buildNumber} - ${params.BitBucketProject} - ${branch}"
+                    
+                    // Optionally, add a description with additional details
+                    currentBuild.description = "Build created with name: ${params.BitBucketProject} on ${new Date().format("yyyy-MM-dd")}"
+                    
+                    echo "Build name set to: ${currentBuild.displayName}"
+                    // echo "Build description set to: ${currentBuild.description}"
+                }
+            }
+        }
         stage('Building All Pipeline') {
             steps {
                 script {
@@ -680,7 +717,7 @@ pipeline {
                     def hotfixbranch = params.Hotfix_Branch 
                     def commitid = params.CommitId
                     def bucketname = params.Branch
-                    mail_url = 'https://cpgplc.webhook.office.com/webhookb2/6d5ff299-54f8-4bb3-911b-4ef2d419e335@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/3b95c290077440da9d684a0c498039e1/1b69cb54-bc9e-4431-98fa-5afcb910e9d4'
+                    mail_url = 'https://cpgplc.webhook.office.com/webhookb2/789219c5-cacd-4a1e-88b2-13105d090c78@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/896ff2c378de40b7b2c322ebc675774c/91dca507-8de4-4171-90be-c552b60ab3b9/V2XzhA1h3C8vXk9_CQ-OlvScCMOSh9Sal7GeZajwshGgY1'
                     
                     if (Hotfix_Branch != '') {
                     	bucketname="${hotfixbranch}"
@@ -764,7 +801,6 @@ pipeline {
             }
         }
     }
-
     post{
         always{
             script {

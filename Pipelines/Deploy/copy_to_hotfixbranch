@@ -1,0 +1,100 @@
+def get_Storage_Object_Source_Path(Map args) { 
+    def source_path = sh (
+        script: "gcloud storage ls -l 'gs://sqinternational-cicd.appspot.com/${Region}/${Branch}/${args.app_name}' | sed '/TOTAL/d' | sort -k 2 -r  | head -1 | awk '{print \$3}'",
+        returnStdout: true
+    ).trim()
+    storage_path = "${source_path}"
+    echo "${source_path}"
+    return "${source_path}"
+}
+
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+        apiVersion: v1
+        kind: Pod
+        spec:
+          containers:
+          - name: jnlp  
+            resources:
+              requests:
+                memory: "2048Mi"
+                cpu: "500m"
+              limits:
+                memory: "4096Mi"
+                cpu: "1000m"
+                
+          - name: flutter
+            image: instrumentisto/flutter:latest
+            command:
+            - cat
+            tty: true
+
+          - name: gcloud
+            image: google/cloud-sdk:latest
+            command:
+            - cat
+            tty: true
+            env:
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=4096"
+        '''        
+        }
+    }
+    parameters {
+        choice(name: 'Branch', choices: ['auto-sprint', 'auto-release'], description: 'Select Branch')
+        choice(name: 'Region', choices: ['India_Region', 'UK_Region', 'Global_Region'], description: 'Select the Region')
+        string(name: 'Hotfix_Branch', description: 'Enter the branch name')
+    }
+    stages {
+        stage('Checkout flutter') { 
+            steps { 
+                script {
+                    container('gcloud') {
+                        if (params.Region == "Global_Region") {
+                            STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "ewallet")
+                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${params.Region}/${params.Hotfix_Branch}/ewallet/ --recursive"
+
+                            STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "generic-admin-dashboard")
+                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${params.Region}/${params.Hotfix_Branch}/generic-admin-dashboard/ --recursive"
+
+                            STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "vendor-dashboard")
+                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${params.Region}/${params.Hotfix_Branch}/vendor-dashboard/ --recursive"
+
+                            STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "controldeskflutter")
+                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${params.Region}/${params.Hotfix_Branch}/controldeskflutter/ --recursive"
+
+                        } else if (params.Region == "India_Region") {
+                            STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "ewallet-india")
+                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${params.Region}/${params.Hotfix_Branch}/ewallet-india/ --recursive"
+
+                            STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "admin-dashboard-india")
+                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${params.Region}/${params.Hotfix_Branch}/admin-dashboard-india/ --recursive"
+
+                            STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "vendor-dashboard")
+                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${params.Region}/${params.Hotfix_Branch}/vendor-dashboard/ --recursive"
+
+                            STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "control-desk-flutter-india")
+                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${params.Region}/${params.Hotfix_Branch}/control-desk-flutter-india/ --recursive"    
+                        
+                        } else if (params.Region == "UK_Region") {
+                            STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "ewallet-uk")
+                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${params.Region}/${params.Hotfix_Branch}/ewallet-uk/ --recursive"
+
+                            STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "admin-dashboard-uk")
+                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${params.Region}/${params.Hotfix_Branch}/admin-dashboard-uk/ --recursive"
+
+                            STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "vendor-dashboard")
+                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${params.Region}/${params.Hotfix_Branch}/vendor-dashboard/ --recursive"
+
+                            STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "control-desk-flutter-uk")
+                            sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH}* gs://sqinternational-cicd.appspot.com/${params.Region}/${params.Hotfix_Branch}/control-desk-flutter-uk/ --recursive"    
+                        }  
+                    }
+                }        
+            }                       
+        }
+        
+    }
+}

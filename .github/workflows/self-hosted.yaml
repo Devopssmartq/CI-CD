@@ -1,0 +1,21 @@
+name: self-hosted-runner
+on:
+  push:
+   tags:
+      - 'v*'
+
+jobs:
+  check-memory:
+    runs-on: self-hosted
+    steps:
+      - name: Check Memory (Linux & macOS)
+        run: |
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            echo "Running on macOS"
+            vm_stat
+            sysctl hw.memsize
+          else
+            echo "Running on Linux"
+            free -h
+            free -m
+          fi

@@ -24,25 +24,6 @@ def checkoutProject(String projectName, String branch) {
         newId = commitId
     }
 }
-def buildFlutterProject(String projectName) {
-    container('flutter') {
-        sh "echo ${WORKSPACE}"
-        dir(projectName) {
-            sh 'ls'
-            sh 'flutter clean'
-            sh 'flutter build apk --release'            
-            dir("${WORKSPACE}/build") {
-                sh 'echo changing to directory'
-                dir('app') {
-                    sh 'ls'
-                    dir('outputs/flutter-apk') {
-                        sh 'ls -lrt'                                  
-                    }
-                }
-            }
-        }
-    }
-}
 
 properties([
     parameters([
@@ -138,16 +119,26 @@ pipeline {
                 tty: true
 
               - name: flutter
-                image: instrumentisto/flutter:latest
+                image: mingc/android-build-box:master
                 resources:
-                  requests:
-                    memory: "2048Mi"
+                requests:
+                    memory: "4096Mi"  # Increase the requested memory
                     cpu: "500m"
-                  limits:
-                    memory: "4096Mi"
+                limits:
+                    memory: "8192Mi"  # Increase the maximum allowed memory
                     cpu: "1000m"
                 command:
-                - cat
+                - sh
+                args:
+                - -c
+                - |
+                set -e  # Exit immediately if a command exits with a non-zero status
+                apt-get update && \
+                apt-get install -y wget && \
+                wget https://services.gradle.org/distributions/gradle-8.7-all.zip && \
+                unzip gradle-8.7-all.zip && \
+                ls -l && \
+                sleep 99d
                 tty: true
 
               - name: gcloud
@@ -252,12 +243,60 @@ pipeline {
                     }    
                     if ('IMD-flutter' in ARR_SELECTED_SERVICE) {
                         parallelJobs['Build IMD-flutter'] = {
-                            buildFlutterProject(ARR_SELECTED_SERVICE.find { it in ['IMD-flutter'] })
+                            container('flutter') {
+                                withCredentials([file(credentialsId: 'IMD.jks', variable: 'KEYSTORE_PATH')]) {
+                                    dir('IMD-flutter') {
+                                        sh """
+                                        echo "storePassword=${KEYSTORE_PASSWORD}" > android/key.properties
+                                        echo "keyPassword=${KEY_PASSWORD}" >> android/key.properties
+                                        echo "keyAlias=${KEYSTORE_ALIAS}" >> android/key.properties
+                                        echo "storeFile=${KEYSTORE_PATH}" >> android/key.properties
+                                        """
+                                        // Print the keystore path (optional, for debugging purposes)
+                                        echo "Keystore path: ${KEYSTORE_PATH}"
+                                        sh 'flutter pub get'
+                                        sh 'flutter build apk --release '
+                                        dir ('${WORKSPACE}/build') {
+                                            sh 'echo changing to directory'
+                                            dir('app') {
+                                                sh 'ls'
+                                                dir('outputs/flutter-apk') {
+                                                    sh 'ls -lrt'
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }             
                         }                        
                     }
                     if ('TDS' in ARR_SELECTED_SERVICE) {
                         parallelJobs['Build TDS'] = {
-                            buildFlutterProject(ARR_SELECTED_SERVICE.find { it in ['TDS'] })
+                            container('flutter') {
+                                withCredentials([file(credentialsId: 'TDS.jks', variable: 'KEYSTORE_PATH')]) {
+                                    dir('TDS') {
+                                        sh """
+                                        echo "storePassword=${KEYSTORE_PASSWORD}" > android/key.properties
+                                        echo "keyPassword=${KEY_PASSWORD}" >> android/key.properties
+                                        echo "keyAlias=${KEYSTORE_ALIAS}" >> android/key.properties
+                                        echo "storeFile=${KEYSTORE_PATH}" >> android/key.properties
+                                        """
+                                        // Print the keystore path (optional, for debugging purposes)
+                                        echo "Keystore path: ${KEYSTORE_PATH}"
+                                        sh 'flutter pub get'
+                                        sh 'flutter build apk --release '
+                                        dir ('${WORKSPACE}/build') {
+                                            sh 'echo changing to directory'
+                                            dir('app') {
+                                                sh 'ls'
+                                                dir('outputs/flutter-apk') {
+                                                    sh 'ls -lrt'
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }           
                         }                        
                     }
                     parallel(parallelJobs)

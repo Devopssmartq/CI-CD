@@ -1,0 +1,21 @@
+def setProperties(String appName, String versionName, String projectId, String variantName) {
+    def APP_NAME = "$variantName"
+    sh "mkdir -p ${APP_NAME}-latest"
+    sh "echo ${APP_NAME} enter"
+
+    sh "gcloud storage cp ${appName}* ${env.WORKSPACE}/${APP_NAME}-latest --recursive"
+                                                                                
+    dir("${APP_NAME}-latest") {
+        sh 'ls'
+        sh "[ -f ${versionName}.tar.gz ] && tar -xzvf ${versionName}.tar.gz || echo 'Tar file not found'"
+        sh 'ls; pwd'
+
+        if (projectId == "smartqprd-nz" || projectId == "sqpreprod-nz") {
+            sh "./cicd_deploy.sh $variantName $projectId $versionName v2"
+        } else {
+            sh "./cicd_deploy.sh $variantName $projectId $versionName"
+        }      
+    }
+}
+
+return this

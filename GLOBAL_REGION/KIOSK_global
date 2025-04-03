@@ -1,0 +1,289 @@
+import groovy.transform.Field
+
+@Field def ARR_VERIFY_SERVICE = []
+@Field def IS_WEBAPPS_ENABLED
+
+def webapps = [
+    [key: 'smartq-kiosk-native']
+]
+def checkoutProject(String projectName, String branch) {
+    sh "mkdir -p ${projectName}"
+    dir("${projectName}") {
+        checkout([$class: 'GitSCM', 
+            branches: [[name: branch]], 
+            doGenerateSubmoduleConfigurations: false, 
+            extensions: [[$class: 'CleanCheckout']], 
+            userRemoteConfigs: [[url: "https://github.com/Bottle-Lab-Technologies-PVT-LTD/smartq-kiosk-native.git", credentialsId: 'git/devops/new']]])
+
+        sh 'ls -lrt'
+        def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+        echo "Commit ID: ${commitId}"
+        newId = commitId
+    }
+}
+
+properties([
+    parameters([
+        [$class: 'ChoiceParameter',
+            choiceType: 'PT_CHECKBOX',
+            description: 'Select Region Name',
+            filterLength: 1,
+            filterable: false,
+            name: 'REGION_NAME',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["all:selected", "US", "Global"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def choices = ["all:selected", "US", "Global"]
+                        return choices
+                    '''
+                ]
+            ] 
+        ],
+        [$class: 'ChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select Branch Name',
+            filterLength: 1,
+            filterable: false,
+            name: 'BRANCH_NAME',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["auto-sprint", "auto-release", "hotfix"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def choices = ["auto-sprint", "auto-release", "hotfix"]
+                        return choices
+                    '''
+                ]
+            ] 
+        ],
+        string(name: 'GIT_BRANCH', defaultValue: '', description: 'hotfix branch name'),
+        string(name: 'COMMIT_ID', defaultValue: '', description: 'Enter commit_id'),
+        [$class: 'ChoiceParameter',
+            choiceType: 'PT_CHECKBOX',
+            description: 'Select Project Name',
+            filterLength: 1,
+            filterable: false,
+            name: 'PROJECT_NAME',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["smartq-kiosk-native:selected"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def choices = ["smartq-kiosk-native:selected"]
+                        return choices
+                    '''
+                ]
+            ] 
+        ]
+    ])
+])
+
+pipeline {
+    agent {
+        kubernetes {
+            defaultContainer 'jnlp'
+            yaml '''
+            apiVersion: v1
+            kind: Pod
+            spec:
+              containers:
+              - name: native-android
+                image: mingc/android-build-box:master
+                resources:
+                  requests:
+                    memory: "4096Mi"
+                    cpu: "500m"
+                  limits:
+                    memory: "8192Mi"
+                    cpu: "1000m"
+                command:
+                - sh
+                args:
+                - -c
+                - |
+                  apt-get update && apt-get install -y wget tar && \
+                  wget https://download.oracle.com/java/23/latest/jdk-23_linux-aarch64_bin.tar.gz && \
+                  tar -xzf jdk-23_linux-aarch64_bin.tar.gz && \
+                  java -version && \
+                  sleep 99d
+                tty: true 
+
+              - name: gcloud
+                image: google/cloud-sdk:latest
+                command:
+                - cat
+                tty: true
+            '''        
+        }
+    }
+    stages {
+        stage('checking project') {
+            steps {
+                script {
+                    if (params.PROJECT_NAME == "All" || params.PROJECT_NAME.isEmpty()) {
+                        def options = 'smartq-kiosk-native'
+                        ARR_VERIFY_SERVICE = options.split(',')
+                    } else {
+                        ARR_VERIFY_SERVICE = params.PROJECT_NAME.split(',')
+                    }
+                    echo "Selected Services - $ARR_VERIFY_SERVICE"
+
+                    IS_WEBAPPS_ENABLED = ARR_VERIFY_SERVICE.any { element -> webapps*.key.contains(element) }
+                    echo "IS_WEBAPPS_ENABLED - $IS_WEBAPPS_ENABLED"
+                }                
+            }
+        }
+        stage('checkout stage') {
+            steps {
+                script {
+                    def branch = params.BRANCH_NAME
+                    def hotfixbranch = params.GIT_BRANCH
+                    def commitid = params.COMMIT_ID
+
+                    if (hotfixbranch != '') {
+                        branch = hotfixbranch
+                    } else if (commitid != '') {
+                        branch = commitid                        
+                    }
+
+                    if (commitid != '' && hotfixbranch != '') {
+                        branch = commitid
+                    }
+
+                    def parallelJobs = [:]
+                    ARR_VERIFY_SERVICE.each { service ->
+                        parallelJobs["Checkout ${service}"] = {
+                            if (service == 'smartq-kiosk-native') {
+                                checkoutProject(service, branch)
+                            }
+                        }
+                    }
+                    parallel(parallelJobs)
+                }
+            }
+        }
+        stage('build stage') {
+            steps {
+                script {
+                    def parallelJobs = [:]
+                    
+                    if (params.REGION_NAME.contains("US") || params.REGION_NAME.contains("all")) {
+                        parallelJobs['Build for US'] = {
+                            container('native-android') {
+                                dir('smartq-kiosk-native') {
+                                    withCredentials([file(credentialsId: 'KIOSK.JKS', variable: 'KEYSTORE_PATH')]) {
+                                        sh 'ls -a'
+                                        sh './gradlew --refresh-dependencies'
+                                        sh './gradlew --no-daemon --parallel :app:assembleRelease'
+                                        dir('app') {
+                                            sh 'ls'
+                                            dir('${WORKPSACE}/build') {
+                                                sh 'ls'
+                                                dir('outputs') {
+                                                    sh 'ls'
+                                                    dir('apk') {
+                                                        sh 'ls'
+                                                        dir('bonAppetit') {
+                                                            sh 'ls'
+                                                            dir('release') {
+                                                                sh 'ls'
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } 
+                    if (params.REGION_NAME.contains("Global") || params.REGION_NAME.contains("all")) {
+                        parallelJobs['Build for Global'] = {
+                            container('native-android') {
+                                dir('smartq-kiosk-native') {
+                                    withCredentials([file(credentialsId: 'KIOSK.JKS', variable: 'KEYSTORE_PATH')]) {
+                                        sh 'ls -a'
+                                        sh './gradlew --refresh-dependencies'
+                                        sh './gradlew --no-daemon --parallel :app-v2:assembleRelease'
+                                        dir('app') {
+                                            sh 'ls'
+                                            dir("${WORKSPACE}/build") {
+                                                sh 'ls'
+                                                dir("timeToEat/release") {
+                                                    sh 'ls'
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    parallel parallelJobs
+                }
+            }
+        }
+        stage('copy apk file') {
+            steps {
+                script {
+                    container('gcloud') {
+                        dir('smartq-kiosk-native') {                           
+                            if (params.REGION_NAME.contains("US") || params.REGION_NAME.contains("all")) {
+                                dir('app') {
+                                    sh 'ls'
+                                    dir('${WORKPSACE}/build') {
+                                        sh 'ls'
+                                        dir('outputs') {
+                                            sh 'ls'
+                                            dir('apk') {
+                                                sh 'ls'
+                                                dir('bonAppetit') {
+                                                    sh 'ls'
+                                                    dir('release') {
+                                                        sh 'ls'
+                                                        sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/Global_Region/${params.BRANCH_NAME}/KIOSK/bonAppetit/ --recursive"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } else if (params.REGION_NAME.contains("Global") || params.REGION_NAME.contains("all")) {
+                                dir('app') {
+                                    dir("${WORKSPACE}/build") {
+                                        sh 'ls'
+                                        dir("timeToEat/release") {
+                                            sh 'ls'
+                                            sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/Global_Region/${params.BRANCH_NAME}/KIOSK/timeToEat/ --recursive"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }    
+            }
+        }   
+    }
+}

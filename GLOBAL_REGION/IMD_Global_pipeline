@@ -203,7 +203,7 @@ pipeline {
                                             sh 'echo changing to directory'
                                             dir('app') {
                                                 sh 'ls'
-                                                dir('outputs/apk/release') {
+                                                dir('outputs/flutter-apk') {
                                                     sh 'ls -lrt'
                                                 }
                                             }
@@ -229,10 +229,9 @@ pipeline {
                                         sh 'ls'
                                         dir('outputs/apk/release'){
                                             sh 'ls -lrt'
-                                            sh "rm output-metadata.json"
                                             //sh "mv app-release.apk IMD.apk"
                                             //sh "mv app-release.apk.sha1 IMD.apk.sha1"
-                                            sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/Global_Region/${branch}/IMD-flutter/ --recursive"
+                                            sh "gcloud storage cp * gs://sqinternational-cicd.appspot.com/Global_Region/${params.BRANCH_NAME}/IMD-flutter/ --recursive"
                                         }
                                     }
                                 }

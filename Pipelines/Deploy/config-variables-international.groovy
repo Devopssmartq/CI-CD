@@ -43,7 +43,7 @@ def setProperties() {
     WEBORT_YAML = RELEASE_SCOPE == "beta" ? 'beta_app.yaml' : 'app.yaml'
     TIME2EAT_FLUTTER_YAML = RELEASE_SCOPE == "beta" ? '' : 'time2eat.yaml'
 //py2 service yamls
-    APP_SERVICE_YAML = RELEASE_SCOPE == "beta" ? '' : 'time2eat_appservice.yaml'
+    APP_SERVICE_YAML = RELEASE_SCOPE == "beta" ? '' : (RELEASE_SCOPE == "sprint") ? "time2eat_appservice_demo.yaml" : (RELEASE_SCOPE == "preprod") ? "time2eat_appservice_preprod.yaml" : (RELEASE_SCOPE == "hot-fix" && GIT_BRANCH == "auto-release") ? "time2eat_appservice_preprod.yaml" : "time2eat_appservice.yaml"
     DEFAULT_SERVICE_YAML = ''// not for INTERNATIONAL. for india only
     BACKGROUND_YAML = RELEASE_SCOPE == "beta" ? 'background_betaapp.yaml' : 'background.yaml'
     TASKQSERVICE_YAML = RELEASE_SCOPE == "beta" ? 'taskqservice_betaapp.yaml' : 'taskqservice.yaml'

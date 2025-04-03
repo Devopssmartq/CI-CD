@@ -19,28 +19,6 @@ def printDigestFromFile(Map args) {
 
 properties([
     parameters([
-        [$class: 'ChoiceParameter',
-            choiceType: 'PT_SINGLE_SELECT',
-            description: 'Select the region',
-            filterLength: 1,
-            filterable: false,
-            name: 'DEPLOYMENT_TYPE',
-            script: [
-                $class: 'GroovyScript',
-                fallbackScript: [
-                    classpath: [],
-                    sandbox: true,
-                    script: 'return ["india", "international"]'
-                ],
-                script: [
-                    classpath: [],
-                    sandbox: true,
-                    script: '''
-                    return ["india", "international"]
-                '''
-                ]
-            ]
-        ],
         [$class: 'CascadeChoiceParameter',
             choiceType: 'PT_SINGLE_SELECT',
             description: 'Select the Project',
@@ -59,11 +37,8 @@ properties([
                     classpath: [],
                     sandbox: true,
                     script: '''
-                        if (DEPLOYMENT_TYPE == 'india') {
-                            return ["sqlens", "compass_lens"]
-                        } else if (DEPLOYMENT_TYPE == 'international') {
-                            return ["compass_lens"]
-                        }
+                        def choices = ["sqlens", "compass_lens"]
+                        return choices
                     '''
                 ]
             ] 
@@ -86,19 +61,9 @@ properties([
                     classpath: [],
                     sandbox: true,
                     script: '''
-                        def deploymentType = DEPLOYMENT_TYPE.toString()
-                        def projectName = Project_Name.toString()
-
-                        if (deploymentType == 'india') {
-                            if (projectName == 'sqlens') {
-                                return ["smartqprd-india", "smqdebug:selected"]
-                            } else if (projectName == 'compass_lens') {
-                                return ["smartqprd-india", "smqdebug:selected"]
-                            }
-                        } else if (DEPLOYMENT_TYPE == 'international') {
-                            return ["smartqdemo-hk:selected", "smartqprd-hk"]
-                        }
-                        return []
+                        return ["smqdebug:selected", "smartqprd-india"]
+                        def choices = ["smqdebug:selected", "smartqprd-india"]
+                        return choices
                     '''
                 ]
             ] 
@@ -160,20 +125,15 @@ pipeline {
                     container('gcloud') {
                         def project_id = params.Region_Name
                         echo "Project_ID = ${project_id}"
-                        echo "Deployment_type = ${params.DEPLOYMENT_TYPE}"
+                        // echo "Deployment_type = ${params.DEPLOYMENT_TYPE}"
                         echo "ProjectName = ${params.Project_Name}"
                         def sqlensid = params.Lens_ID
-                        india_url = 'https://cpgplc.webhook.office.com/webhookb2/3551864e-0ef7-4705-bba6-33753e480bc2@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/4f52106b19cf4060a7ccc6a3e9d3ff5e/1c5e4526-7112-42fd-91d6-fcf3b5f709dd/V2gyub0gBxTlRNSGq0GyCoy1yQm5bNWVr9pXyvbd_w_ZQ1'
-                        international_url = 'https://cpgplc.webhook.office.com/webhookb2/3551864e-0ef7-4705-bba6-33753e480bc2@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/0fb5e0d7b0a8416ab84b564435fff1d5/1c5e4526-7112-42fd-91d6-fcf3b5f709dd/V2cFvuIlSOthpUN90h_9CnUlnkcIj1YnFBwd8y-Y2C9sA1'
+                        india_url = 'https://cpgplc.webhook.office.com/webhookb2/3551864e-0ef7-4705-bba6-33753e480bc2@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/2c71bd3904254b71bd072f54561f0d7f/91dca507-8de4-4171-90be-c552b60ab3b9/V2B2e5fdyzg-uwtjg4qLw5podm6zNiZC-5PPaYKu80-7o1'
 
                         if (Region_Name == "smqdebug") {
                             bucketName = 'gs://samplemendixprojectfiles/'
                         } else if (Region_Name == "smartqprd-india") {
                             bucketName = 'gs://prdin_mendixbuilds/'
-                        } else if (Region_Name == "smartqdemo-hk") {
-                            bucketName = 'gs://demohk_mendixbuilds/'
-                        } else if (Region_Name == "smartqprd-hk") {
-                            bucketName = 'gs://prdhk_mendixbuilds/'
                         } else {
                             error("Invalid Region")
                         }
@@ -202,9 +162,7 @@ pipeline {
                             // Define output files for each case
                             def smqdebugoutputFile = "smqdebug_output.txt"
                             def smartqprd_indiaoutputFile = "smartqprd_india_output.txt"
-                            def smartqdemo_hkoutputFile = "smartqdemo_hk_output.txt"
-                            def smartqprd_hkoutputFile = "smartqprd_hk_output.txt"
-        
+
                             if (DEPLOYMENT_TYPE == "india" && Project_Name == "sqlens" && Region_Name == "smqdebug") {
                                 sh "./autodeploy.sh indiademo gs://samplemendixprojectfiles/SQLens_Shield_1.0.0.${sqlensid}.mda"
         
@@ -221,17 +179,7 @@ pipeline {
                                 printDigestFromFile(outputFile: smartqprd_indiaoutputFile)
                                 sh "./autodeploy_restart_on_crash.sh indiaprd gs://prdin_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda compassprd"
         
-                            } else if (Region_Name == "smartqdemo-hk" && Project_Name == "compass_lens") {
-                                sh "sh ./docker_creator.sh hkdemo gs://demohk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda > ${smartqdemo_hkoutputFile}"
-                                printDigestFromFile(outputFile: smartqdemo_hkoutputFile)
-                                sh "./autodeploy_restart_on_crash.sh hkdemo gs://demohk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
-        
-                            } else if (Region_Name == "smartqprd-hk" && Project_Name == "compass_lens") {
-                                sh "sh ./docker_creator.sh hkprd gs://prdhk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda > ${smartqprd_hkoutputFile}"
-                                printDigestFromFile(outputFile: smartqprd_hkoutputFile)
-                                sh "./autodeploy_restart_on_crash.sh hkprd gs://prdhk_mendixbuilds/SQLens_Shield_1.0.0.${sqlensid}.mda"
-        
-                            } 
+                            }
                         }       
                     }
                 }
@@ -253,13 +201,6 @@ pipeline {
                                 sh "echo 'smartqprd-india'"
                                 sh "gcloud container clusters get-credentials compasslens-autopilot-cluster --region asia-south1 --project smartqprd-india"
                                 sh "kubectl set image Deployment/compasslens-nginx compasslensprd-sha256-1=gcr.io/smartqprd-india/compasslens/compasslensprd@${env.DIGEST}"
-                            } else if (Region_Name == "smartqdemo-hk" && Project_Name == "compass_lens") {
-                                sh "gcloud container clusters get-credentials autopilot-hksqlens-demo-cluster --region asia-east2 --project smartqdemo-hk"
-                                sh "kubectl set image Deployment/hksqlens-demo hksqlensdemo-sha256-1=gcr.io/smartqdemo-hk/hksqlens/hksqlensdemo@${env.DIGEST}"
-                            } else if (Region_Name == "smartqprd-hk" && Project_Name == "compass_lens") {
-                                sh "echo 'smartqprd-hk'"
-                                sh "gcloud container clusters get-credentials sqlens-autopilot-cluster --region asia-east2 --project smartqprd-hk"
-                                sh "kubectl set image Deployment/hksqlens hksqlensprd-sha256-1=gcr.io/smartqprd-hk/hksqlens/hksqlensprd@${env.DIGEST}"
                             } 
                         }       
                     }
@@ -270,15 +211,11 @@ pipeline {
     post{
         always{
             script {
-                if (DEPLOYMENT_TYPE == "india") {
+                // if (DEPLOYMENT_TYPE == "india") {
                     office365ConnectorSend webhookUrl: "${india_url}",
                     message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nProject Name: ${Project_Name}.\nRegion Name: ${Region_Name}.\nLens ID: ${Lens_ID}.\nLatest Build ID: ${env.DIGEST}",
                     status: "Build Status# ${currentBuild.currentResult}"
-                } else if (DEPLOYMENT_TYPE == "international") {
-                    office365ConnectorSend webhookUrl: "${international_url}",
-                    message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nProject Name: ${Project_Name}.\nRegion Name: ${Region_Name}.\nLens ID: ${Lens_ID}.\nLatest Build ID: ${env.DIGEST}",
-                    status: "Build Status# ${currentBuild.currentResult}"
-                }
+                // }
             }
         }
     }

@@ -1,0 +1,225 @@
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+        apiVersion: v1
+        kind: Pod
+        environment:
+            name: "NODE_OPTIONS"
+            value: "--max-old-space-size=4096"
+        spec:
+          containers:
+          - name: jnlp  
+            resources:
+              requests:
+                memory: "2048Mi"
+                cpu: "500m"
+              limits:
+                memory: "4096Mi"
+                cpu: "1000m"
+
+          - name: gcloud
+            image: google/cloud-sdk:latest
+            command:
+            - cat
+            tty: true
+        '''        
+        }
+    }
+    parameters {
+        string(name: 'Date', description: 'Enter the date')
+    }
+    stages {
+        stage('build data sync') {
+            steps {
+                script{
+                    container('gcloud') {
+                        def date = "${params.Date}"
+                        sh '''
+                            # Step 1: Counter
+                            echo "Step 1: Processing Counter..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/Counter/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 1: Counter"
+
+                            # Step 2: EndUsers
+                            echo "Step 2: Processing EndUsers..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/EndUsers/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 2: EndUsers"
+
+                            # Step 3: Foodcourtlocation
+                            echo "Step 3: Processing Foodcourtlocation..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/Foodcourtlocation/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 3: Foodcourtlocation"
+
+                            # Step 4: FoodItem
+                            echo "Step 4: Processing FoodItem..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/FoodItem/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 4: FoodItem"
+
+                            # Step 5: GeneralCacheDB
+                            echo "Step 5: Processing GeneralCacheDB..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/GeneralCacheDB/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 5: GeneralCacheDB"
+
+                            # Step 6: LocationSettings
+                            echo "Step 6: Processing LocationSettings..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/LocationSettings/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 6: LocationSettings"
+
+                            # Step 7: Logincred
+                            echo "Step 7: Processing Logincred..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/Logincred/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 7: Logincred"
+
+                            # Step 8: MenuAttributes
+                            echo "Step 8: Processing MenuAttributes..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/MenuAttributes/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 8: MenuAttributes"
+
+                            # Step 9: QRPaymentTransaction
+                            echo "Step 9: Processing QRPaymentTransaction..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/QRPaymentTransaction/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 9: QRPaymentTransaction"
+
+                            # Step 10: ResturantBilling
+                            echo "Step 10: Processing ResturantBilling..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/ResturantBilling/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 10: ResturantBilling"
+
+                            # Step 11: PaymentTransaction
+                            echo "Step 11: Processing PaymentTransaction..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/PaymentTransaction/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 11: PaymentTransaction"
+
+                            # Step 12: SlotsStats
+                            echo "Step 12: Processing SlotsStats..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/SlotsStats/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 12: SlotsStats"
+
+                            # Step 13: Resturantlocation
+                            echo "Step 13: Processing Resturantlocation..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/Resturantlocation/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 13: Resturantlocation"
+
+                            # Step 14: Stats
+                            echo "Step 14: Processing Stats..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/Stats/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 14: Stats"
+
+                            # Step 15: UserExtras
+                            echo "Step 15: Processing UserExtras..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/UserExtras/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 15: UserExtras"
+
+                            # Step 16: UserCredentials
+                            echo "Step 16: Processing UserCredentials..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/UserCredentials/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 16: UserCredentials"
+
+                            # Step 17: UserSlots
+                            echo "Step 17: Processing UserSlots..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/UserSlots/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 17: UserSlots"
+
+                            # Step 18: VendorCredentials
+                            echo "Step 18: Processing VendorCredentials..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/VendorCredentials/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 18: VendorCredentials"
+
+                            # Step 19: Offers
+                            echo "Step 19: Processing Offers..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/Offers/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 19: Offers"
+
+                            # Step 20: Rewards
+                            echo "Step 20: Processing Rewards..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/Rewards/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 20: Rewards"
+
+                            # Step 21: UserOfferStats
+                            echo "Step 21: Processing UserOfferStats..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/UserOfferStats/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 21: UserOfferStats"
+
+                            # Step 22: Cashier
+                            echo "Step 22: Processing Cashier..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/Cashier/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 22: Cashier"
+
+                            # Step 23: BannerPrograms
+                            echo "Step 23: Processing BannerPrograms..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/BannerPrograms/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 23: BannerPrograms"
+
+                            # Step 24: SSOSettings
+                            echo "Step 24: Processing SSOSettings..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/SSOSettings/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 24: SSOSettings"
+
+                            # Step 25: QRJourney
+                            echo "Step 25: Processing QRJourney..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/QRJourney/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 25: QRJourney"
+
+                            # Step 26: Promotions
+                            echo "Step 26: Processing Promotions..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/Promotions/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 26: Promotions"
+
+                            # Step 27: Loyalties
+                            echo "Step 27: Processing Loyalties..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/Loyalties/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 27: Loyalties"
+
+                            # Step 28: Groups
+                            echo "Step 28: Processing Groups..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/Groups/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 28: Groups"
+
+                            # Step 29: FoodStamps
+                            echo "Step 29: Processing FoodStamps..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/FoodStamps/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 29: FoodStamps"
+
+                            # Step 30: Campaign
+                            echo "Step 30: Processing Campaign..."
+                            gcloud datastore import gs://sqpreprod-hk_analyticsdump/backupdata/Campaign/${date}/${date}.overall_export_metadata --async
+                            sleep 5s
+                            echo "Completed Step 30: Campaign"
+
+                        '''
+                    }
+                }
+            }
+        }
+    }
+}
