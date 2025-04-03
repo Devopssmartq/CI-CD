@@ -127,7 +127,7 @@ pipeline {
                         //echo "Deployment_type = ${params.DEPLOYMENT_TYPE}"
                         echo "ProjectName = ${params.Project_Name}"
                         def sqlensid = params.Lens_ID
-                        international_url = 'https://cpgplc.webhook.office.com/webhookb2/3551864e-0ef7-4705-bba6-33753e480bc2@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/9f538d3d1ac84d1792d26cb79b195435/1c5e4526-7112-42fd-91d6-fcf3b5f709dd'
+                        international_url = 'https://cpgplc.webhook.office.com/webhookb2/3551864e-0ef7-4705-bba6-33753e480bc2@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/0fb5e0d7b0a8416ab84b564435fff1d5/1c5e4526-7112-42fd-91d6-fcf3b5f709dd/V2cFvuIlSOthpUN90h_9CnUlnkcIj1YnFBwd8y-Y2C9sA1'
 
                         if (Region_Name == "smartqdemo-hk") {
                             bucketName = 'gs://demohk_mendixbuilds/'

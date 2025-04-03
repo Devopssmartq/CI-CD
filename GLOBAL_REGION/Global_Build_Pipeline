@@ -92,7 +92,7 @@ def buildControlDesk() {
             sh 'npm install --force' 
             // sh 'npm install @emotion/styled'
             // sh 'npm install react-checkbox-tree@1.5.0 --force'
-            sh 'CI=false npm run build'
+            sh 'CI=false NODE_OPTIONS="--max-old-space-size=4096" npm run build'
             dir ('${WORKSPACE}/controldesk/build') {
                 sh 'echo changing to directory'
                 sh 'ls'
