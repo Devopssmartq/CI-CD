@@ -507,7 +507,7 @@ def buildtime2eat_flutter() {
                 sh 'flutter pub get'
                 sh 'dart run phrase'
                 sh 'flutter pub upgrade'
-                sh './cicd_build.sh'
+                sh './india_cicd_build.sh'
                 sh 'ls'
                 dir ('${WORKSPACE}/build/web') {
                     sh 'ls'

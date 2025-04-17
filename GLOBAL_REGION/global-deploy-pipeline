@@ -248,6 +248,33 @@ def centric_os_intergration() {
         return null
     }
 }
+def notification_service() {
+    // Don't create a new parallelJobs map here - use the one from the parent scope
+    if (IS_PY3_ENABLED) {
+        echo "IS_PY3_ENABLED, proceeding with the notification-service deployment."
+        
+        // Ensure py3_services map exists and has the required key
+        PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend')
+        // PREVIOUS_VERSION = get_Previous_Version(service_name: "notification-service") 
+        
+        // Return the job closure so it can be added to the main parallelJobs map
+        return {
+            dir ('sq_microservices_backend') {
+                sh 'ls'
+                dir ('cloudrun/notification-service') {
+                    sh "ls"                                                               
+                    sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
+                    sh "gcloud run deploy notification-service --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json"
+                                                                
+                    // ARR_VERIFY_SERVICE.add([service_name: 'notification-service', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
+                }                                 
+            }
+        }
+    } else {
+        echo "IS_PY3_ENABLED is false. Skipping the notification-service deployment."
+        return null
+    }
+}
 //1. initialize the app that needs deployment
 def nodeapps = [
             [key: 'controldesk'],
@@ -272,10 +299,11 @@ def py3_services = [
             [key: 'pricebook'],
             [key: 'integration'],
             [key: 'cloud_run'],
-            [key: 'sap-integration'],
+            [key: 'sap-integration-germany'],
             [key: 'index'],
             [key: 'menucacheupdate'],
-            [key: 'centric-os-integration']
+            [key: 'centric-os-integration-us'],
+            [key: 'notification-service'],
         ]
 def phrase_translate = [
             [key: 'phrase'] //INTERNATIONAL
@@ -382,7 +410,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","baweb","baweb-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","sap-integration","index","phrase","menucacheupdate","centric-os-integration"]'
+                    script: 'return ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","integration", "pricebook","cloud_run","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso"]'
                 ],
                 script: [
                     classpath: [],
@@ -391,7 +419,7 @@ properties([
                         def type = DEPLOYMENT_TYPE ?: "International" 
                         def options = []
                         if (type == "International") {
-                            options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","baweb","baweb-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","sap-integration","index","phrase","menucacheupdate","centric-os-integration"]
+                            options = ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","integration", "pricebook","cloud_run","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso"]
                         }
                         return options
                     '''
@@ -479,6 +507,16 @@ pipeline {
         ])
     }
     stages {
+        // stage('Validation') {
+        //     steps {
+        //         script {
+        //             if (params.RELEASE_SCOPE != 'hot-fix' && params.GIT_BRANCH?.trim()) {
+        //                 echo "❌ ERROR: GIT_BRANCH should be empty unless RELEASE_SCOPE is 'hot-fix'"
+        //                 bat 'exit 1'
+        //             }
+        //         }
+        //     }
+        // }
         stage('Check Deployment Type - India / International ') {
             steps {
                 script {
@@ -512,9 +550,9 @@ pipeline {
                     {
                         def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
                         echo "type of deplyoment is : ${type}"
-                        def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,cloud_run,sap-integration,index,phrase,menucacheupdate,centric-os-integration'
+                        def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,cloud_run,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service'
                         if (type == "International") {
-                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,baweb-flutter,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,cloud_run,sap-integration,index,phrase,menucacheupdate,centric-os-integration'
+                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,baweb-flutter,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,cloud_run,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service'
                         }       
                         //echo "SERVICE_NAME_LIST updated - $options"
                         ARR_SELECTED_SERVICE = "$options".split(',')                        
@@ -672,7 +710,7 @@ pipeline {
                                         time2eat_flutter()
                                     }          
                                     if ('baweb-flutter' in ARR_SELECTED_SERVICE) {                                                                                                                                           
-                                        configFileProvider([configFile(fileId: 'deploy-baweb-jumpr-script', targetLocation: 'deploy_time2eat-flutter.groovy')]) {
+                                        configFileProvider([configFile(fileId: 'deploy-baweb-jumpr-script', targetLocation: 'deploy_baweb_jumpr.groovy')]) {
                                             TIME2EAT_FLUTTER_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat-flutter')
                                             PREVIOUS_VERSION = get_Previous_Version(service_name: "baweb-flutter")
                                             def projectID = params.APP_ENGINE_PROJECT_ID
@@ -977,15 +1015,15 @@ pipeline {
                                             } 
                                         } 
                                         if (params.APP_ENGINE_PROJECT_ID.contains("-de")){ 
-                                            if ('sap-integration' in ARR_SELECTED_SERVICE ) {
+                                            if ('sap-integration-germany' in ARR_SELECTED_SERVICE ) {
                                                 PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend')
                                                 PREVIOUS_VERSION = get_Previous_Version(service_name: "sap-integration") 
-                                                parallelJobs[py3_services.find { it.key == 'sap-integration' }] = {
+                                                parallelJobs[py3_services.find { it.key == 'sap-integration-germany' }] = {
                                                     dir ('sq_microservices_backend') {
                                                         sh 'ls'
                                                         dir ('integrations') {
                                                             sh "ls"                                                               
-                                                            PREVIOUS_VERSION = get_Previous_Version(service_name: "sap-integration")
+                                                            PREVIOUS_VERSION = get_Previous_Version(service_name: "sap-integration-germany")
                                                             sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
                                                             sh "gcloud run deploy sap-integration --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic"
                                                                                                      
@@ -996,13 +1034,19 @@ pipeline {
                                             } 
                                         }   
                                         if (params.APP_ENGINE_PROJECT_ID.contains("-us")){ 
-                                            if ('centric-os-integration' in ARR_SELECTED_SERVICE ) {
+                                            if ('centric-os-integration-us' in ARR_SELECTED_SERVICE ) {
                                                 def centricJob = centric_os_intergration()
                                                 if (centricJob) {
-                                                    parallelJobs[py3_services.find { it.key == 'centric-os-integration' }] = centricJob
+                                                    parallelJobs[py3_services.find { it.key == 'centric-os-integration-us' }] = centricJob
                                                 }
                                             } 
-                                        }       
+                                        }  
+                                        if ('notification-service' in ARR_SELECTED_SERVICE ) {
+                                            def notificationJob = notification_service()
+                                            if (notificationJob) {
+                                                parallelJobs[py3_services.find { it.key == 'notification-service' }] = notificationJob
+                                            }
+                                        }    
                                         if ('menucacheupdate' in ARR_SELECTED_SERVICE ) {
                                             PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
                                             parallelJobs[py3_services.find { it.key == 'menucacheupdate' }] = {

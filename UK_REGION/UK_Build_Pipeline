@@ -507,7 +507,7 @@ def buildtime2eat_flutter() {
                 sh 'flutter pub get'
                 sh 'dart run phrase'
                 sh 'flutter pub upgrade'
-                sh './cicd_build.sh'
+                sh './uk_cicd_build.sh'
                 sh 'ls'
                 dir ('${WORKSPACE}/build/web') {
                     sh 'ls'
@@ -523,7 +523,7 @@ def uploadtime2eat_flutterToGCS(bucketname) {
         container('gcloud') {
             dir('time2eat_flutter') {
                 sh 'ls'
-		        sh "tar -czvf ${newId}.tar.gz cicd_deploy.sh flavors *.yaml build/* web/*"
+		        sh "tar -czvf ${newId}.tar.gz cicd_deploy.sh flavors *.yaml build/* web/* web_builds/*"
                 sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/UK_Region/${bucketname}/time2eat-flutter/  --recursive"
 		        sh "tar -xzvf ${newId}.tar.gz"
             }

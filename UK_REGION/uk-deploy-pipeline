@@ -380,6 +380,16 @@ pipeline {
         ])
     }
     stages {
+        stage('Validation') {
+            steps {
+                script {
+                    if (params.RELEASE_SCOPE != 'hot-fix' && params.GIT_BRANCH?.trim()) {
+                        echo "❌ ERROR: GIT_BRANCH should be empty unless RELEASE_SCOPE is 'hot-fix'"
+                        bat 'exit 1'
+                    }
+                }
+            }
+        }
         stage('Check Deployment Type - India / International ') {
             steps {
                 script {
@@ -540,7 +550,7 @@ pipeline {
                                             def variant_Name = "timetoeat"
                                             parallelJobs[nodeapps.find { it.key == 'time2eat-flutter' }] = {
                                                 load("deploy_time2eat-flutter.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat-flutter"), TIME2EAT_FLUTTER_APP_ENGINE_VERSION, APP_ENGINE_PROJECT_ID, variant_Name)
-                                                ARR_VERIFY_SERVICE.add([service_name: 'time2eat-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'time2eat-v2/'])                                           
+                                                ARR_VERIFY_SERVICE.add([service_name: 'time2eat-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'time2eat/'])                                           
                                             }                                                                                                                                                                                                           
                                         }
                                     }

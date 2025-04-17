@@ -805,7 +805,7 @@ pipeline {
         always{
             script {
                 office365ConnectorSend webhookUrl: "${mail_url}",
-                message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nApplication  Name: ${bitBucketProject}.\nGCP Cloud URL: ${CLOUD_URL}.\n Version Number: ${VERSION_NUMBER} ",
+                message : "Build is running.\nJob Name: ${Job_Name}.\nBuild Status: ${currentBuild.currentResult}.\nJenkins Build Number: ${Build_Number}.\nApplication  Name: ${bitBucketProject}.\nGCP Cloud URL: ${CLOUD_URL}.\n Version Number: ${VERSION_NUMBER}.\n Commit_ID: ${newId}",
                 status: "Build Status# ${currentBuild.currentResult}"
             }
         }

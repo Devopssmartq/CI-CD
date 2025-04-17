@@ -11,7 +11,7 @@ def setProperties(String appName, String versionName, String projectId, String v
         sh "tar -xzvf ${versionName}.tar.gz"
         sh 'ls; pwd'
 
-        sh "./build.sh $variantName $projectId $versionName"
+        sh "./cicd_deploy.sh $variantName $projectId $versionName"
         //sh "gcloud app deploy --version=$versionName --quiet $TIME2EAT_FLUTTER_YAML --no-promote"
     }
 }

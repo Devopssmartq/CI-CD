@@ -12,6 +12,8 @@ def setProperties(String appName, String versionName, String projectId, String v
 
         if (projectId == "smartqprd-nz" || projectId == "sqpreprod-nz") {
             sh "./cicd_deploy.sh $variantName $projectId $versionName v2"
+        } else if(projectId == "smartqprd-uk" || projectId == "sqpreprod-uk" || projectId == "smartqdemo-uk") {
+            sh "./cicd_deploy.sh $variantName $projectId $versionName"
         } else {
             sh "./cicd_deploy.sh $variantName $projectId $versionName"
         }      
