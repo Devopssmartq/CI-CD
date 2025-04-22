@@ -375,6 +375,16 @@ pipeline {
         ])
     }
     stages {
+        stage('Validation') {
+            steps {
+                script {
+                    if (params.RELEASE_SCOPE != 'hot-fix' && params.GIT_BRANCH?.trim()) {
+                        echo "❌ ERROR: GIT_BRANCH should be empty unless RELEASE_SCOPE is 'hot-fix'"
+                        bat 'exit 1'
+                    }
+                }
+            }
+        }
         stage('Check Deployment Type - India / International ') {
             steps {
                 script {
