@@ -90,6 +90,7 @@ def buildControlDeskuk() {
             //sh 'git config --global --add safe.directory ${WORKSPACE}/control-desk-uk'
             //sh 'git status'
             sh 'npm install --force'
+            sh 'npm i ajv --force'
             sh 'npm install @emotion/styled'
             sh 'npm install react-checkbox-tree@1.5.0 --force'
             sh 'CI=false npm run build'
@@ -175,7 +176,7 @@ def checkouttime2eatwebuk(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/time2eatweb-uk.git', credentialsId: 'git/devops/new',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/main-app-uk.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -189,23 +190,33 @@ def checkouttime2eatwebuk(branch) {
 }
 def buildtime2eatwebuk() {
     echo "Build PWA"
-        container('node-js') {
-             sh 'echo ${WORKSPACE}'
-                dir('time2eatweb-uk') {
-                    sh 'npm install --force'
-                    //sh 'npm update'
-                    //sh 'export NODE_OPTIONS=--openssl-legacy-provider'
-                    sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app1'
-                    // sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app2'
-                    // sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app3'
-                    // sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app4'
-                    // sh 'CI=false && export NODE_OPTIONS=--openssl-legacy-provider && npm run build:app5'
-                        dir ('${WORKSPACE}/time2eatweb-uk/build') {
-                            sh 'echo changing to directory'
-                       }
-                    }
+        container('time2eatflutter') {
+        sh 'echo ${WORKSPACE}'
+        withCredentials([
+            usernamePassword(credentialsId: 'git/devops/new', usernameVariable: 'Devopssmartq', passwordVariable: 'GIT_PASSWORD')
+        ]) {
+            dir('time2eatweb-uk') {
+                sh 'ls'
+                sh 'echo "My secret value is: $MY_SECRET"'
+                //sh "git config --global credential.helper"
+                sh "git config --global credential.helper store"
+                sh "echo 'https://Devopssmartq:${GIT_PASSWORD}@github.com' > ~/.git-credentials"
+                //sh "git config --global credential.helper"
+                sh "git config --list"
+                sh "git clone https://github.com/Bottle-Lab-Technologies-PVT-LTD/atomic-ui-lib-uk.git "
+                sh 'flutter clean'
+                sh 'flutter pub get'
+                sh 'dart run phrase'
+                sh 'flutter pub upgrade'
+                sh './uk_cicd_build.sh'
+                sh 'ls'
+                dir ('${WORKSPACE}/build/web') {
+                    sh 'ls'
+                    sh 'pwd'
                 }
-
+            }
+        }       
+    }
 }
 def uploadtime2eatwebukToGCS(bucketname) {
     echo "Upload time2eatweb-uk to GCS"
@@ -213,7 +224,7 @@ def uploadtime2eatwebukToGCS(bucketname) {
     container('gcloud') {
         dir('time2eatweb-uk') {
             sh 'ls'
-            sh "tar -czvf ${newId}.tar.gz *.yaml build/*"
+            sh "tar -czvf ${newId}.tar.gz flavors *.yaml build/* web/* web_builds/* cicd_deploy.sh"
     	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/UK_Region/${bucketname}/time2eatweb-uk/ --recursive"
     	    sh "tar -xzvf ${newId}.tar.gz"
             //sh "gcloud storage cp ${WORKSPACE}/time2eatweb-uk/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/time2eatweb-uk/time2eatweb-uk@$VERSION_NUMBER --recursive"
