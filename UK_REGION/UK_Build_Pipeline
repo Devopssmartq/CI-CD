@@ -208,7 +208,7 @@ def buildtime2eatwebuk() {
                 sh 'flutter pub get'
                 sh 'dart run phrase'
                 sh 'flutter pub upgrade'
-                sh './uk_cicd_build.sh'
+                sh './uk_cicd_build.sh v2 '
                 sh 'ls'
                 dir ('${WORKSPACE}/build/web') {
                     sh 'ls'
