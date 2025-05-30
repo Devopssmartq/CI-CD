@@ -163,6 +163,32 @@ def runAutomation() {
             echo "No specific job selected to trigger"
         }
 }
+def hotfix_logic() {
+    def apps = [
+        "ewallet",
+        "generic-admin-dashboard",
+        "vendor-dashboard",
+        "controldeskflutter"
+    ]
+
+    for (app in apps) {
+        container('gcloud') {
+            def BUCKET_PATH = sh(
+                script: """gcloud storage ls -l 'gs://sqinternational-cicd.appspot.com/UK_Region/auto-release/${app}' | sed '/TOTAL/d' | sort -k 2 -r | head -1 | awk '{print \$3}'""",
+                returnStdout: true
+            ).trim()
+
+            echo "Latest path for ${app} is: ${BUCKET_PATH}"
+
+            if (BUCKET_PATH) {
+                sh "gcloud storage cp ${BUCKET_PATH}* gs://sqinternational-cicd.appspot.com/UK_Region/${params.GIT_BRANCH}/${app}/ --recursive"
+            } else {
+                echo "⚠️ WARNING: No artifacts found for ${app} in auto-release bucket."
+            }
+        }
+    }
+}
+
 //1. initialize the app that needs deployment
 def nodeapps = [
             [key: 'controldesk'],
@@ -380,16 +406,6 @@ pipeline {
         ])
     }
     stages {
-        stage('Validation') {
-            steps {
-                script {
-                    if (params.RELEASE_SCOPE != 'hot-fix' && params.GIT_BRANCH?.trim()) {
-                        echo "❌ ERROR: GIT_BRANCH should be empty unless RELEASE_SCOPE is 'hot-fix'"
-                        bat 'exit 1'
-                    }
-                }
-            }
-        }
         stage('Check Deployment Type - India / International ') {
             steps {
                 script {
@@ -590,6 +606,19 @@ pipeline {
                                     }
                                 }
                             } 
+                        }
+                        stage('copy to hotfix branch') {
+                            steps {
+                                script {
+                                    if (params.RELEASE_SCOPE == 'hot-fix') {
+                                        if (params.GIT_BRANCH?.trim()) {
+                                            hotfix_logic()
+                                        } else {
+                                            echo "it is not hofix logic"
+                                        }
+                                    }
+                                }
+                            }
                         }
                         stage('Py2:Copy build output - ewallet, admin & vendor dash-board') {
                             steps {                
