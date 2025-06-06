@@ -1,5 +1,3 @@
-/* groovylint-disable CompileStatic */
-// Uses Declarative syntax to run commands inside a container.
 import groovy.transform.Field
 @Field def IS_NODEAPPS_ENABLED
 @Field def IS_PY2_ENABLED
@@ -275,32 +273,6 @@ def notification_service() {
         return null
     }
 }
-// def hotfix_logic() {
-//     def apps = [
-//         "ewallet",
-//         "generic-admin-dashboard",
-//         "vendor-dashboard",
-//         "controldeskflutter"
-//     ]
-
-//     for (app in apps) {
-//         container('gcloud') {
-//             def BUCKET_PATH = sh(
-//                 script: """gcloud storage ls -l 'gs://sqinternational-cicd.appspot.com/Global_Region/auto-release/${app}' | sed '/TOTAL/d' | sort -k 2 -r | head -1 | awk '{print \$3}'""",
-//                 returnStdout: true
-//             ).trim()
-
-//             echo "Latest path for ${app} is: ${BUCKET_PATH}"
-
-//             if (BUCKET_PATH) {
-//                 sh "gcloud storage cp ${BUCKET_PATH}* gs://sqinternational-cicd.appspot.com/Global_Region/${params.GIT_BRANCH}/${app}/ --recursive"
-//             } else {
-//                 echo "⚠️ WARNING: No artifacts found for ${app} in auto-release bucket."
-//             }
-//         }
-//     }
-// }
-
 
 //1. initialize the app that needs deployment
 def nodeapps = [
@@ -604,10 +576,7 @@ pipeline {
                         load("$GroovyScript").setProperties()
                         echo "$GCS_BUCKET_NAME"
                         echo "$ENVIRONMENT"//see if you can get rid of this in all the places & use GIT_BRANCH, as both are same now
-                        echo "GIT_BRANCH - $GIT_BRANCH"
-                        // echo "[\"$CONTROLDESK_YAML\", \"$PWA_YAML\", \"$FOODBOOK_YAML\", \"$TIME2EAT_YAML\", \"$BAWEB_YAML\", \"$WEBORT_YAML\", \"$TIME2EAT_FLUTTER_YAML\"]"
-                        // echo "[\"$APP_SERVICE_YAML\",  \"$DEFAULT_SERVICE_YAML\", \"$BACKGROUND_YAML\", \"$TASKQSERVICE_YAML\", \"$REPORTS_YAML\", \"$BQREPORTS_YAML\"]" 
-                        // echo "[\"$PY3_APPMS_YAML\", \"$PY3_DASHBOARD_YAML\",  \"$PY3_SSO_YAML\", \"$PY3_PRICEBOOK_YAML\", \"$PY3_INTEGRATION_YAML\"]"                         
+                        echo "GIT_BRANCH - $GIT_BRANCH"                        
                     }
                 }              
             }
@@ -623,15 +592,12 @@ pipeline {
         stage('Initialize') {
             steps {
                 script {
-                    // Set the build name to include both build number and custom name
                     def buildNumber = env.BUILD_NUMBER
                     currentBuild.displayName = "#${buildNumber} - ${params.Description}"
                     
-                    // Optionally, add a description with additional details
                     currentBuild.description = "Build created with name: ${params.Description} on ${new Date().format("yyyy-MM-dd")}"
                     
                     echo "Build name set to: ${currentBuild.displayName}"
-                    // echo "Build description set to: ${currentBuild.description}"
                 }
             }
         }
@@ -646,14 +612,6 @@ pipeline {
                         container('gcloud') {
                             script { 
                                 def PWA_APP_NAME = "time2eat" 
-                                // if('smartq-pwa' in ARR_SELECTED_SERVICE || 'foodbook-web' in ARR_SELECTED_SERVICE || 'time2eat' in ARR_SELECTED_SERVICE || 'jumpr-pwa' in ARR_SELECTED_SERVICE || 'baweb' in ARR_SELECTED_SERVICE) {                                    
-                                //     configFileProvider([configFile(fileId: 'deploy-PWQ-script', targetLocation: 'deploy_time2eat.groovy')]) {
-                                //         TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
-                                //         //PWA_STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "time2eat")
-
-                                //         load("deploy_time2eat.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat"))
-                                //     }                            
-                                // }
                                 def parallelJobs = [:]
                                     // if controldesk in selected list , then we have to deploy flutter also                                                                     
                                 if ('controldesk' in ARR_SELECTED_SERVICE ) {    
@@ -678,39 +636,7 @@ pipeline {
                                         }                                                                                                                              
                                     }
                                 }    
-                                // if (params.APP_ENGINE_PROJECT_ID.contains("-au")) {
-                                //     if ('time2eat' in ARR_SELECTED_SERVICE ) {
-                                //         TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
-                                //         PREVIOUS_VERSION = get_Previous_Version(service_name: "jumpr-pwa")
-                                //         parallelJobs[nodeapps.find { it.key == 'time2eat' }] = {
-                                //             dir("${PWA_APP_NAME}-latest") {                                                
-                                //                 sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $JUMPR_PWA_YAML --no-promote"
-                                //             }
-                                //             ARR_VERIFY_SERVICE.add([service_name: 'jumpr-pwa', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'jumpr-pwa/main'])
-                                //         }  
-                                //     }                                                                                                                             
-                                // } else  if ('time2eat' in ARR_SELECTED_SERVICE ) {
-                                //     TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
-                                //     PREVIOUS_VERSION = get_Previous_Version(service_name: "time2eat")
-                                //     parallelJobs[nodeapps.find { it.key == 'time2eat' }] = {
-                                //         dir("${PWA_APP_NAME}-latest") {                                           
-                                //             sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet $TIME2EAT_YAML --no-promote"
-                                //         }
-                                //         ARR_VERIFY_SERVICE.add([service_name: 'time2eat', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'time2eat/main'])   
-                                //     }
-                                // }                                                                                                 
-                                // if (params.APP_ENGINE_PROJECT_ID.contains("-us")) {  
-                                //     if ('baweb' in ARR_SELECTED_SERVICE ) {
-                                //         TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
-                                //         PREVIOUS_VERSION = get_Previous_Version(service_name: "baweb")
-                                //         parallelJobs[nodeapps.find { it.key == 'baweb' }] = {
-                                //             dir("${PWA_APP_NAME}-latest") {
-                                //                 sh "gcloud app deploy --version=$TIME2EAT_APP_ENGINE_VERSION --quiet baweb.yaml --no-promote"
-                                //             }    
-                                //             ARR_VERIFY_SERVICE.add([service_name: 'baweb', version_name: "$TIME2EAT_APP_ENGINE_VERSION", url_suffix: 'baweb/main'])                                                 
-                                //         }
-                                //     }
-                                // }                                
+                                                       
                                 if ('web-ort' in ARR_SELECTED_SERVICE ) {                                                                                               
                                     configFileProvider([configFile(fileId: 'deploy-groovy-script', targetLocation: 'deploy_web-ort.groovy')]) {
                                         WEBORT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'web-ort')
@@ -793,19 +719,7 @@ pipeline {
                                 }
                             } 
                         }
-                        // stage('copy to hotfix branch') {
-                        //     steps {
-                        //         script {
-                        //             if (params.RELEASE_SCOPE == 'hot-fix') {
-                        //                 if (params.GIT_BRANCH?.trim()) {
-                        //                     hotfix_logic()
-                        //                 } else {
-                        //                     echo "it is not hofix logic"
-                        //                 }
-                        //             }
-                        //         }
-                        //     }
-                        // }
+                        
                         stage('Py2:Copy build output - ewallet, admin & vendor dash-board') {
                             steps {                
                                 dir ('smartq-cloud-backend') {
@@ -891,7 +805,6 @@ pipeline {
                                                 ARR_VERIFY_SERVICE.add([service_name: 'taskqservice', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload'])                                                              
                                             }
                                         }
-                                        //2.1 Add new service block here, if there is any to be added
                                         parallel(parallelJobs)
                                     }
                                 }
@@ -915,7 +828,6 @@ pipeline {
                                                 }
                                             }
                                         }
-                                        //2.1 Add new service block here, if there is any to be added
                                         parallel(py2_bqreports)                        
                                     }               
                                 }
@@ -964,7 +876,6 @@ pipeline {
                                                     dir ('dispatch') {
                                                         sh "gcloud app deploy ${params.APP_ENGINE_PROJECT_ID}/cron.yaml" 
                                                     }                                         
-                                                    //py3 -app : international
                                                     ARR_VERIFY_SERVICE.add([service_name: 'default', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])  
                                                 }                             
                                             }
@@ -982,7 +893,6 @@ pipeline {
                                                     dir ('dispatch') {
                                                         sh "gcloud app deploy ${params.APP_ENGINE_PROJECT_ID}/cron.yaml" 
                                                     } 
-                                                    //py3 services
                                                     ARR_VERIFY_SERVICE.add([service_name: 'dashboard', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: 'v2/bck/dummy'])                                                                     
                                                 }                               
                                             }
@@ -993,7 +903,6 @@ pipeline {
                                             sso_previous_version = PREVIOUS_VERSION
                                             parallelJobs[py3_services.find { it.key == 'sso' }] = {
                                                 dir ('sq_microservices_backend') {
-                                                    //sh 'cp -r commonlib sso_flex'
                                                     dir ('sso_flex') {
                                                         sh "ls *.yaml"                                                        
                                                         sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_SSO_YAML --no-promote"
@@ -1153,17 +1062,12 @@ pipeline {
                                             PREVIOUS_VERSION = get_Previous_Version(service_name: "phrase") 
                                             parallelJobs[phrase_translate.find { it.key == 'phrase' }] = {
                                                 dir ('phrase_translate') {
-                                                    //sh 'cp -r commonlib appms'
-                                                    //dir ('appms') {
-                                                        sh "ls *.yaml"                                                        
-                                                        sh "gcloud app deploy --version=$PHRASE_TRANSLATE_APP_ENGINE_VERSION --quiet $PY3_APPMS_YAML --no-promote"
-                                                    //}                                           
-                                                    //py3 -app : india
+                                                    sh "ls *.yaml"                                                        
+                                                    sh "gcloud app deploy --version=$PHRASE_TRANSLATE_APP_ENGINE_VERSION --quiet $PY3_APPMS_YAML --no-promote"
                                                     ARR_VERIFY_SERVICE.add([service_name: 'phrase', version_name: "$PHRASE_TRANSLATE_APP_ENGINE_VERSION", url_suffix: ''])  
                                                 }                             
                                             }
                                         }              
-                                        //2.1 Add new service block here, if there is any to be added
                                         parallel(parallelJobs)
                                     }
                                 }
@@ -1203,7 +1107,6 @@ pipeline {
                                     PROMOTED_SERVICES.add(item)
                                 }                                                   
                             }
-                            //method/logic to write the array to a file
                             Write_To_File()
                         }
                         else {  
