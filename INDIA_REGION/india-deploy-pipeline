@@ -152,10 +152,10 @@ def runAutomation() {
 }
 def hotfix_logic() {
     def apps = [
-        "ewallet",
-        "generic-admin-dashboard",
+        "ewallet-india",
+        "generic-admin-dashboard-india",
         "vendor-dashboard",
-        "controldeskflutter"
+        "control-desk-flutter-india"
     ]
 
     for (app in apps) {
