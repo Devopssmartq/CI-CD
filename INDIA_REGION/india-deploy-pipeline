@@ -427,8 +427,7 @@ pipeline {
                     env.RELEASE_SCOPE = params.RELEASE_SCOPE
                     env.APP_ENGINE_PROJECT_ID = params.APP_ENGINE_PROJECT_ID
                     env.GIT_BRANCH = params.GIT_BRANCH
-                    mail_url = 'https://cpgplc.webhook.office.com/webhookb2/6d5ff299-54f8-4bb3-911b-4ef2d419e335@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/3b95c290077440da9d684a0c498039e1/1b69cb54-bc9e-4431-98fa-5afcb910e9d4'
-
+                    mail_url = 'https://cpgplc.webhook.office.com/webhookb2/338b6ef4-7b9e-43db-909f-e7309c1d73ab@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/97d45deb3e8f4ed49bc76862c0635ef4/6a7c3461-f574-44f9-8bec-0b9feacb3fb5/V2BWHFPXeMg00euibd0cSf6Gd1FUVTffeOCZR9B9lgUtA1'
                     if(params.SERVICE_NAME == "All" || params.SERVICE_NAME.isEmpty())
                     {
                         def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
