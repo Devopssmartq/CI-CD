@@ -1,0 +1,47 @@
+name: Merge Notification
+
+on:
+  push:
+    branches: [ yash ]
+  pull_request:
+    types: [closed]
+    branches: [ yash ]
+
+jobs:
+  notify-merge:
+    if: github.event.pull_request.merged == true || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Teams Notification
+        run: |
+          curl -H "Content-Type: application/json" -d '{
+            "@type": "MessageCard",
+            "@context": "https://schema.org/extensions",
+            "summary": "Deployment Approval Required",
+            "themeColor": "0078D4",
+            "sections": [{
+              "activityTitle": "🚀 Deployment Approval Required",
+              "activitySubtitle": "Repository: ${{ github.repository }}",
+              "facts": [
+                {"name": "Branch:", "value": "${{ github.ref_name }}"},
+                {"name": "Commit ID:", "value": "${{ github.sha }}"},
+                {"name": "Commit Message:", "value": "${{ github.event.head_commit.message }}"},
+                {"name": "Author:", "value": "${{ github.event.head_commit.author.name }}"}
+              ]
+            }],
+            "potentialAction": [{
+              "@type": "OpenUri",
+              "name": "View Workflow",
+              "targets": [{
+                "os": "default",
+                "uri": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              }]
+            }]
+          }' https://cpgplc.webhook.office.com/webhookb2/789219c5-cacd-4a1e-88b2-13105d090c78@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/896ff2c378de40b7b2c322ebc675774c/91dca507-8de4-4171-90be-c552b60ab3b9/V2XzhA1h3C8vXk9_CQ-OlvScCMOSh9Sal7GeZajwshGgY1
+      
+      - name: Wait for Manual Approval
+        run: |
+          echo "Waiting for manual approval from release managers..."
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Message: ${{ github.event.head_commit.message }}"

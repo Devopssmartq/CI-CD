@@ -1,0 +1,79 @@
+name: Build and Deploy (Manual Trigger)
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to deploy'
+        required: false
+        type: string
+        default: ''
+      approved_by:
+        description: 'Who approved the deployment'
+        required: false
+        type: string
+        default: 'release_manager'
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set commit SHA
+        id: commit
+        run: |
+          if [ -n "${{ github.event.inputs.commit_sha }}" ]; then
+            echo "sha=${{ github.event.inputs.commit_sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Checkout specific commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.commit.outputs.sha }}
+      
+      - name: Send Start Notification
+        run: |
+          curl -H "Content-Type: application/json" -d '{
+            "@type": "MessageCard",
+            "@context": "https://schema.org/extensions",
+            "summary": "Deployment Started",
+            "themeColor": "FFA500",
+            "sections": [{
+              "activityTitle": "🚀 Deployment Started",
+              "activitySubtitle": "Repository: ${{ github.repository }}",
+              "facts": [
+                {"name": "Commit ID:", "value": "${{ steps.commit.outputs.sha }}"},
+                {"name": "Approved by:", "value": "${{ github.event.inputs.approved_by }}"},
+                {"name": "Triggered by:", "value": "${{ github.actor }}"}
+              ]
+            }]
+          }' ${{ secrets.TEAMS_WEBHOOK_URL }}
+      
+      - name: Build Application
+        run: |
+          echo "Building application..."
+          echo "Commit SHA: ${{ steps.commit.outputs.sha }}"
+          # Add your build commands here
+          
+      - name: Deploy Application
+        run: |
+          echo "Deploying application..."
+          # Add your deployment commands here
+          
+      - name: Send Success Notification
+        run: |
+          curl -H "Content-Type: application/json" -d '{
+            "@type": "MessageCard",
+            "@context": "https://schema.org/extensions",
+            "summary": "Deployment Completed Successfully",
+            "themeColor": "00FF00",
+            "sections": [{
+              "activityTitle": "✅ Deployment Completed Successfully",
+              "activitySubtitle": "Repository: ${{ github.repository }}",
+              "facts": [
+                {"name": "Commit ID:", "value": "${{ steps.commit.outputs.sha }}"},
+                {"name": "Deployed by:", "value": "${{ github.actor }}"}
+              ]
+            }]
+          }' ${{ secrets.TEAMS_WEBHOOK_URL }}
