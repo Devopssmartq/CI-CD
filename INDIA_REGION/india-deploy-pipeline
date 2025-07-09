@@ -153,7 +153,7 @@ def runAutomation() {
 def hotfix_logic() {
     def apps = [
         "ewallet-india",
-        "generic-admin-dashboard-india",
+        "admin-dashboard-india",
         "vendor-dashboard",
         "control-desk-flutter-india"
     ]

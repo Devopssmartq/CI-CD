@@ -685,16 +685,16 @@ pipeline {
                                                 ARR_VERIFY_SERVICE.add([service_name: 'appservice', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'eWallet/transactions'])  
                                             }
                                         }
-                                        if ('backgroundtasks' in ARR_SELECTED_SERVICE ) {
-                                            PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'cloud-backend-uk')
-                                            PREVIOUS_VERSION = get_Previous_Version(service_name: "backgroundtasks")
-                                            parallelJobs[py2_services.find { it.key == 'backgroundtasks' }] = {
-                                                dir ('cloud-backend-uk') {                                                    
-                                                    sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $BACKGROUND_YAML --no-promote"
-                                                }
-                                                ARR_VERIFY_SERVICE.add([service_name: 'backgroundtasks', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload'])  
-                                            }
-                                        }
+                                        // if ('backgroundtasks' in ARR_SELECTED_SERVICE ) {
+                                        //     PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'cloud-backend-uk')
+                                        //     PREVIOUS_VERSION = get_Previous_Version(service_name: "backgroundtasks")
+                                        //     parallelJobs[py2_services.find { it.key == 'backgroundtasks' }] = {
+                                        //         dir ('cloud-backend-uk') {                                                    
+                                        //             sh "gcloud app deploy --version=$PY2_SERVICE_APP_ENGINE_VERSION --quiet $BACKGROUND_YAML --no-promote"
+                                        //         }
+                                        //         ARR_VERIFY_SERVICE.add([service_name: 'backgroundtasks', version_name: "$PY2_SERVICE_APP_ENGINE_VERSION", url_suffix: 'dummycheckupload'])  
+                                        //     }
+                                        // }
                                         if ('taskqservice' in ARR_SELECTED_SERVICE ) {
                                             PY2_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'cloud-backend-uk')
                                             PREVIOUS_VERSION = get_Previous_Version(service_name: "taskqservice")
