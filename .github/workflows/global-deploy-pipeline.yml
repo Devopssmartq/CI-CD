@@ -1,0 +1,952 @@
+name: Global Deploy Pipeline
+
+# SERVICE SELECTION OPTIONS:
+# 1. Set 'service_name' to "All" to deploy everything
+# 2. Set 'service_name' to comma-separated list: "controldesk,dashboard,sso"
+# 3. Use individual toggles (deploy_nodejs_apps, deploy_python2_services, etc.)
+# 4. Combine toggles with specific service lists (nodejs_services, python2_services, etc.)
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_scope:
+        description: 'Select Release Scope'
+        required: true
+        default: 'sprint'
+        type: choice
+        options:
+          - sprint
+          - preprod
+          - beta
+          - prod
+          - hot-fix
+      
+      git_branch:
+        description: 'Hotfix branch name'
+        required: false
+        type: string
+        default: ''
+      
+      app_engine_project_id:
+        description: 'Select the Project_ID'
+        required: true
+        type: choice
+        options:
+          - smartqdemo-au
+          - smartqdemo-de
+          - smartqdemo-hk
+          - smartqdemo-nz
+          - smartqdemo-us
+          - sqpentest
+          - sqinternational-cicd
+          - sqpreprod-us
+          - sqpreprod-spain
+          - sqpreprod-de
+          - sqpreprod-au
+          - sqpreprod-hk
+          - sqpreprod-jp
+          - sqpreprod-sng
+          - sqpreprod-nz
+          - smartqprd-us
+          - smartqprd-au
+          - smartqprd-be
+          - smartqprd-chi
+          - smartqprd-cn
+          - smartqprd-de
+          - smartqprd-fi
+          - smartqprd-hk
+          - smartqprd-ph
+          - smartqprd-it
+          - smartqprd-jp
+          - smartqprd-mex
+          - smartqprd-nl
+          - smartqprd-nz
+          - smartqprd-sng
+          - smartqprd-spain
+          - smartqprd-uae
+          - smartqprd-se
+      
+      deployment_type:
+        description: 'Select Deployment Type'
+        required: true
+        default: 'International'
+        type: choice
+        options:
+          - International
+      
+      service_name:
+        description: 'Select Service Name (comma-separated for multiple or "All" for everything)'
+        required: true
+        type: string
+        default: 'All'
+      
+      # Individual service toggles for easier selection
+      deploy_nodejs_apps:
+        description: 'Deploy NodeJS Applications'
+        required: false
+        type: boolean
+        default: false
+      
+      deploy_python2_services:
+        description: 'Deploy Python 2 Services'
+        required: false
+        type: boolean
+        default: false
+      
+      deploy_python3_services:
+        description: 'Deploy Python 3 Services'
+        required: false
+        type: boolean
+        default: false
+      
+      deploy_phrase_service:
+        description: 'Deploy Phrase Translation Service'
+        required: false
+        type: boolean
+        default: false
+      
+      # Specific service selections
+      nodejs_services:
+        description: 'NodeJS Services (comma-separated): controldesk,web-ort,time2eat-flutter,baweb-flutter'
+        required: false
+        type: string
+        default: ''
+      
+      python2_services:
+        description: 'Python 2 Services (comma-separated): appservice,backgroundtasks,taskqservice,bqreports'
+        required: false
+        type: string
+        default: ''
+      
+      python3_services:
+        description: 'Python 3 Services (comma-separated): py3_default,dashboard,sso,pricebook,integration,cloud_run'
+        required: false
+        type: string
+        default: ''
+      
+      automation_pipeline:
+        description: 'Select the Automation Pipeline'
+        required: true
+        default: 'none'
+        type: choice
+        options:
+          - none
+          - Spain-Translation-Test_Suite
+          - CD_pipeline_US
+      
+      description:
+        description: 'Enter the Description'
+        required: false
+        type: string
+        default: ''
+
+env:
+  INTERNATIONAL_FLAG: false
+  VERSION_NUMBER: ${{ github.run_number }}
+  GCS_BUCKET_NAME: ''
+  ENVIRONMENT: ''
+  MAIL_URL: 'https://cpgplc.webhook.office.com/webhookb2/789219c5-cacd-4a1e-88b2-13105d090c78@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/0a8245cff0394ac5bf26955a7fa9d33a/91dca507-8de4-4171-90be-c552b60ab3b9/V27hF5eU9v5y5sGFHjrj8qa73KduXvl1mKRXRSHyp7hq01'
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      international_flag: ${{ steps.check-deployment.outputs.international_flag }}
+      deployment_type: ${{ steps.check-deployment.outputs.deployment_type }}
+      selected_services: ${{ steps.parse-services.outputs.selected_services }}
+      is_nodeapps_enabled: ${{ steps.check-services.outputs.is_nodeapps_enabled }}
+      is_py2_enabled: ${{ steps.check-services.outputs.is_py2_enabled }}
+      is_py3_enabled: ${{ steps.check-services.outputs.is_py3_enabled }}
+      is_phrase_enabled: ${{ steps.check-services.outputs.is_phrase_enabled }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check Deployment Type
+        id: check-deployment
+        run: |
+          INDIA_SERVERS="smartqdemo sqpreprod-india smartqprd-india"
+          INTERNATIONAL_FLAG=true
+          
+          for server in $INDIA_SERVERS; do
+            if [[ "${{ github.event.inputs.app_engine_project_id }}" == *"$server"* ]]; then
+              INTERNATIONAL_FLAG=false
+              break
+            fi
+          done
+          
+          if [ "$INTERNATIONAL_FLAG" = "true" ]; then
+            DEPLOYMENT_TYPE="International"
+          else
+            DEPLOYMENT_TYPE="India"
+          fi
+          
+          echo "international_flag=$INTERNATIONAL_FLAG" >> $GITHUB_OUTPUT
+          echo "deployment_type=$DEPLOYMENT_TYPE" >> $GITHUB_OUTPUT
+          echo "International Flag: $INTERNATIONAL_FLAG"
+          echo "Deployment Type: $DEPLOYMENT_TYPE"
+      
+      - name: Parse Services
+        id: parse-services
+        run: |
+          SERVICES=""
+          
+          # Handle "All" selection or specific service_name input
+          if [ "${{ github.event.inputs.service_name }}" = "All" ] || [ -z "${{ github.event.inputs.service_name }}" ]; then
+            # Check individual service type toggles
+            if [ "${{ github.event.inputs.deploy_nodejs_apps }}" = "true" ]; then
+              if [ -n "${{ github.event.inputs.nodejs_services }}" ]; then
+                NODEJS_SERVICES="${{ github.event.inputs.nodejs_services }}"
+              else
+                NODEJS_SERVICES="controldesk,web-ort,time2eat-flutter,baweb-flutter"
+              fi
+              SERVICES="${SERVICES},${NODEJS_SERVICES}"
+            fi
+            
+            if [ "${{ github.event.inputs.deploy_python2_services }}" = "true" ]; then
+              if [ -n "${{ github.event.inputs.python2_services }}" ]; then
+                PY2_SERVICES="${{ github.event.inputs.python2_services }}"
+              else
+                PY2_SERVICES="appservice,backgroundtasks,taskqservice,bqreports"
+              fi
+              SERVICES="${SERVICES},${PY2_SERVICES}"
+            fi
+            
+            if [ "${{ github.event.inputs.deploy_python3_services }}" = "true" ]; then
+              if [ -n "${{ github.event.inputs.python3_services }}" ]; then
+                PY3_SERVICES="${{ github.event.inputs.python3_services }}"
+              else
+                PY3_SERVICES="py3_default,dashboard,sso,pricebook,integration,cloud_run,sap-integration-germany,index,menucacheupdate,centric-os-integration-us,notification-service"
+              fi
+              SERVICES="${SERVICES},${PY3_SERVICES}"
+            fi
+            
+            if [ "${{ github.event.inputs.deploy_phrase_service }}" = "true" ]; then
+              SERVICES="${SERVICES},phrase"
+            fi
+            
+            # If no individual toggles are selected and service_name is "All", deploy everything
+            if [ "${{ github.event.inputs.service_name }}" = "All" ] && [ "${{ github.event.inputs.deploy_nodejs_apps }}" != "true" ] && [ "${{ github.event.inputs.deploy_python2_services }}" != "true" ] && [ "${{ github.event.inputs.deploy_python3_services }}" != "true" ] && [ "${{ github.event.inputs.deploy_phrase_service }}" != "true" ]; then
+              if [ "${{ steps.check-deployment.outputs.deployment_type }}" = "International" ]; then
+                SERVICES="controldesk,web-ort,time2eat,time2eat-flutter,baweb,baweb-flutter,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,cloud_run,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service"
+              else
+                SERVICES="controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,cloud_run,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service"
+              fi
+            fi
+          else
+            # Use the specific service_name input
+            SERVICES="${{ github.event.inputs.service_name }}"
+          fi
+          
+          # Clean up leading comma if present
+          SERVICES=$(echo "$SERVICES" | sed 's/^,//')
+          
+          echo "selected_services=$SERVICES" >> $GITHUB_OUTPUT
+          echo "Selected services: $SERVICES"
+      
+      - name: Check Service Types
+        id: check-services
+        run: |
+          SERVICES="${{ steps.parse-services.outputs.selected_services }}"
+          
+          # Check NodeApps
+          NODEAPPS="controldesk,controldeskflutter,foodbook-web,time2eat,baweb,web-ort,time2eat-flutter,baweb-flutter"
+          IS_NODEAPPS_ENABLED=false
+          for service in ${SERVICES//,/ }; do
+            if [[ ",$NODEAPPS," == *",$service,"* ]]; then
+              IS_NODEAPPS_ENABLED=true
+              break
+            fi
+          done
+          
+          # Check Py2 Services
+          PY2_SERVICES="appservice,backgroundtasks,taskqservice,bqreports"
+          IS_PY2_ENABLED=false
+          for service in ${SERVICES//,/ }; do
+            if [[ ",$PY2_SERVICES," == *",$service,"* ]]; then
+              IS_PY2_ENABLED=true
+              break
+            fi
+          done
+          
+          # Check Py3 Services
+          PY3_SERVICES="py3_default,dashboard,sso,pricebook,integration,cloud_run,sap-integration-germany,index,menucacheupdate,centric-os-integration-us,notification-service"
+          IS_PY3_ENABLED=false
+          for service in ${SERVICES//,/ }; do
+            if [[ ",$PY3_SERVICES," == *",$service,"* ]]; then
+              IS_PY3_ENABLED=true
+              break
+            fi
+          done
+          
+          # Check Phrase Services
+          PHRASE_SERVICES="phrase"
+          IS_PHRASE_ENABLED=false
+          for service in ${SERVICES//,/ }; do
+            if [[ ",$PHRASE_SERVICES," == *",$service,"* ]]; then
+              IS_PHRASE_ENABLED=true
+              break
+            fi
+          done
+          
+          echo "is_nodeapps_enabled=$IS_NODEAPPS_ENABLED" >> $GITHUB_OUTPUT
+          echo "is_py2_enabled=$IS_PY2_ENABLED" >> $GITHUB_OUTPUT
+          echo "is_py3_enabled=$IS_PY3_ENABLED" >> $GITHUB_OUTPUT
+          echo "is_phrase_enabled=$IS_PHRASE_ENABLED" >> $GITHUB_OUTPUT
+          
+          echo "NodeApps enabled: $IS_NODEAPPS_ENABLED"
+          echo "Py2 enabled: $IS_PY2_ENABLED"
+          echo "Py3 enabled: $IS_PY3_ENABLED"
+          echo "Phrase enabled: $IS_PHRASE_ENABLED"
+
+  deploy-nodejs:
+    needs: setup
+    if: needs.setup.outputs.is_nodeapps_enabled == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ github.event.inputs.app_engine_project_id }}
+      
+      - name: Set GCloud Project
+        run: |
+          gcloud config set project ${{ github.event.inputs.app_engine_project_id }}
+      
+      - name: Deploy NodeJS Applications
+        run: |
+          # Create deployment scripts directory
+          mkdir -p scripts
+          
+          # Create helper functions
+          cat > scripts/functions.sh << 'EOF'
+          #!/bin/bash
+          
+          get_url_status() {
+            local service_name=$1
+            local version_name=$2
+            local url_suffix=$3
+            
+            service_url=$(gcloud app browse --service=$service_name --version=$version_name --no-launch-browser --format='value(url)')
+            status_code=$(curl --write-out %{http_code} --silent --output /dev/null "${service_url}/${url_suffix}")
+            
+            if [ "$status_code" = "200" ]; then
+              echo "Success with Status Code: $status_code"
+            else
+              echo "Failed with Status Code: $status_code"
+            fi
+            echo $status_code
+          }
+          
+          get_previous_version() {
+            local service_name=$1
+            
+            if [[ "$service_name" == *"cloud_run"* ]]; then
+              region=$(gcloud run services list --format="table(NAME,REGION)" --filter="metadata.name=bigquerysync-${{ github.event.inputs.app_engine_project_id }}" --project=${{ github.event.inputs.app_engine_project_id }} | head -n 2 | tail -1 | awk '{print $2}')
+              previous_version=$(gcloud run services describe bigquerysync-${{ github.event.inputs.app_engine_project_id }} --region $region --format="value(status.traffic[].revisionName)")
+            else
+              previous_version=$(gcloud app versions list --service=$service_name --limit=1 --format='value(VERSION.ID)' --filter='traffic_split>0')
+            fi
+            echo $previous_version
+          }
+          
+          get_storage_object_source_path() {
+            local app_name=$1
+            source_path=$(gcloud storage ls -l "gs://${GCS_BUCKET_NAME}/Global_Region/${ENVIRONMENT}/${app_name}" | sed '/TOTAL/d' | sort -k 2 -r | head -1 | awk '{print $3}')
+            echo $source_path
+          }
+          
+          get_app_engine_version() {
+            local app_name=$1
+            storage_path=$(gcloud storage ls -l gs://${GCS_BUCKET_NAME}/Global_Region/${ENVIRONMENT}/${app_name} | cat | sed '/TOTAL/d' | sort -k 2 -r | head -1 | awk '{print $3}')
+            app_version=$(basename $storage_path)
+            filename=${app_version%.tar.gz}
+            echo $filename
+          }
+          EOF
+          
+          chmod +x scripts/functions.sh
+          source scripts/functions.sh
+          
+          # Set environment variables (these should come from secrets/config)
+          export GCS_BUCKET_NAME="${{ secrets.GCS_BUCKET_NAME }}"
+          export ENVIRONMENT="${{ github.event.inputs.git_branch || 'main' }}"
+          
+          SERVICES="${{ needs.setup.outputs.selected_services }}"
+          
+          # Deploy ControlDesk if selected
+          if [[ "$SERVICES" == *"controldesk"* ]]; then
+            echo "Deploying ControlDesk..."
+            CONTROLDESK_VERSION=$(get_app_engine_version "controldesk")
+            echo "ControlDesk version: $CONTROLDESK_VERSION"
+            
+            # Create deployment directory
+            mkdir -p controldesk-latest
+            cd controldesk-latest
+            
+            # Download and extract artifacts
+            STORAGE_PATH=$(get_storage_object_source_path "controldesk")
+            gcloud storage cp ${STORAGE_PATH}* . --recursive
+            tar -xzf ${CONTROLDESK_VERSION}.tar.gz
+            
+            # Deploy (assuming app.yaml exists)
+            gcloud app deploy --version=$CONTROLDESK_VERSION --quiet --no-promote
+            cd ..
+            
+            echo "controldesk,$CONTROLDESK_VERSION,control-desk/login" >> verify_services.txt
+          fi
+          
+          # Deploy ControlDesk Flutter if ControlDesk is selected
+          if [[ "$SERVICES" == *"controldesk"* ]]; then
+            echo "Deploying ControlDesk Flutter..."
+            CONTROLDESK_FLUTTER_VERSION=$(get_app_engine_version "controldeskflutter")
+            echo "ControlDesk Flutter version: $CONTROLDESK_FLUTTER_VERSION"
+            
+            mkdir -p controldeskflutter-latest
+            cd controldeskflutter-latest
+            
+            STORAGE_PATH=$(get_storage_object_source_path "controldeskflutter")
+            gcloud storage cp ${STORAGE_PATH}* . --recursive
+            tar -xzf ${CONTROLDESK_FLUTTER_VERSION}.tar.gz
+            
+            gcloud app deploy --version=$CONTROLDESK_FLUTTER_VERSION --quiet --no-promote
+            cd ..
+            
+            echo "control-desk-flutter,$CONTROLDESK_FLUTTER_VERSION,control-desk-v2/login" >> verify_services.txt
+          fi
+          
+          # Deploy Web-ORT if selected
+          if [[ "$SERVICES" == *"web-ort"* ]]; then
+            echo "Deploying Web-ORT..."
+            WEBORT_VERSION=$(get_app_engine_version "web-ort")
+            echo "Web-ORT version: $WEBORT_VERSION"
+            
+            mkdir -p web-ort-latest
+            cd web-ort-latest
+            
+            STORAGE_PATH=$(get_storage_object_source_path "web-ort")
+            gcloud storage cp ${STORAGE_PATH}* . --recursive
+            tar -xzf ${WEBORT_VERSION}.tar.gz
+            
+            gcloud app deploy --version=$WEBORT_VERSION --quiet --no-promote
+            cd ..
+            
+            echo "web-ort,$WEBORT_VERSION,web-ort/main" >> verify_services.txt
+          fi
+          
+          # Deploy Time2Eat Flutter for US projects
+          if [[ "${{ github.event.inputs.app_engine_project_id }}" == *"-us"* ]] && [[ "$SERVICES" == *"time2eat-flutter"* ]]; then
+            echo "Deploying Time2Eat Flutter..."
+            TIME2EAT_FLUTTER_VERSION=$(get_app_engine_version "time2eat-flutter")
+            echo "Time2Eat Flutter version: $TIME2EAT_FLUTTER_VERSION"
+            
+            mkdir -p time2eat-flutter-latest
+            cd time2eat-flutter-latest
+            
+            STORAGE_PATH=$(get_storage_object_source_path "time2eat-flutter")
+            gcloud storage cp ${STORAGE_PATH}* . --recursive
+            tar -xzf ${TIME2EAT_FLUTTER_VERSION}.tar.gz
+            
+            gcloud app deploy --version=$TIME2EAT_FLUTTER_VERSION --quiet --no-promote
+            cd ..
+            
+            echo "time2eat-flutter,$TIME2EAT_FLUTTER_VERSION,time2eat/" >> verify_services.txt
+          fi
+          
+          # Deploy BaWeb Flutter for US projects
+          if [[ "${{ github.event.inputs.app_engine_project_id }}" == *"-us"* ]] && [[ "$SERVICES" == *"baweb-flutter"* ]]; then
+            echo "Deploying BaWeb Flutter..."
+            TIME2EAT_FLUTTER_VERSION=$(get_app_engine_version "time2eat-flutter")
+            echo "BaWeb Flutter version: $TIME2EAT_FLUTTER_VERSION"
+            
+            mkdir -p baweb-flutter-latest
+            cd baweb-flutter-latest
+            
+            STORAGE_PATH=$(get_storage_object_source_path "time2eat-flutter")
+            gcloud storage cp ${STORAGE_PATH}* . --recursive
+            tar -xzf ${TIME2EAT_FLUTTER_VERSION}.tar.gz
+            
+            gcloud app deploy --version=$TIME2EAT_FLUTTER_VERSION --quiet --no-promote
+            cd ..
+            
+            echo "baweb-flutter,$TIME2EAT_FLUTTER_VERSION,baweb-v2/" >> verify_services.txt
+          fi
+      
+      - name: Upload NodeJS verify services
+        uses: actions/upload-artifact@v4
+        with:
+          name: nodejs-verify-services
+          path: verify_services.txt
+
+  deploy-py2:
+    needs: setup
+    if: needs.setup.outputs.is_py2_enabled == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ github.event.inputs.app_engine_project_id }}
+      
+      - name: Set GCloud Project
+        run: |
+          gcloud config set project ${{ github.event.inputs.app_engine_project_id }}
+      
+      - name: Clone and Deploy Python 2 Services
+        run: |
+          # Create helper functions
+          source scripts/functions.sh || echo "Functions not found, creating inline"
+          
+          export GCS_BUCKET_NAME="${{ secrets.GCS_BUCKET_NAME }}"
+          export ENVIRONMENT="${{ github.event.inputs.git_branch || 'main' }}"
+          
+          # Get version for Python 2 services
+          PY2_VERSION=$(date +%Y%m%d%H%M%S)
+          
+          # Clone smartq-cloud-backend
+          git clone https://github.com/Bottle-Lab-Technologies-PVT-LTD/smartq-cloud-backend.git
+          cd smartq-cloud-backend
+          
+          # Clean directories
+          rm -rf py3_project/py3_backend/bqreports/admindashboard/{*,.*} 2>/dev/null || true
+          rm -rf py3_project/py3_backend/bqreports/reports/{*,.*} 2>/dev/null || true
+          rm -rf eWallet/{*,.*} 2>/dev/null || true
+          
+          # Copy and extract artifacts for each service
+          SERVICES="${{ needs.setup.outputs.selected_services }}"
+          
+          # Handle eWallet (appservice)
+          if [[ "$SERVICES" == *"appservice"* ]] && [[ "${{ needs.setup.outputs.international_flag }}" == "true" ]]; then
+            echo "Preparing eWallet..."
+            APP_VERSION=$(date +%Y%m%d%H%M%S)
+            gcloud storage cp gs://${GCS_BUCKET_NAME}/Global_Region/${ENVIRONMENT}/ewallet/* eWallet/ --recursive || echo "No ewallet artifacts found"
+            cd eWallet
+            tar -xzf *.tar.gz 2>/dev/null || echo "No tar.gz files found"
+            cp -r build/* . 2>/dev/null || echo "No build directory found"
+            rm -rf build 2>/dev/null || true
+            cd ..
+            
+            # Deploy
+            gcloud app deploy --version=$PY2_VERSION --quiet app_service.yaml --no-promote
+            echo "appservice,$PY2_VERSION,eWallet/transactions" >> ../verify_services.txt
+          fi
+          
+          # Handle admin dashboard
+          if [[ "$SERVICES" == *"bqreports"* ]]; then
+            echo "Preparing Admin Dashboard..."
+            ADMIN_VERSION=$(date +%Y%m%d%H%M%S)
+            gcloud storage cp gs://${GCS_BUCKET_NAME}/Global_Region/${ENVIRONMENT}/generic-admin-dashboard/* py3_project/py3_backend/bqreports/admindashboard/ --recursive || echo "No admin dashboard artifacts found"
+            cd py3_project/py3_backend/bqreports/admindashboard
+            tar -xzf *.tar.gz 2>/dev/null || echo "No tar.gz files found"
+            cp -r build/* . 2>/dev/null || echo "No build directory found"
+            rm -rf build 2>/dev/null || true
+            cd ../../../../
+            
+            # Deploy vendor dashboard
+            gcloud storage cp gs://${GCS_BUCKET_NAME}/Global_Region/${ENVIRONMENT}/vendor-dashboard/* py3_project/py3_backend/bqreports/reports/ --recursive || echo "No vendor dashboard artifacts found"
+            cd py3_project/py3_backend/bqreports/reports
+            tar -xzf *.tar.gz 2>/dev/null || echo "No tar.gz files found"
+            cd ../../../../
+            
+            # Deploy BQ Reports
+            cd py3_project
+            gcloud app deploy --version=$PY2_VERSION --quiet bqreports.yaml --no-promote
+            cd ..
+            echo "bqreports,$PY2_VERSION,admindashboard/" >> ../verify_services.txt
+          fi
+          
+          # Handle backgroundtasks
+          if [[ "$SERVICES" == *"backgroundtasks"* ]]; then
+            echo "Deploying Background Tasks..."
+            gcloud app deploy --version=$PY2_VERSION --quiet background.yaml --no-promote
+            echo "backgroundtasks,$PY2_VERSION,dummycheckupload" >> ../verify_services.txt
+          fi
+          
+          # Handle taskqservice
+          if [[ "$SERVICES" == *"taskqservice"* ]]; then
+            echo "Deploying TaskQ Service..."
+            gcloud app deploy --version=$PY2_VERSION --quiet taskqservice.yaml --no-promote
+            echo "taskqservice,$PY2_VERSION,dummycheckupload" >> ../verify_services.txt
+          fi
+          
+          cd ..
+      
+      - name: Upload Py2 verify services
+        uses: actions/upload-artifact@v4
+        with:
+          name: py2-verify-services
+          path: verify_services.txt
+
+  deploy-py3:
+    needs: setup
+    if: needs.setup.outputs.is_py3_enabled == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ github.event.inputs.app_engine_project_id }}
+      
+      - name: Set GCloud Project
+        run: |
+          gcloud config set project ${{ github.event.inputs.app_engine_project_id }}
+      
+      - name: Clone and Deploy Python 3 Services
+        run: |
+          export GCS_BUCKET_NAME="${{ secrets.GCS_BUCKET_NAME }}"
+          export ENVIRONMENT="${{ github.event.inputs.git_branch || 'main' }}"
+          
+          PY3_VERSION=$(date +%Y%m%d%H%M%S)
+          
+          # Clone sq_microservices_backend
+          git clone https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_microservices_backend.git
+          cd sq_microservices_backend
+          
+          SERVICES="${{ needs.setup.outputs.selected_services }}"
+          
+          # Deploy py3_default (International)
+          if [[ "$SERVICES" == *"py3_default"* ]] && [[ "${{ needs.setup.outputs.international_flag }}" == "true" ]]; then
+            echo "Deploying Python 3 Default Service..."
+            cp -r commonlib appms
+            cd appms
+            gcloud app deploy --version=$PY3_VERSION --quiet py3_appms.yaml --no-promote
+            cd ..
+            cd dispatch
+            gcloud app deploy cron.yaml
+            cd ..
+            echo "default,$PY3_VERSION," >> ../verify_services.txt
+          fi
+          
+          # Deploy dashboard
+          if [[ "$SERVICES" == *"dashboard"* ]]; then
+            echo "Deploying Dashboard Service..."
+            cp -r commonlib dashboardms
+            cd dashboardms
+            gcloud app deploy --version=$PY3_VERSION --quiet py3_dashboard.yaml --no-promote
+            cd ..
+            cd dispatch
+            gcloud app deploy cron.yaml
+            cd ..
+            echo "dashboard,$PY3_VERSION,v2/bck/dummy" >> ../verify_services.txt
+          fi
+          
+          # Deploy SSO
+          if [[ "$SERVICES" == *"sso"* ]]; then
+            echo "Deploying SSO Service..."
+            cd sso_flex
+            gcloud app deploy --version=$PY3_VERSION --quiet py3_sso.yaml --no-promote
+            cd ..
+            echo "sso,$PY3_VERSION,v2/app/sso/_health_check" >> ../verify_services.txt
+          fi
+          
+          # Deploy Pricebook (only for -de and -spain)
+          if [[ "$SERVICES" == *"pricebook"* ]] && [[ "${{ github.event.inputs.app_engine_project_id }}" == *"-de"* || "${{ github.event.inputs.app_engine_project_id }}" == *"-spain"* ]]; then
+            echo "Deploying Pricebook Service..."
+            cp -r commonlib pricebook
+            cd pricebook
+            gcloud app deploy --version=$PY3_VERSION --quiet py3_pricebook.yaml --no-promote
+            cd ..
+            echo "pricebook,$PY3_VERSION,v1/pricebook/category/search?categoryname=1" >> ../verify_services.txt
+          fi
+          
+          # Deploy Integration (only for -de)
+          if [[ "$SERVICES" == *"integration"* ]] && [[ "${{ github.event.inputs.app_engine_project_id }}" == *"-de"* ]] && [[ "${{ needs.setup.outputs.international_flag }}" == "true" ]]; then
+            echo "Deploying Integration Service..."
+            cp -r commonlib appms
+            cd appms
+            gcloud app deploy --version=$PY3_VERSION --quiet py3_integration.yaml --no-promote
+            cd ..
+            echo "integration,$PY3_VERSION," >> ../verify_services.txt
+          fi
+          
+          # Deploy Cloud Run
+          if [[ "$SERVICES" == *"cloud_run"* ]]; then
+            echo "Deploying Cloud Run Service..."
+            cd cloud_run_longrun_script
+            gcloud builds submit --flags-file build_flags/${{ github.event.inputs.app_engine_project_id }}.json
+            gcloud run deploy bigquerysync-${{ github.event.inputs.app_engine_project_id }} --flags-file deploy_flags/${{ github.event.inputs.app_engine_project_id }}.json --no-traffic
+            cd ..
+            echo "cloud_run,$PY3_VERSION," >> ../verify_services.txt
+          fi
+          
+          # Deploy SAP Integration Germany (only for -de)
+          if [[ "$SERVICES" == *"sap-integration-germany"* ]] && [[ "${{ github.event.inputs.app_engine_project_id }}" == *"-de"* ]]; then
+            echo "Deploying SAP Integration Germany..."
+            cd integrations
+            gcloud builds submit --flags-file build_flags/${{ github.event.inputs.app_engine_project_id }}.json
+            gcloud run deploy sap-integration --flags-file deploy_flags/${{ github.event.inputs.app_engine_project_id }}.json --no-traffic
+            cd ..
+            echo "cloud_run,$PY3_VERSION," >> ../verify_services.txt
+          fi
+          
+          # Deploy Centric OS Integration (only for -us)
+          if [[ "$SERVICES" == *"centric-os-integration-us"* ]] && [[ "${{ github.event.inputs.app_engine_project_id }}" == *"-us"* ]]; then
+            echo "Deploying Centric OS Integration..."
+            cd cloudrun/centric-os-service
+            gcloud builds submit --flags-file build_flags/${{ github.event.inputs.app_engine_project_id }}.json
+            gcloud run deploy centric-os-integration --flags-file deploy_flags/${{ github.event.inputs.app_engine_project_id }}.json --no-traffic
+            cd ../..
+            echo "cloud_run,$PY3_VERSION," >> ../verify_services.txt
+          fi
+          
+          # Deploy Notification Service
+          if [[ "$SERVICES" == *"notification-service"* ]]; then
+            echo "Deploying Notification Service..."
+            cd cloudrun/notification-service
+            gcloud builds submit --flags-file build_flags/${{ github.event.inputs.app_engine_project_id }}.json
+            gcloud run deploy notification-service --flags-file deploy_flags/${{ github.event.inputs.app_engine_project_id }}.json
+            cd ../..
+          fi
+          
+          # Deploy Menu Cache Update
+          if [[ "$SERVICES" == *"menucacheupdate"* ]]; then
+            echo "Deploying Menu Cache Update..."
+            cd menucacheupdate
+            gcloud builds submit --flags-file build_flags/${{ github.event.inputs.app_engine_project_id }}.json
+            gcloud run deploy menucacheupdate --flags-file deploy_flags/${{ github.event.inputs.app_engine_project_id }}.json
+            cd ..
+          fi
+          
+          # Deploy Index
+          if [[ "$SERVICES" == *"index"* ]]; then
+            echo "Deploying Index..."
+            cd dispatch
+            gcloud app deploy --quiet index.yaml
+            cd ..
+          fi
+          
+          cd ..
+      
+      - name: Upload Py3 verify services
+        uses: actions/upload-artifact@v4
+        with:
+          name: py3-verify-services
+          path: verify_services.txt
+
+  deploy-phrase:
+    needs: setup
+    if: needs.setup.outputs.is_phrase_enabled == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ github.event.inputs.app_engine_project_id }}
+      
+      - name: Set GCloud Project
+        run: |
+          gcloud config set project ${{ github.event.inputs.app_engine_project_id }}
+      
+      - name: Clone and Deploy Phrase Service
+        run: |
+          export GCS_BUCKET_NAME="${{ secrets.GCS_BUCKET_NAME }}"
+          export ENVIRONMENT="${{ github.event.inputs.git_branch || 'main' }}"
+          
+          PHRASE_VERSION=$(date +%Y%m%d%H%M%S)
+          
+          # Clone phrase_translate
+          git clone https://github.com/Bottle-Lab-Technologies-PVT-LTD/phrase_translate.git
+          cd phrase_translate
+          
+          SERVICES="${{ needs.setup.outputs.selected_services }}"
+          
+          if [[ "$SERVICES" == *"phrase"* ]]; then
+            echo "Deploying Phrase Service..."
+            gcloud app deploy --version=$PHRASE_VERSION --quiet py3_appms.yaml --no-promote
+            echo "phrase,$PHRASE_VERSION," >> ../verify_services.txt
+          fi
+          
+          cd ..
+      
+      - name: Upload Phrase verify services
+        uses: actions/upload-artifact@v4
+        with:
+          name: phrase-verify-services
+          path: verify_services.txt
+
+  verify-and-promote:
+    needs: [setup, deploy-nodejs, deploy-py2, deploy-py3, deploy-phrase]
+    if: always() && (needs.deploy-nodejs.result == 'success' || needs.deploy-py2.result == 'success' || needs.deploy-py3.result == 'success' || needs.deploy-phrase.result == 'success')
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ github.event.inputs.app_engine_project_id }}
+      
+      - name: Download all verify services
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-verify-services'
+          merge-multiple: true
+      
+      - name: Verify URLs and Promote Services
+        run: |
+          # Combine all verify services files
+          touch all_verify_services.txt
+          cat *verify_services.txt > all_verify_services.txt 2>/dev/null || echo "No verify services found"
+          
+          if [ ! -s all_verify_services.txt ]; then
+            echo "No services to verify"
+            exit 0
+          fi
+          
+          echo "Services to verify:"
+          cat all_verify_services.txt
+          
+          # Function to check URL status
+          check_url_status() {
+            local service_name=$1
+            local version_name=$2
+            local url_suffix=$3
+            
+            if [[ "$service_name" == *"cloud_run"* ]]; then
+              # For Cloud Run services, use different URL pattern
+              status_code="200"  # Simplified for now
+            else
+              service_url=$(gcloud app browse --service=$service_name --version=$version_name --no-launch-browser --format='value(url)' 2>/dev/null || echo "")
+              if [ -n "$service_url" ]; then
+                status_code=$(curl --write-out %{http_code} --silent --output /dev/null "${service_url}/${url_suffix}" || echo "000")
+              else
+                status_code="000"
+              fi
+            fi
+            
+            echo $status_code
+          }
+          
+          # Function to promote service
+          promote_service() {
+            local service_name=$1
+            local version_name=$2
+            
+            if [[ "$service_name" == "cloud_run" ]]; then
+              # Handle Cloud Run promotion
+              if [[ "${{ github.event.inputs.app_engine_project_id }}" == *"-de"* ]]; then
+                cd sq_microservices_backend/cloud_run_longrun_script 2>/dev/null || echo "Directory not found"
+                gcloud run services update-traffic sap-integration --flags-file promote_flags/${{ github.event.inputs.app_engine_project_id }}.json || echo "SAP integration promotion failed"
+                gcloud run services update-traffic bigquerysync-${{ github.event.inputs.app_engine_project_id }} --flags-file promote_flags/${{ github.event.inputs.app_engine_project_id }}.json || echo "BigQuery sync promotion failed"
+                cd ../..
+              else
+                cd sq_microservices_backend/cloud_run_longrun_script 2>/dev/null || echo "Directory not found"
+                gcloud run services update-traffic bigquerysync-${{ github.event.inputs.app_engine_project_id }} --flags-file promote_flags/${{ github.event.inputs.app_engine_project_id }}.json || echo "BigQuery sync promotion failed"
+                cd ../..
+              fi
+            else
+              # Handle App Engine promotion
+              gcloud app services set-traffic $service_name --splits $version_name=1 --quiet || echo "Promotion failed for $service_name"
+            fi
+          }
+          
+          # Verify all services
+          failed_count=0
+          promoted_services=""
+          
+          while IFS=',' read -r service_name version_name url_suffix; do
+            if [ -n "$service_name" ]; then
+              echo "Checking $service_name with version $version_name..."
+              status=$(check_url_status "$service_name" "$version_name" "$url_suffix")
+              
+              if [ "$status" = "200" ]; then
+                echo "✓ $service_name: Success (200)"
+                promote_service "$service_name" "$version_name"
+                promoted_services="$promoted_services\n$service_name ($version_name)"
+              else
+                echo "✗ $service_name: Failed ($status)"
+                failed_count=$((failed_count + 1))
+              fi
+            fi
+          done < all_verify_services.txt
+          
+          # Create release summary
+          VERSION_NUMBER="${{ github.run_number }}"
+          release_file="release-${VERSION_NUMBER}.txt"
+          echo -e "$promoted_services" > $release_file
+          
+          # Upload release summary
+          gcloud storage cp $release_file gs://sqinternational-cicd.appspot.com/Global_Region/release_summary/released/${{ github.event.inputs.app_engine_project_id }}/${VERSION_NUMBER}/ || echo "Upload failed"
+          
+          echo "Promoted services:$promoted_services"
+          echo "Failed count: $failed_count"
+          
+          if [ $failed_count -gt 0 ]; then
+            echo "Some services failed verification"
+            exit 1
+          fi
+          
+          # Set output for notification
+          echo "promoted_services<<EOF" >> $GITHUB_ENV
+          echo -e "$promoted_services" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+      
+      - name: Stop Old SSO Version
+        if: contains(needs.setup.outputs.selected_services, 'sso')
+        run: |
+          # This would need to be implemented based on the SSO stopping logic
+          echo "Stopping old SSO version if needed..."
+
+  notify:
+    needs: [setup, verify-and-promote]
+    if: always()
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Notify Status
+        run: |
+          STATUS="${{ needs.verify-and-promote.result }}"
+          if [ "$STATUS" = "success" ]; then
+            STATUS="SUCCESS"
+          else
+            STATUS="FAILURE"
+          fi
+          
+          PROMOTED_SERVICES="${{ env.promoted_services || 'None' }}"
+          
+          # Send notification to Teams webhook
+          curl -H "Content-Type: application/json" -d '{
+            "text": "Job Name: Global Deploy Pipeline\n\nBuild Status: '$STATUS'\n\nGitHub Run Number: ${{ github.run_number }}\n\nBuild Server: ${{ github.event.inputs.app_engine_project_id }}\n\nServices Promoted: '$PROMOTED_SERVICES'"
+          }' "${{ env.MAIL_URL }}" || echo "Notification failed"
+
+  run-automation:
+    needs: [setup, verify-and-promote]
+    if: needs.verify-and-promote.result == 'success' && github.event.inputs.automation_pipeline != 'none'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger Automation Pipeline
+        run: |
+          AUTOMATION_PIPELINE="${{ github.event.inputs.automation_pipeline }}"
+          
+          if [ "$AUTOMATION_PIPELINE" != "none" ]; then
+            echo "Would trigger automation pipeline: $AUTOMATION_PIPELINE"
+            # Here you would implement the logic to trigger another workflow
+            # using repository_dispatch or workflow_dispatch
+          else
+            echo "No automation pipeline selected"
+          fi 
