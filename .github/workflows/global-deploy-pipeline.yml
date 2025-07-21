@@ -3,8 +3,8 @@ name: Global Deploy Pipeline
 # SERVICE SELECTION OPTIONS:
 # 1. Set 'service_name' to "All" to deploy everything
 # 2. Set 'service_name' to comma-separated list: "controldesk,dashboard,sso"
-# 3. Use individual toggles (deploy_nodejs_apps, deploy_python2_services, etc.)
-# 4. Combine toggles with specific service lists (nodejs_services, python2_services, etc.)
+# 3. Use individual service checkboxes: ☑️ ControlDesk, ☑️ Dashboard, ☑️ SSO, etc.
+# 4. Mix and match: Keep "All" + check specific services, or override with comma-separated list
 
 on:
   workflow_dispatch:
@@ -80,49 +80,129 @@ on:
         type: string
         default: 'All'
       
-      # Individual service toggles for easier selection
-      deploy_nodejs_apps:
-        description: 'Deploy NodeJS Applications'
+      # Individual NodeJS Service Checkboxes
+      deploy_controldesk:
+        description: '☑️ ControlDesk (Web Admin)'
         required: false
         type: boolean
         default: false
       
-      deploy_python2_services:
-        description: 'Deploy Python 2 Services'
+      deploy_web_ort:
+        description: '☑️ Web-ORT (Web Application)'
         required: false
         type: boolean
         default: false
       
-      deploy_python3_services:
-        description: 'Deploy Python 3 Services'
+      deploy_time2eat_flutter:
+        description: '☑️ Time2Eat Flutter (Mobile App)'
         required: false
         type: boolean
         default: false
       
-      deploy_phrase_service:
-        description: 'Deploy Phrase Translation Service'
+      deploy_baweb_flutter:
+        description: '☑️ BaWeb Flutter (Mobile App)'
         required: false
         type: boolean
         default: false
       
-      # Specific service selections
-      nodejs_services:
-        description: 'NodeJS Services (comma-separated): controldesk,web-ort,time2eat-flutter,baweb-flutter'
+      # Individual Python 2 Service Checkboxes
+      deploy_appservice:
+        description: '☑️ App Service (eWallet)'
         required: false
-        type: string
-        default: ''
+        type: boolean
+        default: false
       
-      python2_services:
-        description: 'Python 2 Services (comma-separated): appservice,backgroundtasks,taskqservice,bqreports'
+      deploy_backgroundtasks:
+        description: '☑️ Background Tasks'
         required: false
-        type: string
-        default: ''
+        type: boolean
+        default: false
       
-      python3_services:
-        description: 'Python 3 Services (comma-separated): py3_default,dashboard,sso,pricebook,integration,cloud_run'
+      deploy_taskqservice:
+        description: '☑️ TaskQ Service'
         required: false
-        type: string
-        default: ''
+        type: boolean
+        default: false
+      
+      deploy_bqreports:
+        description: '☑️ BQ Reports (Admin Dashboard)'
+        required: false
+        type: boolean
+        default: false
+      
+      # Individual Python 3 Service Checkboxes
+      deploy_py3_default:
+        description: '☑️ Python 3 Default (International)'
+        required: false
+        type: boolean
+        default: false
+      
+      deploy_dashboard:
+        description: '☑️ Dashboard Service'
+        required: false
+        type: boolean
+        default: false
+      
+      deploy_sso:
+        description: '☑️ SSO Service (Single Sign-On)'
+        required: false
+        type: boolean
+        default: false
+      
+      deploy_pricebook:
+        description: '☑️ Pricebook Service (DE/Spain only)'
+        required: false
+        type: boolean
+        default: false
+      
+      deploy_integration:
+        description: '☑️ Integration Service (DE only)'
+        required: false
+        type: boolean
+        default: false
+      
+      deploy_cloud_run:
+        description: '☑️ Cloud Run (BigQuery Sync)'
+        required: false
+        type: boolean
+        default: false
+      
+      deploy_sap_integration:
+        description: '☑️ SAP Integration (DE only)'
+        required: false
+        type: boolean
+        default: false
+      
+      deploy_centric_os_integration:
+        description: '☑️ Centric OS Integration (US only)'
+        required: false
+        type: boolean
+        default: false
+      
+      deploy_notification_service:
+        description: '☑️ Notification Service'
+        required: false
+        type: boolean
+        default: false
+      
+      deploy_menucacheupdate:
+        description: '☑️ Menu Cache Update'
+        required: false
+        type: boolean
+        default: false
+      
+      deploy_index:
+        description: '☑️ Index (Database Indexes)'
+        required: false
+        type: boolean
+        default: false
+      
+      # Phrase Translation Service
+      deploy_phrase:
+        description: '☑️ Phrase Translation Service'
+        required: false
+        type: boolean
+        default: false
       
       automation_pipeline:
         description: 'Select the Automation Pipeline'
@@ -194,40 +274,38 @@ jobs:
           
           # Handle "All" selection or specific service_name input
           if [ "${{ github.event.inputs.service_name }}" = "All" ] || [ -z "${{ github.event.inputs.service_name }}" ]; then
-            # Check individual service type toggles
-            if [ "${{ github.event.inputs.deploy_nodejs_apps }}" = "true" ]; then
-              if [ -n "${{ github.event.inputs.nodejs_services }}" ]; then
-                NODEJS_SERVICES="${{ github.event.inputs.nodejs_services }}"
-              else
-                NODEJS_SERVICES="controldesk,web-ort,time2eat-flutter,baweb-flutter"
-              fi
-              SERVICES="${SERVICES},${NODEJS_SERVICES}"
-            fi
+            # Check individual service checkboxes
             
-            if [ "${{ github.event.inputs.deploy_python2_services }}" = "true" ]; then
-              if [ -n "${{ github.event.inputs.python2_services }}" ]; then
-                PY2_SERVICES="${{ github.event.inputs.python2_services }}"
-              else
-                PY2_SERVICES="appservice,backgroundtasks,taskqservice,bqreports"
-              fi
-              SERVICES="${SERVICES},${PY2_SERVICES}"
-            fi
+            # NodeJS Services
+            [ "${{ github.event.inputs.deploy_controldesk }}" = "true" ] && SERVICES="${SERVICES},controldesk"
+            [ "${{ github.event.inputs.deploy_web_ort }}" = "true" ] && SERVICES="${SERVICES},web-ort"
+            [ "${{ github.event.inputs.deploy_time2eat_flutter }}" = "true" ] && SERVICES="${SERVICES},time2eat-flutter"
+            [ "${{ github.event.inputs.deploy_baweb_flutter }}" = "true" ] && SERVICES="${SERVICES},baweb-flutter"
             
-            if [ "${{ github.event.inputs.deploy_python3_services }}" = "true" ]; then
-              if [ -n "${{ github.event.inputs.python3_services }}" ]; then
-                PY3_SERVICES="${{ github.event.inputs.python3_services }}"
-              else
-                PY3_SERVICES="py3_default,dashboard,sso,pricebook,integration,cloud_run,sap-integration-germany,index,menucacheupdate,centric-os-integration-us,notification-service"
-              fi
-              SERVICES="${SERVICES},${PY3_SERVICES}"
-            fi
+            # Python 2 Services
+            [ "${{ github.event.inputs.deploy_appservice }}" = "true" ] && SERVICES="${SERVICES},appservice"
+            [ "${{ github.event.inputs.deploy_backgroundtasks }}" = "true" ] && SERVICES="${SERVICES},backgroundtasks"
+            [ "${{ github.event.inputs.deploy_taskqservice }}" = "true" ] && SERVICES="${SERVICES},taskqservice"
+            [ "${{ github.event.inputs.deploy_bqreports }}" = "true" ] && SERVICES="${SERVICES},bqreports"
             
-            if [ "${{ github.event.inputs.deploy_phrase_service }}" = "true" ]; then
-              SERVICES="${SERVICES},phrase"
-            fi
+            # Python 3 Services
+            [ "${{ github.event.inputs.deploy_py3_default }}" = "true" ] && SERVICES="${SERVICES},py3_default"
+            [ "${{ github.event.inputs.deploy_dashboard }}" = "true" ] && SERVICES="${SERVICES},dashboard"
+            [ "${{ github.event.inputs.deploy_sso }}" = "true" ] && SERVICES="${SERVICES},sso"
+            [ "${{ github.event.inputs.deploy_pricebook }}" = "true" ] && SERVICES="${SERVICES},pricebook"
+            [ "${{ github.event.inputs.deploy_integration }}" = "true" ] && SERVICES="${SERVICES},integration"
+            [ "${{ github.event.inputs.deploy_cloud_run }}" = "true" ] && SERVICES="${SERVICES},cloud_run"
+            [ "${{ github.event.inputs.deploy_sap_integration }}" = "true" ] && SERVICES="${SERVICES},sap-integration-germany"
+            [ "${{ github.event.inputs.deploy_centric_os_integration }}" = "true" ] && SERVICES="${SERVICES},centric-os-integration-us"
+            [ "${{ github.event.inputs.deploy_notification_service }}" = "true" ] && SERVICES="${SERVICES},notification-service"
+            [ "${{ github.event.inputs.deploy_menucacheupdate }}" = "true" ] && SERVICES="${SERVICES},menucacheupdate"
+            [ "${{ github.event.inputs.deploy_index }}" = "true" ] && SERVICES="${SERVICES},index"
             
-            # If no individual toggles are selected and service_name is "All", deploy everything
-            if [ "${{ github.event.inputs.service_name }}" = "All" ] && [ "${{ github.event.inputs.deploy_nodejs_apps }}" != "true" ] && [ "${{ github.event.inputs.deploy_python2_services }}" != "true" ] && [ "${{ github.event.inputs.deploy_python3_services }}" != "true" ] && [ "${{ github.event.inputs.deploy_phrase_service }}" != "true" ]; then
+            # Phrase Service
+            [ "${{ github.event.inputs.deploy_phrase }}" = "true" ] && SERVICES="${SERVICES},phrase"
+            
+            # If no individual checkboxes are selected and service_name is "All", deploy everything
+            if [ "${{ github.event.inputs.service_name }}" = "All" ] && [ -z "$SERVICES" ]; then
               if [ "${{ steps.check-deployment.outputs.deployment_type }}" = "International" ]; then
                 SERVICES="controldesk,web-ort,time2eat,time2eat-flutter,baweb,baweb-flutter,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,cloud_run,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service"
               else
@@ -250,45 +328,77 @@ jobs:
         run: |
           SERVICES="${{ steps.parse-services.outputs.selected_services }}"
           
-          # Check NodeApps
-          NODEAPPS="controldesk,controldeskflutter,foodbook-web,time2eat,baweb,web-ort,time2eat-flutter,baweb-flutter"
+          # Check NodeApps - either from individual checkboxes or from services list
           IS_NODEAPPS_ENABLED=false
-          for service in ${SERVICES//,/ }; do
-            if [[ ",$NODEAPPS," == *",$service,"* ]]; then
-              IS_NODEAPPS_ENABLED=true
-              break
-            fi
-          done
+          if [ "${{ github.event.inputs.deploy_controldesk }}" = "true" ] || \
+             [ "${{ github.event.inputs.deploy_web_ort }}" = "true" ] || \
+             [ "${{ github.event.inputs.deploy_time2eat_flutter }}" = "true" ] || \
+             [ "${{ github.event.inputs.deploy_baweb_flutter }}" = "true" ]; then
+            IS_NODEAPPS_ENABLED=true
+          else
+            # Check from services list
+            NODEAPPS="controldesk,controldeskflutter,foodbook-web,time2eat,baweb,web-ort,time2eat-flutter,baweb-flutter"
+            for service in ${SERVICES//,/ }; do
+              if [[ ",$NODEAPPS," == *",$service,"* ]]; then
+                IS_NODEAPPS_ENABLED=true
+                break
+              fi
+            done
+          fi
           
-          # Check Py2 Services
-          PY2_SERVICES="appservice,backgroundtasks,taskqservice,bqreports"
+          # Check Py2 Services - either from individual checkboxes or from services list
           IS_PY2_ENABLED=false
-          for service in ${SERVICES//,/ }; do
-            if [[ ",$PY2_SERVICES," == *",$service,"* ]]; then
-              IS_PY2_ENABLED=true
-              break
-            fi
-          done
+          if [ "${{ github.event.inputs.deploy_appservice }}" = "true" ] || \
+             [ "${{ github.event.inputs.deploy_backgroundtasks }}" = "true" ] || \
+             [ "${{ github.event.inputs.deploy_taskqservice }}" = "true" ] || \
+             [ "${{ github.event.inputs.deploy_bqreports }}" = "true" ]; then
+            IS_PY2_ENABLED=true
+          else
+            # Check from services list
+            PY2_SERVICES="appservice,backgroundtasks,taskqservice,bqreports"
+            for service in ${SERVICES//,/ }; do
+              if [[ ",$PY2_SERVICES," == *",$service,"* ]]; then
+                IS_PY2_ENABLED=true
+                break
+              fi
+            done
+          fi
           
-          # Check Py3 Services
-          PY3_SERVICES="py3_default,dashboard,sso,pricebook,integration,cloud_run,sap-integration-germany,index,menucacheupdate,centric-os-integration-us,notification-service"
+          # Check Py3 Services - either from individual checkboxes or from services list
           IS_PY3_ENABLED=false
-          for service in ${SERVICES//,/ }; do
-            if [[ ",$PY3_SERVICES," == *",$service,"* ]]; then
-              IS_PY3_ENABLED=true
-              break
-            fi
-          done
+          if [ "${{ github.event.inputs.deploy_py3_default }}" = "true" ] || \
+             [ "${{ github.event.inputs.deploy_dashboard }}" = "true" ] || \
+             [ "${{ github.event.inputs.deploy_sso }}" = "true" ] || \
+             [ "${{ github.event.inputs.deploy_pricebook }}" = "true" ] || \
+             [ "${{ github.event.inputs.deploy_integration }}" = "true" ] || \
+             [ "${{ github.event.inputs.deploy_cloud_run }}" = "true" ] || \
+             [ "${{ github.event.inputs.deploy_sap_integration }}" = "true" ] || \
+             [ "${{ github.event.inputs.deploy_centric_os_integration }}" = "true" ] || \
+             [ "${{ github.event.inputs.deploy_notification_service }}" = "true" ] || \
+             [ "${{ github.event.inputs.deploy_menucacheupdate }}" = "true" ] || \
+             [ "${{ github.event.inputs.deploy_index }}" = "true" ]; then
+            IS_PY3_ENABLED=true
+          else
+            # Check from services list
+            PY3_SERVICES="py3_default,dashboard,sso,pricebook,integration,cloud_run,sap-integration-germany,index,menucacheupdate,centric-os-integration-us,notification-service"
+            for service in ${SERVICES//,/ }; do
+              if [[ ",$PY3_SERVICES," == *",$service,"* ]]; then
+                IS_PY3_ENABLED=true
+                break
+              fi
+            done
+          fi
           
-          # Check Phrase Services
-          PHRASE_SERVICES="phrase"
+          # Check Phrase Services - either from individual checkboxes or from services list
           IS_PHRASE_ENABLED=false
-          for service in ${SERVICES//,/ }; do
-            if [[ ",$PHRASE_SERVICES," == *",$service,"* ]]; then
+          if [ "${{ github.event.inputs.deploy_phrase }}" = "true" ]; then
+            IS_PHRASE_ENABLED=true
+          else
+            # Check from services list
+            if [[ ",$SERVICES," == *",phrase,"* ]]; then
               IS_PHRASE_ENABLED=true
-              break
             fi
-          done
+          fi
           
           echo "is_nodeapps_enabled=$IS_NODEAPPS_ENABLED" >> $GITHUB_OUTPUT
           echo "is_py2_enabled=$IS_PY2_ENABLED" >> $GITHUB_OUTPUT
@@ -312,7 +422,7 @@ jobs:
       - name: Setup Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v2
         with:
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          service_account_key: ${{ secrets.CICD_SECRET }}
           project_id: ${{ github.event.inputs.app_engine_project_id }}
       
       - name: Set GCloud Project
@@ -375,7 +485,7 @@ jobs:
           source scripts/functions.sh
           
           # Set environment variables (these should come from secrets/config)
-          export GCS_BUCKET_NAME="${{ secrets.GCS_BUCKET_NAME }}"
+          export GCS_BUCKET_NAME="${{ secrets.CICD_SECRET }}"
           export ENVIRONMENT="${{ github.event.inputs.git_branch || 'main' }}"
           
           SERVICES="${{ needs.setup.outputs.selected_services }}"
@@ -492,11 +602,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        
       
       - name: Setup Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v2
         with:
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          service_account_key: ${{ secrets.CICD_SECRET }}
           project_id: ${{ github.event.inputs.app_engine_project_id }}
       
       - name: Set GCloud Project
@@ -508,7 +619,7 @@ jobs:
           # Create helper functions
           source scripts/functions.sh || echo "Functions not found, creating inline"
           
-          export GCS_BUCKET_NAME="${{ secrets.GCS_BUCKET_NAME }}"
+          export GCS_BUCKET_NAME="a${{ secrets.CICD_SECRET }}"
           export ENVIRONMENT="${{ github.event.inputs.git_branch || 'main' }}"
           
           # Get version for Python 2 services
