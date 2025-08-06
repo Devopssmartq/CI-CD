@@ -100,7 +100,7 @@ def get_AppEngine_Version(Map args) {
         ).trim()
         echo "App_Engine_Version for ${args.app_name} : ${APP_ENGINE_VERSION}" 
         def fileName = APP_ENGINE_VERSION.replaceAll('\\.tar\\.gz', '')
-        APP_VERSION = fileName
+        def APP_VERSION = fileName
         echo "${fileName}"
         
         return fileName
@@ -220,18 +220,27 @@ def time2eat_flutter() {
         echo "Node apps are disabled. Skipping the time2eat-flutter deployment."
     }
 }
-// def cd_v2() {
-//     echo "CD_V2 is enabled, proceeding with the cd-v2 deployment."
-//     parallelJobs[nodeapps.find { it.key == 'baweb-flutter' }] = {
-//         dir ('cd-v2') {
-//             sh 'ls'
-//             dir ('cd-v2') {
-//                 sh "ls"                                                               
-                
-//             }
-//         }
-//     }
-// }
+def cd_v2() {
+    // Don't create a new parallelJobs map here - use the one from the parent scope
+    CD_V2_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'cd-v2')
+    PREVIOUS_VERSION = get_Previous_Version(service_name: "cd-v2")
+    
+    // Return the job closure so it can be added to the main parallelJobs map
+    return {
+        // First, create directory and copy the build artifact from storage bucket
+        sh "mkdir -p cd-v2"
+        def STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "cd-v2")
+        sh "gcloud storage cp ${STORAGE_OBJECT_SOURCE_PATH} ${WORKSPACE}/cd-v2/"
+        
+        dir ('cd-v2') {
+            sh 'ls -la'  // List files to verify the tar file is present
+            sh "tar -xzvf ${CD_V2_APP_ENGINE_VERSION}.tar.gz"
+            sh 'ls'
+            sh 'chmod +x deploy.sh'
+            sh "./deploy.sh ${params.APP_ENGINE_PROJECT_ID} ${CD_V2_APP_ENGINE_VERSION} true"
+        }
+    }
+} 
 def centric_os_intergration() {
     // Don't create a new parallelJobs map here - use the one from the parent scope
     if (IS_PY3_ENABLED) {
@@ -770,20 +779,15 @@ pipeline {
                                     time2eat_flutter()
                                 } 
                                 if ('cd-v2' in ARR_SELECTED_SERVICE) {
-                                    CD_V2_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'cd-v2')
-                                    PREVIOUS_VERSION = get_Previous_Version(service_name: "cd-v2")
-                                    parallelJobs[nodeapps.find { it.key == 'cd-v2' }] = {
-                                        dir ('cd-v2') {
-                                            sh 'ls'
-                                            sh 'chmod +x deploy.sh'
-                                            sh "./deploy.sh ${params.APP_ENGINE_PROJECT_ID} $CD_V2_APP_ENGINE_VERSION true"
-                                            ARR_VERIFY_SERVICE.add([service_name: 'cd-v2', version_name: "$CD_V2_APP_ENGINE_VERSION", url_suffix: ''])
-                                        }
+                                    def cdV2Job = cd_v2()
+                                    if (cdV2Job) {
+                                        parallelJobs[nodeapps.find { it.key == 'cd-v2' }] = cdV2Job
+                                        ARR_VERIFY_SERVICE.add([service_name: 'cd-v2', version_name: "$CD_V2_APP_ENGINE_VERSION", url_suffix: 'cd-v2/'])
                                     }
                                 }
                                 //2.1 Add new application block here
                                 parallel(parallelJobs)
-                            
+                            }
                         }
                     }
                 }
