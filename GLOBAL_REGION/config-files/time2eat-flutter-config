@@ -10,11 +10,11 @@ def setProperties(String appName, String versionName, String projectId, String v
         sh "[ -f ${versionName}.tar.gz ] && tar -xzvf ${versionName}.tar.gz || echo 'Tar file not found'"
         sh 'ls; pwd'
 
-        if (projectId == "smartqprd-nz" || projectId == "sqpreprod-nz") {
-            sh "./cicd_deploy.sh $variantName $projectId $versionName v2"
+        if (projectId == "smartqprd-au" || projectId == "sqpreprod-au") {
+            sh "./cicd_deploy.sh $variantName $projectId $versionName v2" 
         } else if(projectId == "smartqprd-uk" || projectId == "sqpreprod-uk" || projectId == "smartqdemo-uk") {
             sh "./cicd_deploy.sh $variantName $projectId $versionName"
-        } else {
+        }  else {
             sh "./cicd_deploy.sh $variantName $projectId $versionName"
         }      
     }

@@ -220,7 +220,18 @@ def time2eat_flutter() {
         echo "Node apps are disabled. Skipping the time2eat-flutter deployment."
     }
 }
-
+// def cd_v2() {
+//     echo "CD_V2 is enabled, proceeding with the cd-v2 deployment."
+//     parallelJobs[nodeapps.find { it.key == 'baweb-flutter' }] = {
+//         dir ('cd-v2') {
+//             sh 'ls'
+//             dir ('cd-v2') {
+//                 sh "ls"                                                               
+                
+//             }
+//         }
+//     }
+// }
 def centric_os_intergration() {
     // Don't create a new parallelJobs map here - use the one from the parent scope
     if (IS_PY3_ENABLED) {
@@ -259,15 +270,11 @@ def notification_service() {
         
         // Return the job closure so it can be added to the main parallelJobs map
         return {
-            dir ('sq_microservices_backend') {
+            dir ('cd-v2') {
                 sh 'ls'
-                dir ('cloudrun/notification-service') {
-                    sh "ls"                                                               
-                    sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
-                    sh "gcloud run deploy notification-service --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json"
-                                                                
-                    // ARR_VERIFY_SERVICE.add([service_name: 'notification-service', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
-                }                                 
+                sh "tar -xzvf ${versionName}.tar.gz"
+                sh 'ls; pwd'                                          
+                sh "gcloud app deploy --version=$versionName --quiet $CONTROLDESK_YAML --no-promote"                                
             }
         }
     } else {
@@ -311,7 +318,8 @@ def nodeapps = [
             [key: 'baweb'],
             [key: 'web-ort'],
             [key: 'time2eat-flutter'],
-            [key: 'baweb-flutter']
+            [key: 'baweb-flutter'],
+            [key: 'cd-v2']
         ]
 def py2_services = [
             [key: 'appservice'],
@@ -437,7 +445,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","integration", "pricebook","cloud_run","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso"]'
+                    script: 'return ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","cd-v2","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","integration", "pricebook","cloud_run","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso"]'
                 ],
                 script: [
                     classpath: [],
@@ -446,7 +454,7 @@ properties([
                         def type = DEPLOYMENT_TYPE ?: "International" 
                         def options = []
                         if (type == "International") {
-                            options = ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","integration", "pricebook","cloud_run","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso"]
+                            options = ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","cd-v2","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","integration", "pricebook","cloud_run","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso"]
                         }
                         return options
                     '''
@@ -569,7 +577,7 @@ pipeline {
                         echo "type of deplyoment is : ${type}"
                         def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,cloud_run,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service'
                         if (type == "International") {
-                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,baweb-flutter,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,cloud_run,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service'
+                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,baweb-flutter,cd-v2,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,cloud_run,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service'
                         }       
                         //echo "SERVICE_NAME_LIST updated - $options"
                         ARR_SELECTED_SERVICE = "$options".split(',')                        
@@ -757,9 +765,21 @@ pipeline {
                                 } else if ('time2eat-flutter' in ARR_SELECTED_SERVICE ) {  
                                     time2eat_flutter()
                                 } 
+                                if ('cd-v2' in ARR_SELECTED_SERVICE) {
+                                    CD_V2_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'cd-v2')
+                                    PREVIOUS_VERSION = get_Previous_Version(service_name: "cd-v2")
+                                    parallelJobs[nodeapps.find { it.key == 'cd-v2' }] = {
+                                        dir ('cd-v2') {
+                                            sh 'ls'
+                                            sh 'chmod +x deploy.sh'
+                                            sh "./deploy.sh ${params.APP_ENGINE_PROJECT_ID} $CD_V2_APP_ENGINE_VERSION true"
+                                            ARR_VERIFY_SERVICE.add([service_name: 'cd-v2', version_name: "$CD_V2_APP_ENGINE_VERSION", url_suffix: ''])
+                                        }
+                                    }
+                                }
                                 //2.1 Add new application block here
                                 parallel(parallelJobs)
-                            }
+                            
                         }
                     }
                 }
