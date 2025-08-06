@@ -270,11 +270,15 @@ def notification_service() {
         
         // Return the job closure so it can be added to the main parallelJobs map
         return {
-            dir ('cd-v2') {
+            dir ('sq_microservices_backend') {
                 sh 'ls'
-                sh "tar -xzvf ${versionName}.tar.gz"
-                sh 'ls; pwd'                                          
-                sh "gcloud app deploy --version=$versionName --quiet $CONTROLDESK_YAML --no-promote"                                
+                dir ('cloudrun/notification-service') {
+                    sh "ls"                                                               
+                    sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
+                    sh "gcloud run deploy notification-service --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json"
+                                                                
+                    // ARR_VERIFY_SERVICE.add([service_name: 'notification-service', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
+                }                                 
             }
         }
     } else {
