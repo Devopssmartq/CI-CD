@@ -207,7 +207,7 @@ def time2eat_flutter() {
             parallelJobs[nodeapps.find { it.key == 'time2eat-flutter' }.value] = {
                 load("deploy_time2eat-flutter.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat-flutter"), TIME2EAT_FLUTTER_APP_ENGINE_VERSION, projectID, variant_Name)
                 if (projectID.contains("-nz")) {
-                    ARR_VERIFY_SERVICE.add([service_name: 'time2eat-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'time2eat-v2/']) 
+                    ARR_VERIFY_SERVICE.add([service_name: 'time2eat-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'time2eat/']) 
                 } else {
                     ARR_VERIFY_SERVICE.add([service_name: 'time2eat-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'time2eat/'])
                 }                                           
