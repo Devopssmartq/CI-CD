@@ -45,16 +45,25 @@ jobs:
   auth_and_setup:
     runs-on: ubuntu-latest
     steps:
+      - name: Debug secrets
+        run: |
+          if [ -z "${{ secrets.CICD_SECRET }}" ]; then
+            echo "CICD_SECRET is EMPTY"
+          else
+            echo "CICD_SECRET is PRESENT"
+          fi   
       - name: Write GCP credentials to file
         run: |
-          echo "${{ secrets.CICD_SECRET }}" > ${{ runner.temp }}/gcloud.json
+            echo "${{ secrets.CICD_SECRET }}" > ${{ runner.temp }}/gcloud.json
+        
       - name: Auth to Google Cloud
         uses: google-github-actions/auth@v2
         with:
             credentials_json: ${{ secrets.CICD_SECRET }}
-
+    
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
+        
 
   ort_india:
     name: ORT India
@@ -513,78 +522,78 @@ jobs:
           gcloud storage cp "${NEWID}.tar.gz" "$GCLOUD_BUCKET/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/phrase_translate/" --recursive
           echo "cloud_url=https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/phrase_translate" >> "$GITHUB_OUTPUT"
 
-  notify:
-    name: Notify
-    runs-on: ubuntu-latest
-    if: always()
-    needs:
-      - ort_india
-      - control_desk_india
-      - ewallet_india
-      - time2eatweb_india
-      - vendor_dashboard
-      - admin_dashboard_india
-      - cloud_backend_india
-      - microservices_backend_india
-      - control_desk_india_flutter
-      - time2eat_flutter
-      - phrase_translate
-    steps:
-      - name: Prepare message
-        id: msg
-        run: |
-          set -euo pipefail
-          : > summary.txt
-          add_line() {
-            local project="$1" job="$2"
-            local result="${{ needs.ort_india.result }}"
-            local url="${{ needs.ort_india.outputs.cloud_url }}"
-            local branch="${{ needs.ort_india.outputs.branch }}"
-            local bucket="${{ needs.ort_india.outputs.bucket }}"
-            if [ "$2" = "control_desk_india" ]; then
-              result="${{ needs.control_desk_india.result }}"; url="${{ needs.control_desk_india.outputs.cloud_url }}"; branch="${{ needs.control_desk_india.outputs.branch }}"; bucket="${{ needs.control_desk_india.outputs.bucket }}";
-            elif [ "$2" = "ewallet_india" ]; then
-              result="${{ needs.ewallet_india.result }}"; url="${{ needs.ewallet_india.outputs.cloud_url }}"; branch="${{ needs.ewallet_india.outputs.branch }}"; bucket="${{ needs.ewallet_india.outputs.bucket }}";
-            elif [ "$2" = "time2eatweb_india" ]; then
-              result="${{ needs.time2eatweb_india.result }}"; url="${{ needs.time2eatweb_india.outputs.cloud_url }}"; branch="${{ needs.time2eatweb_india.outputs.branch }}"; bucket="${{ needs.time2eatweb_india.outputs.bucket }}";
-            elif [ "$2" = "vendor_dashboard" ]; then
-              result="${{ needs.vendor_dashboard.result }}"; url="${{ needs.vendor_dashboard.outputs.cloud_url }}"; branch="${{ needs.vendor_dashboard.outputs.branch }}"; bucket="${{ needs.vendor_dashboard.outputs.bucket }}";
-            elif [ "$2" = "admin_dashboard_india" ]; then
-              result="${{ needs.admin_dashboard_india.result }}"; url="${{ needs.admin_dashboard_india.outputs.cloud_url }}"; branch="${{ needs.admin_dashboard_india.outputs.branch }}"; bucket="${{ needs.admin_dashboard_india.outputs.bucket }}";
-            elif [ "$2" = "cloud_backend_india" ]; then
-              result="${{ needs.cloud_backend_india.result }}"; url="${{ needs.cloud_backend_india.outputs.cloud_url }}"; branch="${{ needs.cloud_backend_india.outputs.branch }}"; bucket="${{ needs.cloud_backend_india.outputs.bucket }}";
-            elif [ "$2" = "microservices_backend_india" ]; then
-              result="${{ needs.microservices_backend_india.result }}"; url="${{ needs.microservices_backend_india.outputs.cloud_url }}"; branch="${{ needs.microservices_backend_india.outputs.branch }}"; bucket="${{ needs.microservices_backend_india.outputs.bucket }}";
-            elif [ "$2" = "control_desk_india_flutter" ]; then
-              result="${{ needs.control_desk_india_flutter.result }}"; url="${{ needs.control_desk_india_flutter.outputs.cloud_url }}"; branch="${{ needs.control_desk_india_flutter.outputs.branch }}"; bucket="${{ needs.control_desk_india_flutter.outputs.bucket }}";
-            elif [ "$2" = "time2eat_flutter" ]; then
-              result="${{ needs.time2eat_flutter.result }}"; url="${{ needs.time2eat_flutter.outputs.cloud_url }}"; branch="${{ needs.time2eat_flutter.outputs.branch }}"; bucket="${{ needs.time2eat_flutter.outputs.bucket }}";
-            elif [ "$2" = "phrase_translate" ]; then
-              result="${{ needs.phrase_translate.result }}"; url="${{ needs.phrase_translate.outputs.cloud_url }}"; branch="${{ needs.phrase_translate.outputs.branch }}"; bucket="${{ needs.phrase_translate.outputs.bucket }}";
-            fi
-            if [ "$result" = "skipped" ]; then
-              return 0
-            fi
-            echo "${project}: status=${result}, branch=${branch}, bucket=${bucket}, url=${url}" >> summary.txt
-          }
-          add_line "ort-india" "ort_india"
-          add_line "control-desk-india" "control_desk_india"
-          add_line "ewallet-india" "ewallet_india"
-          add_line "time2eatweb-india" "time2eatweb_india"
-          add_line "vendor-dashboard" "vendor_dashboard"
-          add_line "admin-dashboard-india" "admin_dashboard_india"
-          add_line "cloud-backend-india" "cloud_backend_india"
-          add_line "microservices-backend-india" "microservices_backend_india"
-          add_line "control-desk-india-flutter" "control_desk_india_flutter"
-          add_line "time2eat-flutter" "time2eat_flutter"
-          add_line "phrase-translate" "phrase_translate"
-          echo "SUMMARY<<EOF" >> $GITHUB_OUTPUT
-          cat summary.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-      - name: Send Office 365 notification
-        env:
-          SUMMARY: ${{ steps.msg.outputs.SUMMARY }}
-        run: |
-          TEXT=$(printf "Build summary:\n%s" "$SUMMARY")
-          curl -sS -X POST -H 'Content-Type: application/json' \
-            -d "{\"text\": \"$TEXT\"}" "$O365_WEBHOOK_URL" | cat 
+#   notify:
+#     name: Notify
+#     runs-on: ubuntu-latest
+#     if: always()
+#     needs:
+#       - ort_india
+#       - control_desk_india
+#       - ewallet_india
+#       - time2eatweb_india
+#       - vendor_dashboard
+#       - admin_dashboard_india
+#       - cloud_backend_india
+#       - microservices_backend_india
+#       - control_desk_india_flutter
+#       - time2eat_flutter
+#       - phrase_translate
+#     steps:
+#       - name: Prepare message
+#         id: msg
+#         run: |
+#           set -euo pipefail
+#           : > summary.txt
+#           add_line() {
+#             local project="$1" job="$2"
+#             local result="${{ needs.ort_india.result }}"
+#             local url="${{ needs.ort_india.outputs.cloud_url }}"
+#             local branch="${{ needs.ort_india.outputs.branch }}"
+#             local bucket="${{ needs.ort_india.outputs.bucket }}"
+#             if [ "$2" = "control_desk_india" ]; then
+#               result="${{ needs.control_desk_india.result }}"; url="${{ needs.control_desk_india.outputs.cloud_url }}"; branch="${{ needs.control_desk_india.outputs.branch }}"; bucket="${{ needs.control_desk_india.outputs.bucket }}";
+#             elif [ "$2" = "ewallet_india" ]; then
+#               result="${{ needs.ewallet_india.result }}"; url="${{ needs.ewallet_india.outputs.cloud_url }}"; branch="${{ needs.ewallet_india.outputs.branch }}"; bucket="${{ needs.ewallet_india.outputs.bucket }}";
+#             elif [ "$2" = "time2eatweb_india" ]; then
+#               result="${{ needs.time2eatweb_india.result }}"; url="${{ needs.time2eatweb_india.outputs.cloud_url }}"; branch="${{ needs.time2eatweb_india.outputs.branch }}"; bucket="${{ needs.time2eatweb_india.outputs.bucket }}";
+#             elif [ "$2" = "vendor_dashboard" ]; then
+#               result="${{ needs.vendor_dashboard.result }}"; url="${{ needs.vendor_dashboard.outputs.cloud_url }}"; branch="${{ needs.vendor_dashboard.outputs.branch }}"; bucket="${{ needs.vendor_dashboard.outputs.bucket }}";
+#             elif [ "$2" = "admin_dashboard_india" ]; then
+#               result="${{ needs.admin_dashboard_india.result }}"; url="${{ needs.admin_dashboard_india.outputs.cloud_url }}"; branch="${{ needs.admin_dashboard_india.outputs.branch }}"; bucket="${{ needs.admin_dashboard_india.outputs.bucket }}";
+#             elif [ "$2" = "cloud_backend_india" ]; then
+#               result="${{ needs.cloud_backend_india.result }}"; url="${{ needs.cloud_backend_india.outputs.cloud_url }}"; branch="${{ needs.cloud_backend_india.outputs.branch }}"; bucket="${{ needs.cloud_backend_india.outputs.bucket }}";
+#             elif [ "$2" = "microservices_backend_india" ]; then
+#               result="${{ needs.microservices_backend_india.result }}"; url="${{ needs.microservices_backend_india.outputs.cloud_url }}"; branch="${{ needs.microservices_backend_india.outputs.branch }}"; bucket="${{ needs.microservices_backend_india.outputs.bucket }}";
+#             elif [ "$2" = "control_desk_india_flutter" ]; then
+#               result="${{ needs.control_desk_india_flutter.result }}"; url="${{ needs.control_desk_india_flutter.outputs.cloud_url }}"; branch="${{ needs.control_desk_india_flutter.outputs.branch }}"; bucket="${{ needs.control_desk_india_flutter.outputs.bucket }}";
+#             elif [ "$2" = "time2eat_flutter" ]; then
+#               result="${{ needs.time2eat_flutter.result }}"; url="${{ needs.time2eat_flutter.outputs.cloud_url }}"; branch="${{ needs.time2eat_flutter.outputs.branch }}"; bucket="${{ needs.time2eat_flutter.outputs.bucket }}";
+#             elif [ "$2" = "phrase_translate" ]; then
+#               result="${{ needs.phrase_translate.result }}"; url="${{ needs.phrase_translate.outputs.cloud_url }}"; branch="${{ needs.phrase_translate.outputs.branch }}"; bucket="${{ needs.phrase_translate.outputs.bucket }}";
+#             fi
+#             if [ "$result" = "skipped" ]; then
+#               return 0
+#             fi
+#             echo "${project}: status=${result}, branch=${branch}, bucket=${bucket}, url=${url}" >> summary.txt
+#           }
+#           add_line "ort-india" "ort_india"
+#           add_line "control-desk-india" "control_desk_india"
+#           add_line "ewallet-india" "ewallet_india"
+#           add_line "time2eatweb-india" "time2eatweb_india"
+#           add_line "vendor-dashboard" "vendor_dashboard"
+#           add_line "admin-dashboard-india" "admin_dashboard_india"
+#           add_line "cloud-backend-india" "cloud_backend_india"
+#           add_line "microservices-backend-india" "microservices_backend_india"
+#           add_line "control-desk-india-flutter" "control_desk_india_flutter"
+#           add_line "time2eat-flutter" "time2eat_flutter"
+#           add_line "phrase-translate" "phrase_translate"
+#           echo "SUMMARY<<EOF" >> $GITHUB_OUTPUT
+#           cat summary.txt >> $GITHUB_OUTPUT
+#           echo "EOF" >> $GITHUB_OUTPUT
+#       - name: Send Office 365 notification
+#         env:
+#           SUMMARY: ${{ steps.msg.outputs.SUMMARY }}
+#         run: |
+#           TEXT=$(printf "Build summary:\n%s" "$SUMMARY")
+#           curl -sS -X POST -H 'Content-Type: application/json' \
+#             -d "{\"text\": \"$TEXT\"}" "$O365_WEBHOOK_URL" | cat 

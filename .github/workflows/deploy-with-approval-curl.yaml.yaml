@@ -1,8 +1,8 @@
 name: Merge Notification
 
 on:
-  push:
-    branches: [ yash ]
+  # push:
+  #   branches: [ yash ]
   pull_request:
     types: [closed]
     branches: [ yash ]
