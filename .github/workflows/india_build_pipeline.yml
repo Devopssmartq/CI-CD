@@ -45,6 +45,9 @@ jobs:
   auth_and_setup:
     runs-on: ubuntu-latest
     steps:
+      - name: Write GCP credentials to file
+        run: |
+          echo "${{ secrets.CICD_SECRET }}" > ${{ runner.temp }}/gcloud.json
       - name: Auth to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -52,6 +55,7 @@ jobs:
 
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
+
   ort_india:
     name: ORT India
     if: inputs.BitBucketProject == 'All:selected' || inputs.BitBucketProject == 'ort-india'
