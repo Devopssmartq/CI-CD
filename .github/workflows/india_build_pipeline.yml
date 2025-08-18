@@ -1,0 +1,586 @@
+name: India Build Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      BitBucketProject:
+        description: Select BitBucket Project
+        type: choice
+        required: true
+        options:
+          - All:selected
+          - ort-india
+          - control-desk-india
+          - ewallet-india
+          - time2eatweb-india
+          - vendor-dashboard
+          - admin-dashboard-india
+          - cloud-backend-india
+          - microservices-backend-india
+          - control-desk-india-flutter
+          - time2eat_flutter
+          - phrase_translate
+      Branch:
+        description: Select Branch
+        type: choice
+        required: true
+        options:
+          - auto-sprint
+          - auto-release
+          - master
+          - hotfix
+      Hotfix_Branch:
+        description: Enter the branch name
+        type: string
+        required: false
+        default: ''
+
+env:
+  GCLOUD_BUCKET: gs://sqinternational-cicd.appspot.com
+  REGION_PREFIX: "India_Region"
+  O365_WEBHOOK_URL: "https://cpgplc.webhook.office.com/webhookb2/338b6ef4-7b9e-43db-909f-e7309c1d73ab@cd62b7dd-4b48-44bd-90e7-e143a22c8ead/IncomingWebhook/97d45deb3e8f4ed49bc76862c0635ef4/6a7c3461-f574-44f9-8bec-0b9feacb3fb5/V2BWHFPXeMg00euibd0cSf6Gd1FUVTffeOCZR9B9lgUtA1"
+  GH_PAT: ${{ secrets.DEVOPS_GIT_HUB_TOKEN }}
+
+jobs:
+  auth_and_setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auth to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+            credentials_json: ${{ secrets.CICD_SECRET }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+  ort_india:
+    name: ORT India
+    if: inputs.BitBucketProject == 'All:selected' || inputs.BitBucketProject == 'ort-india'
+    runs-on: ubuntu-latest
+    needs: auth_and_setup
+    steps:
+      - name: Compute branch and bucket
+        id: compute
+        run: |
+          BRANCH="${{ inputs.Branch }}"
+          HOTFIX="${{ inputs.Hotfix_Branch }}"
+          BUCKETNAME="$BRANCH"
+          if [ -n "$HOTFIX" ]; then
+            BUCKETNAME="$HOTFIX"
+            BRANCH="$HOTFIX"
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "bucket=$BUCKETNAME" >> "$GITHUB_OUTPUT"
+          echo "version=$(date +%Y)-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '14.19.0'
+
+      - name: Checkout and Build
+        id: build
+        run: |
+          set -euo pipefail
+          git clone https://${GH_PAT}@github.com/Bottle-Lab-Technologies-PVT-LTD/ort-india.git ort-india
+          cd ort-india
+          git fetch origin "${{ steps.compute.outputs.branch }}" || true
+          git checkout "${{ steps.compute.outputs.branch }}"
+          NEWID=$(git rev-parse --short HEAD)
+          echo "NEWID=$NEWID" >> "$GITHUB_ENV"
+          npm install --force
+          CI=false npm run build
+          tar -czvf "${NEWID}.tar.gz" *.yaml build/* || true
+          gcloud storage cp "${NEWID}.tar.gz" "$GCLOUD_BUCKET/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/ort-india/" --recursive
+          echo "cloud_url=https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/ort-india" >> "$GITHUB_OUTPUT"
+
+  control_desk_india:
+    name: Control Desk India
+    if: inputs.BitBucketProject == 'All:selected' || inputs.BitBucketProject == 'control-desk-india'
+    runs-on: ubuntu-latest
+    needs: auth_and_setup
+    steps:
+      - name: Compute branch and bucket
+        id: compute
+        run: |
+          BRANCH="${{ inputs.Branch }}"
+          HOTFIX="${{ inputs.Hotfix_Branch }}"
+          BUCKETNAME="$BRANCH"
+          if [ -n "$HOTFIX" ]; then
+            BUCKETNAME="$HOTFIX"
+            BRANCH="$HOTFIX"
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "bucket=$BUCKETNAME" >> "$GITHUB_OUTPUT"
+          echo "version=$(date +%Y)-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '14.17.4'
+
+      - name: Checkout and Build
+        id: build
+        run: |
+          set -euo pipefail
+          git clone https://${GH_PAT}@github.com/Bottle-Lab-Technologies-PVT-LTD/control-desk-india.git control-desk-india
+          cd control-desk-india
+          git fetch origin "${{ steps.compute.outputs.branch }}" || true
+          git checkout "${{ steps.compute.outputs.branch }}"
+          NEWID=$(git rev-parse --short HEAD)
+          echo "NEWID=$NEWID" >> "$GITHUB_ENV"
+          npm install --force
+          npm install @emotion/styled
+          npm install react-checkbox-tree@1.5.0 --force
+          CI=false npm run build
+          tar -czvf "${NEWID}.tar.gz" *.yaml build/* || true
+          gcloud storage cp "${NEWID}.tar.gz" "$GCLOUD_BUCKET/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/control-desk-india/" --recursive
+          echo "cloud_url=https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/control-desk-india" >> "$GITHUB_OUTPUT"
+
+  ewallet_india:
+    name: Ewallet India
+    if: inputs.BitBucketProject == 'All:selected' || inputs.BitBucketProject == 'ewallet-india'
+    runs-on: ubuntu-latest
+    needs: auth_and_setup
+    steps:
+      - name: Compute branch and bucket
+        id: compute
+        run: |
+          BRANCH="${{ inputs.Branch }}"
+          HOTFIX="${{ inputs.Hotfix_Branch }}"
+          BUCKETNAME="$BRANCH"
+          if [ -n "$HOTFIX" ]; then
+            BUCKETNAME="$HOTFIX"
+            BRANCH="$HOTFIX"
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "bucket=$BUCKETNAME" >> "$GITHUB_OUTPUT"
+          echo "version=$(date +%Y)-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.12.0'
+
+      - name: Checkout and Build
+        id: build
+        run: |
+          set -euo pipefail
+          git clone https://${GH_PAT}@github.com/Bottle-Lab-Technologies-PVT-LTD/ewallet-india.git ewallet-india
+          cd ewallet-india
+          git fetch origin "${{ steps.compute.outputs.branch }}" || true
+          git checkout "${{ steps.compute.outputs.branch }}"
+          NEWID=$(git rev-parse --short HEAD)
+          echo "NEWID=$NEWID" >> "$GITHUB_ENV"
+          npm install
+          CI=false npm run build
+          tar -czvf "${NEWID}.tar.gz" build/*
+          gcloud storage cp "${NEWID}.tar.gz" "$GCLOUD_BUCKET/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/ewallet-india/" --recursive
+          echo "cloud_url=https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/ewallet-india" >> "$GITHUB_OUTPUT"
+
+  time2eatweb_india:
+    name: time2eatweb India
+    if: inputs.BitBucketProject == 'All:selected' || inputs.BitBucketProject == 'time2eatweb-india'
+    runs-on: ubuntu-latest
+    needs: auth_and_setup
+    steps:
+      - name: Compute branch and bucket
+        id: compute
+        run: |
+          BRANCH="${{ inputs.Branch }}"
+          HOTFIX="${{ inputs.Hotfix_Branch }}"
+          BUCKETNAME="$BRANCH"
+          if [ -n "$HOTFIX" ]; then
+            BUCKETNAME="$HOTFIX"
+            BRANCH="$HOTFIX"
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "bucket=$BUCKETNAME" >> "$GITHUB_OUTPUT"
+          echo "version=$(date +%Y)-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.12.0'
+
+      - name: Checkout and Build
+        id: build
+        run: |
+          set -euo pipefail
+          git clone https://${GH_PAT}@github.com/Bottle-Lab-Technologies-PVT-LTD/time2eatweb-india.git time2eatweb-india
+          cd time2eatweb-india
+          git fetch origin "${{ steps.compute.outputs.branch }}" || true
+          git checkout "${{ steps.compute.outputs.branch }}"
+          NEWID=$(git rev-parse --short HEAD)
+          echo "NEWID=$NEWID" >> "$GITHUB_ENV"
+          npm install --force
+          CI=false NODE_OPTIONS=--openssl-legacy-provider npm run build:app3
+          CI=false NODE_OPTIONS=--openssl-legacy-provider npm run build:app5
+          tar -czvf "${NEWID}.tar.gz" *.yaml build/* || true
+          gcloud storage cp "${NEWID}.tar.gz" "$GCLOUD_BUCKET/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/time2eatweb-india/" --recursive
+          echo "cloud_url=https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/time2eatweb-india" >> "$GITHUB_OUTPUT"
+
+  vendor_dashboard:
+    name: Vendor Dashboard
+    if: inputs.BitBucketProject == 'All:selected' || inputs.BitBucketProject == 'vendor-dashboard'
+    runs-on: ubuntu-latest
+    needs: auth_and_setup
+    steps:
+      - name: Compute branch and bucket
+        id: compute
+        run: |
+          BRANCH="${{ inputs.Branch }}"
+          HOTFIX="${{ inputs.Hotfix_Branch }}"
+          BUCKETNAME="$BRANCH"
+          if [ -n "$HOTFIX" ]; then
+            BUCKETNAME="$HOTFIX"
+            BRANCH="$HOTFIX"
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "bucket=$BUCKETNAME" >> "$GITHUB_OUTPUT"
+          echo "version=$(date +%Y)-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.12.0'
+
+      - name: Checkout and Build
+        id: build
+        run: |
+          set -euo pipefail
+          git clone https://${GH_PAT}@github.com/Bottle-Lab-Technologies-PVT-LTD/unified_webstack.git unified_webstack
+          cd unified_webstack
+          git fetch origin "${{ steps.compute.outputs.branch }}" || true
+          git checkout "${{ steps.compute.outputs.branch }}"
+          NEWID=$(git rev-parse --short HEAD)
+          echo "NEWID=$NEWID" >> "$GITHUB_ENV"
+          cd frontend
+          npm install -g gulp
+          gulp build_vdashboard
+          cd dist/vdashboard/
+          tar -czvf "${NEWID}.tar.gz" admindashboard/*
+          gcloud storage cp "${NEWID}.tar.gz" "$GCLOUD_BUCKET/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/vendor-dashboard/" --recursive
+          echo "cloud_url=https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/vendor-dashboard" >> "$GITHUB_OUTPUT"
+
+  admin_dashboard_india:
+    name: Admin Dashboard India
+    if: inputs.BitBucketProject == 'All:selected' || inputs.BitBucketProject == 'admin-dashboard-india'
+    runs-on: ubuntu-latest
+    needs: auth_and_setup
+    steps:
+      - name: Compute branch and bucket
+        id: compute
+        run: |
+          BRANCH="${{ inputs.Branch }}"
+          HOTFIX="${{ inputs.Hotfix_Branch }}"
+          BUCKETNAME="$BRANCH"
+          if [ -n "$HOTFIX" ]; then
+            BUCKETNAME="$HOTFIX"
+            BRANCH="$HOTFIX"
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "bucket=$BUCKETNAME" >> "$GITHUB_OUTPUT"
+          echo "version=$(date +%Y)-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.12.0'
+
+      - name: Checkout and Build
+        id: build
+        run: |
+          set -euo pipefail
+          git clone https://${GH_PAT}@github.com/Bottle-Lab-Technologies-PVT-LTD/admin-dashboard-india.git admin-dashboard-india
+          cd admin-dashboard-india
+          git fetch origin "${{ steps.compute.outputs.branch }}" || true
+          git checkout "${{ steps.compute.outputs.branch }}"
+          NEWID=$(git rev-parse --short HEAD)
+          echo "NEWID=$NEWID" >> "$GITHUB_ENV"
+          npm install --force
+          CI=false npm run build
+          tar -czvf "${NEWID}.tar.gz" build/*
+          gcloud storage cp "${NEWID}.tar.gz" "$GCLOUD_BUCKET/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/admin-dashboard-india/" --recursive
+          echo "cloud_url=https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/admin-dashboard-india" >> "$GITHUB_OUTPUT"
+
+
+  cloud_backend_india:
+    name: Cloud Backend India
+    if: inputs.BitBucketProject == 'All:selected' || inputs.BitBucketProject == 'cloud-backend-india'
+    runs-on: ubuntu-latest
+    needs: auth_and_setup
+    steps:
+      - name: Compute branch and bucket
+        id: compute
+        run: |
+          BRANCH="${{ inputs.Branch }}"
+          HOTFIX="${{ inputs.Hotfix_Branch }}"
+          BUCKETNAME="$BRANCH"
+          if [ -n "$HOTFIX" ]; then
+            BUCKETNAME="$HOTFIX"
+            BRANCH="$HOTFIX"
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "bucket=$BUCKETNAME" >> "$GITHUB_OUTPUT"
+          echo "version=$(date +%Y)-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout and Upload placeholder
+        id: build
+        run: |
+          set -euo pipefail
+          git clone https://${GH_PAT}@github.com/Bottle-Lab-Technologies-PVT-LTD/cloud-backend-india.git cloud-backend-india
+          cd cloud-backend-india
+          git fetch origin "${{ steps.compute.outputs.branch }}" || true
+          git checkout "${{ steps.compute.outputs.branch }}"
+          NEWID=$(git rev-parse --short HEAD)
+          echo "NEWID=$NEWID" >> "$GITHUB_ENV"
+          cd ..
+          touch cloud-backend-india.txt
+          tar -czvf "${NEWID}.tar.gz" cloud-backend-india.txt
+          gcloud storage cp "${NEWID}.tar.gz" "$GCLOUD_BUCKET/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/cloud-backend-india/" --recursive
+          echo "cloud_url=https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/cloud-backend-india" >> "$GITHUB_OUTPUT"
+
+  microservices_backend_india:
+    name: Microservices Backend India
+    if: inputs.BitBucketProject == 'All:selected' || inputs.BitBucketProject == 'microservices-backend-india'
+    runs-on: ubuntu-latest
+    needs: auth_and_setup
+    steps:
+      - name: Compute branch and bucket
+        id: compute
+        run: |
+          BRANCH="${{ inputs.Branch }}"
+          HOTFIX="${{ inputs.Hotfix_Branch }}"
+          BUCKETNAME="$BRANCH"
+          if [ -n "$HOTFIX" ]; then
+            BUCKETNAME="$HOTFIX"
+            BRANCH="$HOTFIX"
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "bucket=$BUCKETNAME" >> "$GITHUB_OUTPUT"
+          echo "version=$(date +%Y)-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout and Upload placeholder
+        id: build
+        run: |
+          set -euo pipefail
+          git clone https://${GH_PAT}@github.com/Bottle-Lab-Technologies-PVT-LTD/microservices-backend-india.git microservices-backend-india
+          cd microservices-backend-india
+          git fetch origin "${{ steps.compute.outputs.branch }}" || true
+          git checkout "${{ steps.compute.outputs.branch }}"
+          NEWID=$(git rev-parse --short HEAD)
+          echo "NEWID=$NEWID" >> "$GITHUB_ENV"
+          cd ..
+          touch sqmicroservicesbackend.txt
+          tar -czvf "${NEWID}.tar.gz" sqmicroservicesbackend.txt
+          gcloud storage cp "${NEWID}.tar.gz" "$GCLOUD_BUCKET/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/microservices-backend-india/" --recursive
+          echo "cloud_url=https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/microservices-backend-india" >> "$GITHUB_OUTPUT"
+
+  control_desk_india_flutter:
+    name: Control Desk India Flutter
+    if: inputs.BitBucketProject == 'All:selected' || inputs.BitBucketProject == 'control-desk-india-flutter'
+    runs-on: ubuntu-latest
+    needs: auth_and_setup
+    steps:
+      - name: Compute branch and bucket
+        id: compute
+        run: |
+          BRANCH="${{ inputs.Branch }}"
+          HOTFIX="${{ inputs.Hotfix_Branch }}"
+          BUCKETNAME="$BRANCH"
+          if [ -n "$HOTFIX" ]; then
+            BUCKETNAME="$HOTFIX"
+            BRANCH="$HOTFIX"
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "bucket=$BUCKETNAME" >> "$GITHUB_OUTPUT"
+          echo "version=$(date +%Y)-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.2'
+          channel: 'stable'
+          cache: true
+
+      - name: Checkout and Build
+        id: build
+        run: |
+          set -euo pipefail
+          git clone https://${GH_PAT}@github.com/Bottle-Lab-Technologies-PVT-LTD/control-desk-flutter-india.git control-desk-flutter-india
+          cd control-desk-flutter-india
+          git fetch origin "${{ steps.compute.outputs.branch }}" || true
+          git checkout "${{ steps.compute.outputs.branch }}"
+          NEWID=$(git rev-parse --short HEAD)
+          echo "NEWID=$NEWID" >> "$GITHUB_ENV"
+          flutter clean
+          flutter pub get
+          flutter build web --web-renderer canvaskit
+          tar -czvf "${NEWID}.tar.gz" *.yaml build/* || true
+          gcloud storage cp "${NEWID}.tar.gz" "$GCLOUD_BUCKET/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/control-desk-flutter-india/" --recursive
+          echo "cloud_url=https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/control-desk-flutter-india" >> "$GITHUB_OUTPUT"
+
+  time2eat_flutter:
+    name: time2eat Flutter
+    if: inputs.BitBucketProject == 'All:selected' || inputs.BitBucketProject == 'time2eat_flutter'
+    runs-on: ubuntu-latest
+    needs: auth_and_setup
+    steps:
+      - name: Compute branch and bucket
+        id: compute
+        run: |
+          BRANCH="${{ inputs.Branch }}"
+          HOTFIX="${{ inputs.Hotfix_Branch }}"
+          BUCKETNAME="$BRANCH"
+          if [ -n "$HOTFIX" ]; then
+            BUCKETNAME="$HOTFIX"
+            BRANCH="$HOTFIX"
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "bucket=$BUCKETNAME" >> "$GITHUB_OUTPUT"
+          echo "version=$(date +%Y)-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Checkout and Build
+        id: build
+        env:
+          GIT_PASSWORD: ${{ secrets.DEVOPS_GIT_HUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone https://${GH_PAT}@github.com/Bottle-Lab-Technologies-PVT-LTD/sq_flutter_main_app.git time2eat_flutter
+          cd time2eat_flutter
+          git fetch origin "${{ steps.compute.outputs.branch }}" || true
+          git checkout "${{ steps.compute.outputs.branch }}"
+          NEWID=$(git rev-parse --short HEAD)
+          echo "NEWID=$NEWID" >> "$GITHUB_ENV"
+          git config --global credential.helper store
+          echo "https://Devopssmartq:${GIT_PASSWORD}@github.com" > ~/.git-credentials
+          git config --list | cat
+          git clone https://$GIT_PASSWORD@github.com/Bottle-Lab-Technologies-PVT-LTD/sq_ui_lib.git
+          flutter clean
+          flutter pub get
+          dart run phrase || true
+          flutter pub upgrade
+          chmod +x india_cicd_build.sh || true
+          ./india_cicd_build.sh || true
+          tar -czvf "${NEWID}.tar.gz" cicd_deploy.sh flavors *.yaml build/* web/* || true
+          gcloud storage cp "${NEWID}.tar.gz" "$GCLOUD_BUCKET/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/time2eat-flutter/" --recursive
+          echo "cloud_url=https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/time2eat-flutter" >> "$GITHUB_OUTPUT"
+
+  phrase_translate:
+    name: Phrase Translate
+    if: inputs.BitBucketProject == 'All:selected' || inputs.BitBucketProject == 'phrase_translate'
+    runs-on: ubuntu-latest
+    needs: auth_and_setup
+    steps:
+      - name: Compute branch and bucket
+        id: compute
+        run: |
+          BRANCH="${{ inputs.Branch }}"
+          HOTFIX="${{ inputs.Hotfix_Branch }}"
+          BUCKETNAME="$BRANCH"
+          if [ -n "$HOTFIX" ]; then
+            BUCKETNAME="$HOTFIX"
+            BRANCH="$HOTFIX"
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "bucket=$BUCKETNAME" >> "$GITHUB_OUTPUT"
+          echo "version=$(date +%Y)-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout and Upload placeholder
+        id: build
+        run: |
+          set -euo pipefail
+          git clone https://${GH_PAT}@github.com/Bottle-Lab-Technologies-PVT-LTD/phrase_translate.git phrase_translate
+          cd phrase_translate
+          git fetch origin "${{ steps.compute.outputs.branch }}" || true
+          git checkout "${{ steps.compute.outputs.branch }}"
+          NEWID=$(git rev-parse --short HEAD)
+          echo "NEWID=$NEWID" >> "$GITHUB_ENV"
+          cd ..
+          touch phrase_translate.txt
+          tar -czvf "${NEWID}.tar.gz" phrase_translate.txt
+          gcloud storage cp "${NEWID}.tar.gz" "$GCLOUD_BUCKET/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/phrase_translate/" --recursive
+          echo "cloud_url=https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${REGION_PREFIX}/${{ steps.compute.outputs.bucket }}/phrase_translate" >> "$GITHUB_OUTPUT"
+
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - ort_india
+      - control_desk_india
+      - ewallet_india
+      - time2eatweb_india
+      - vendor_dashboard
+      - admin_dashboard_india
+      - cloud_backend_india
+      - microservices_backend_india
+      - control_desk_india_flutter
+      - time2eat_flutter
+      - phrase_translate
+    steps:
+      - name: Prepare message
+        id: msg
+        run: |
+          set -euo pipefail
+          : > summary.txt
+          add_line() {
+            local project="$1" job="$2"
+            local result="${{ needs.ort_india.result }}"
+            local url="${{ needs.ort_india.outputs.cloud_url }}"
+            local branch="${{ needs.ort_india.outputs.branch }}"
+            local bucket="${{ needs.ort_india.outputs.bucket }}"
+            if [ "$2" = "control_desk_india" ]; then
+              result="${{ needs.control_desk_india.result }}"; url="${{ needs.control_desk_india.outputs.cloud_url }}"; branch="${{ needs.control_desk_india.outputs.branch }}"; bucket="${{ needs.control_desk_india.outputs.bucket }}";
+            elif [ "$2" = "ewallet_india" ]; then
+              result="${{ needs.ewallet_india.result }}"; url="${{ needs.ewallet_india.outputs.cloud_url }}"; branch="${{ needs.ewallet_india.outputs.branch }}"; bucket="${{ needs.ewallet_india.outputs.bucket }}";
+            elif [ "$2" = "time2eatweb_india" ]; then
+              result="${{ needs.time2eatweb_india.result }}"; url="${{ needs.time2eatweb_india.outputs.cloud_url }}"; branch="${{ needs.time2eatweb_india.outputs.branch }}"; bucket="${{ needs.time2eatweb_india.outputs.bucket }}";
+            elif [ "$2" = "vendor_dashboard" ]; then
+              result="${{ needs.vendor_dashboard.result }}"; url="${{ needs.vendor_dashboard.outputs.cloud_url }}"; branch="${{ needs.vendor_dashboard.outputs.branch }}"; bucket="${{ needs.vendor_dashboard.outputs.bucket }}";
+            elif [ "$2" = "admin_dashboard_india" ]; then
+              result="${{ needs.admin_dashboard_india.result }}"; url="${{ needs.admin_dashboard_india.outputs.cloud_url }}"; branch="${{ needs.admin_dashboard_india.outputs.branch }}"; bucket="${{ needs.admin_dashboard_india.outputs.bucket }}";
+            elif [ "$2" = "cloud_backend_india" ]; then
+              result="${{ needs.cloud_backend_india.result }}"; url="${{ needs.cloud_backend_india.outputs.cloud_url }}"; branch="${{ needs.cloud_backend_india.outputs.branch }}"; bucket="${{ needs.cloud_backend_india.outputs.bucket }}";
+            elif [ "$2" = "microservices_backend_india" ]; then
+              result="${{ needs.microservices_backend_india.result }}"; url="${{ needs.microservices_backend_india.outputs.cloud_url }}"; branch="${{ needs.microservices_backend_india.outputs.branch }}"; bucket="${{ needs.microservices_backend_india.outputs.bucket }}";
+            elif [ "$2" = "control_desk_india_flutter" ]; then
+              result="${{ needs.control_desk_india_flutter.result }}"; url="${{ needs.control_desk_india_flutter.outputs.cloud_url }}"; branch="${{ needs.control_desk_india_flutter.outputs.branch }}"; bucket="${{ needs.control_desk_india_flutter.outputs.bucket }}";
+            elif [ "$2" = "time2eat_flutter" ]; then
+              result="${{ needs.time2eat_flutter.result }}"; url="${{ needs.time2eat_flutter.outputs.cloud_url }}"; branch="${{ needs.time2eat_flutter.outputs.branch }}"; bucket="${{ needs.time2eat_flutter.outputs.bucket }}";
+            elif [ "$2" = "phrase_translate" ]; then
+              result="${{ needs.phrase_translate.result }}"; url="${{ needs.phrase_translate.outputs.cloud_url }}"; branch="${{ needs.phrase_translate.outputs.branch }}"; bucket="${{ needs.phrase_translate.outputs.bucket }}";
+            fi
+            if [ "$result" = "skipped" ]; then
+              return 0
+            fi
+            echo "${project}: status=${result}, branch=${branch}, bucket=${bucket}, url=${url}" >> summary.txt
+          }
+          add_line "ort-india" "ort_india"
+          add_line "control-desk-india" "control_desk_india"
+          add_line "ewallet-india" "ewallet_india"
+          add_line "time2eatweb-india" "time2eatweb_india"
+          add_line "vendor-dashboard" "vendor_dashboard"
+          add_line "admin-dashboard-india" "admin_dashboard_india"
+          add_line "cloud-backend-india" "cloud_backend_india"
+          add_line "microservices-backend-india" "microservices_backend_india"
+          add_line "control-desk-india-flutter" "control_desk_india_flutter"
+          add_line "time2eat-flutter" "time2eat_flutter"
+          add_line "phrase-translate" "phrase_translate"
+          echo "SUMMARY<<EOF" >> $GITHUB_OUTPUT
+          cat summary.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      - name: Send Office 365 notification
+        env:
+          SUMMARY: ${{ steps.msg.outputs.SUMMARY }}
+        run: |
+          TEXT=$(printf "Build summary:\n%s" "$SUMMARY")
+          curl -sS -X POST -H 'Content-Type: application/json' \
+            -d "{\"text\": \"$TEXT\"}" "$O365_WEBHOOK_URL" | cat 
