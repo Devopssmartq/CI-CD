@@ -212,7 +212,8 @@ def py3_services = [
             [key: 'cloud_run'],
             [key: 'index'],
             [key: 'cache-builder'],
-            [key: 'menucacheupdate']
+            [key: 'menucacheupdate'],
+            [key: 'bq-order-validation']
         ]
 def phrase_translate = [
             [key: 'phrase'] //INTERNATIONAL
@@ -315,7 +316,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","cache-builder","index",,"phrase","menucacheupdate"]'
+                    script: 'return ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","cache-builder","index",,"phrase","menucacheupdate","bq-order-validation"]'
                 ],
                 script: [
                     classpath: [],
@@ -324,7 +325,7 @@ properties([
                         def type = DEPLOYMENT_TYPE ?: "International" 
                         def options = []
                         if (type == "International") {
-                            options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","cache-builder","index".,"phrase","menucacheupdate"]
+                            options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","cloud_run","cache-builder","index".,"phrase","menucacheupdate","bq-order-validation"]
                         }
                         return options
                     '''
@@ -439,9 +440,9 @@ pipeline {
                     {
                         def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
                         echo "type of deplyoment is : ${type}"
-                        def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,cloud_run,index,menucacheupdate,cache-builder'
+                        def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,cloud_run,index,menucacheupdate,cache-builder,bq-order-validation'
                         if (type == "International") {
-                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,cloud_run,index,phrase,menucacheupdate,cache-builder'
+                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,cloud_run,index,phrase,menucacheupdate,cache-builder,bq-order-validation'
                         }       
                         //echo "SERVICE_NAME_LIST updated - $options"
                         ARR_SELECTED_SERVICE = "$options".split(',')                        
@@ -826,7 +827,7 @@ pipeline {
                                                 }                                                                                                                
                                             }
                                         //}  
-                                        //if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {  
+                                        if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {  
                                             if(INTERNATIONAL_FLAG && 'integration' in ARR_SELECTED_SERVICE ) {// 
                                                 PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'microservices-backend-uk') 
                                                 PREVIOUS_VERSION = get_Previous_Version(service_name: "integration")
@@ -841,7 +842,7 @@ pipeline {
                                                     ARR_VERIFY_SERVICE.add([service_name: 'integration', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])                                                                                                                                                                                                                                                                                                                                                                                       
                                                 }
                                             }
-                                        //} 
+                                        } 
                                         if ('cloud_run' in ARR_SELECTED_SERVICE ) {
                                             PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'microservices-backend-uk') 
                                             PREVIOUS_VERSION = get_Previous_Version(service_name: "cloud_run")
@@ -889,7 +890,30 @@ pipeline {
                                                     ARR_VERIFY_SERVICE.add([service_name: 'cache-builder', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                                                 }                                 
                                             }
-                                        }   
+                                        } 
+                                        if ('bq-order-validation') {
+                                            PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'microservices-backend-uk') 
+                                            parallelJobs[py3_services.find { it.key == 'bq-order-validation' }] = {
+                                                dir ('microservices-backend-uk') {
+                                                    sh 'ls'
+                                                    if (params.APP_ENGINE_PROJECT_ID.contains("-uk")) {
+                                                        dir ('cloud_run_longrun_script/bq_order_validation') {
+                                                            sh "ls"                                                        
+                                                            sh "gcloud builds submit --tag gcr.io/${params.APP_ENGINE_PROJECT_ID}/bigquerysync-validation-${params.APP_ENGINE_PROJECT_ID} --project ${params.APP_ENGINE_PROJECT_ID}"
+                                                            sh "gcloud run deploy bq-order-validation-${params.APP_ENGINE_PROJECT_ID} --image gcr.io/${params.APP_ENGINE_PROJECT_ID}/bigquerysync-validation-${params.APP_ENGINE_PROJECT_ID} --platform managed --region europe-west2 --project ${params.APP_ENGINE_PROJECT_ID}"
+                                                        }
+                                                    }
+                                                    if (params.APP_ENGINE_PROJECT_ID.contains("-ie")) {
+                                                        dir ('cloud_run_longrun_script/bq_order_validation') {
+                                                            sh "ls"                                                        
+                                                            sh "gcloud builds submit --tag gcr.io/${params.APP_ENGINE_PROJECT_ID}/bigquerysync-validation-${params.APP_ENGINE_PROJECT_ID} --project ${params.APP_ENGINE_PROJECT_ID}"
+                                                            sh "gcloud run deploy bq-order-validation-${params.APP_ENGINE_PROJECT_ID} --image gcr.io/${params.APP_ENGINE_PROJECT_ID}/bigquerysync-validation-${params.APP_ENGINE_PROJECT_ID} --platform managed --region europe-west2 --project ${params.APP_ENGINE_PROJECT_ID}"
+                                                        }
+                                                    }
+                                                    // ARR_VERIFY_SERVICE.add([service_name: 'bq-order-validation', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
+                                                }                                 
+                                            }
+                                        }
                                         if ('index' in ARR_SELECTED_SERVICE ) {
                                             PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'microservices-backend-uk') 
                                             parallelJobs[py3_services.find { it.key == 'index' }] = {

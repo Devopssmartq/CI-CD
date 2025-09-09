@@ -667,7 +667,7 @@ pipeline {
                         container('gcloud') {
                             script { 
                                 def PWA_APP_NAME = "time2eat" 
-                                // if('smartq-pwa' in ARR_SELECTED_SERVICE || 'foodbook-web' in ARR_SELECTED_SERVICE || 'time2eat' in ARR_SELECTED_SERVICE || 'jumpr-pwa' in ARR_SELECTED_SERVICE || 'baweb' in ARR_SELECTED_SERVICE) {                                    
+                                // if('time2eat' in ARR_SELECTED_SERVICE || 'jumpr-pwa' in ARR_SELECTED_SERVICE || 'baweb' in ARR_SELECTED_SERVICE) {                                    
                                 //     configFileProvider([configFile(fileId: 'deploy-PWQ-script', targetLocation: 'deploy_time2eat.groovy')]) {
                                 //         TIME2EAT_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'time2eat')
                                 //         //PWA_STORAGE_OBJECT_SOURCE_PATH = get_Storage_Object_Source_Path(app_name: "time2eat")

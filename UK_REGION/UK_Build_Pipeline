@@ -638,7 +638,7 @@ pipeline {
             tty: true 
             
           - name: time2eatflutter
-            image: instrumentisto/flutter:3.24.3
+            image: instrumentisto/flutter:3.32
             resources:
             requests:
                 memory: "4096Mi"  # Increase the requested memory
