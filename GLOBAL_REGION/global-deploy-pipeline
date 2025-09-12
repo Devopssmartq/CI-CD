@@ -257,7 +257,7 @@ def centric_os_intergration() {
                 dir ('cloudrun/centric-os-service') {
                     sh "ls"                                                               
                     sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
-                    sh "gcloud run deploy centric-os-integration --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic"
+                    sh "gcloud run deploy centric-os-integration --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
                                                                 
                     ARR_VERIFY_SERVICE.add([service_name: 'cloud_run', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                 }                                 
@@ -284,7 +284,7 @@ def notification_service() {
                 dir ('cloudrun/notification-service') {
                     sh "ls"                                                               
                     sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
-                    sh "gcloud run deploy notification-service --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json"
+                    sh "gcloud run deploy notification-service --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
                                                                 
                     // ARR_VERIFY_SERVICE.add([service_name: 'notification-service', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                 }                                 
@@ -1071,7 +1071,7 @@ pipeline {
                                                     dir ('cloud_run_longrun_script') {
                                                         sh "ls"                                                                                                       
                                                         sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
-                                                        sh "gcloud run deploy bigquerysync-${params.APP_ENGINE_PROJECT_ID} --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic" 
+                                                        sh "gcloud run deploy bigquerysync-${params.APP_ENGINE_PROJECT_ID} --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION" 
                                                                                                        
                                                     ARR_VERIFY_SERVICE.add([service_name: 'cloud_run', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                                                     }                                 
@@ -1089,7 +1089,7 @@ pipeline {
                                                             sh "ls"                                                               
                                                             PREVIOUS_VERSION = get_Previous_Version(service_name: "sap-integration-germany")
                                                             sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
-                                                            sh "gcloud run deploy sap-integration --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic"
+                                                            sh "gcloud run deploy sap-integration --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
                                                                                                      
                                                         ARR_VERIFY_SERVICE.add([service_name: 'cloud_run', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                                                         }                                 
@@ -1120,7 +1120,7 @@ pipeline {
                                                         dir ('menucacheupdate') {
                                                             sh "ls"                                                        
                                                             sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
-                                                            sh "gcloud run deploy menucacheupdate --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json"
+                                                            sh "gcloud run deploy menucacheupdate --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
                                                         }
                                                     //}
                                                     //ARR_VERIFY_SERVICE.add([service_name: 'menucacheupdate', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
