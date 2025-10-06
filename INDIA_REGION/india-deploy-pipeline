@@ -937,7 +937,6 @@ pipeline {
                                                 }                               
                                             }
                                         }
-                                        
                                         //if (params.APP_ENGINE_PROJECT_ID.contains("-india")  {
                                             if('pricebook' in ARR_SELECTED_SERVICE) {// ! For India only - Skip this when the condition is false
                                                 PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'microservices-backend-india')

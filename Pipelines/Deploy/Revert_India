@@ -1,0 +1,327 @@
+properties([
+    parameters([
+        [$class: 'ChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select Release Scope',
+            filterLength: 1,
+            filterable: false,
+            name: 'RELEASE_SCOPE',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["sprint:selected", "preprod", "beta", "prod", "hot-fix"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def choices = ["sprint:selected", "preprod", "beta", "prod", "hot-fix"]
+                        return choices
+                    '''
+                ]
+            ]
+        ],
+        [$class: 'ChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select Region',
+            filterLength: 1,
+            filterable: false,
+            name: 'Region_Selection',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["India_region:selected"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def choices = ["India_Region:selected"]
+                        return choices
+                    '''
+                ]
+            ]
+        ],
+        [$class: 'CascadeChoiceParameter',
+            choiceType: 'PT_SINGLE_SELECT',
+            description: 'Select the Project_ID',
+            filterLength: 1,
+            filterable: false,
+            name: 'APP_ENGINE_PROJECT_ID',
+            referencedParameters: 'RELEASE_SCOPE',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["sqinternational-cicd", "smartqdemo:selected"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def scope = RELEASE_SCOPE ?: "sprint" // Default to 'SPRINT' if not selected
+                        def options = []
+                        if (scope == "sprint") {
+                            options = ["sqinternational-cicd", "smartqdemo:selected"]
+                        } else if (scope == "preprod") {
+                            options = ["sqpreprod-india", "sqpreprod-ph"]
+                        } else if (scope == "beta") {
+                            options = ["smartqprd-india;selected", "smartqprd-ph"]
+                        } else if (scope == "prod") {
+                            options = ["smartqprd-india:selected", "smartqprd-ph"]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+                        } else if (scope == "hot-fix") {
+                            options = ["sqpreprod-india", "sqpreprod-ph", "smartqprd-india", "smartqprd-ph"]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+                        }
+                        return options
+                    '''
+                ]
+            ]
+        ],
+        [$class: 'ChoiceParameter',
+            choiceType: 'PT_CHECKBOX',
+            description: 'Select Services to Revert',
+            filterLength: 1,
+            filterable: true,
+            name: 'SERVICES_TO_REVERT',
+            script: [
+                $class: 'GroovyScript',
+                fallbackScript: [
+                    classpath: [],
+                    sandbox: true,
+                    script: 'return ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","smartq-flutter","foodbook-flutter","foodbook-web","smartq-pwa","py2_default","appservice","backgroundtasks","taskqservice","reports","bqreports","py3_default","dashboard","app","pricebook","bigquerysync","index","cncms","menucacheupdate","backend-webort","foodcourtlist","cafe-decongestion","cleanms-app","everydayrechargefast","fc-cache-refresh","loyalty-points-update","lti-usm","notification","nutrition-info","reportms","sq-gen","sso-service","task-queues"]'
+                ],
+                script: [
+                    classpath: [],
+                    sandbox: true,
+                    script: '''
+                        def choices = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","smartq-flutter","foodbook-flutter","foodbook-web","smartq-pwa","py2_default","appservice","backgroundtasks","taskqservice","reports","bqreports","py3_default","dashboard","app","pricebook","bigquerysync","index","cncms","menucacheupdate","backend-webort","foodcourtlist",
+                            "cafe-decongestion",
+                            // "cleanms-app",
+                            // "everydayrechargefast",
+                            "fc-cache-refresh",
+                            "loyalty-points-update",
+                            "notification",
+                            "nutrition-info",
+                            "reportms",
+                            "sq-gen",
+                            "sso-service",
+                            "task-queues"]
+                        return choices
+                    '''
+                ]
+            ]
+        ],
+        string(name: 'MIGRATE_TRAFFIC', defaultValue: '', description: 'Enter the txt file'),
+    ])
+])
+
+   
+pipeline{
+    agent{
+        kubernetes{
+            yaml '''
+        apiVersion: v1
+        kind: Pod
+        environment:
+            name: "NODE_OPTIONS"
+            value: "--max-old-space-size=4096"
+        spec:
+          containers:
+          - name: jnlp  
+            resources:
+              requests:
+                memory: "2048Mi"
+                cpu: "500m"
+              limits:
+                memory: "4096Mi"
+                cpu: "1000m"
+
+          - name: gcloud
+            image: google/cloud-sdk:latest
+            command:
+            - cat
+            tty: true
+        '''        
+        }
+    }
+    environment {
+        // Initialize a boolean flag
+        INTERNATIONAL_FLAG = false
+        VERSION_NUMBER = VersionNumber([
+            versionNumberString: '${BUILD_DATE_FORMATTED, "yyyyMMddhhmmss"}', 
+            //versionPrefix: 'v1.0.', 
+            worstResultForIncrement: 'SUCCESS'
+        ])
+    }
+    stages {
+        stage ('Set the Gcloud_ProjectID'){
+            steps{
+                container('gcloud') {
+                    echo "Selected APP_ENGINE_PROJECT_ID: ${params.APP_ENGINE_PROJECT_ID}"
+                    sh "gcloud config set project ${params.APP_ENGINE_PROJECT_ID}"
+                }
+            }
+        }
+        stage('Migrate_the_traffic') {
+            steps {
+                container('gcloud') {
+                    script {
+                        // Cloud Run helpers for India (from test_11)
+                        def CLOUD_RUN_SERVICES = [
+                            'bigquerysync',
+                            'cafe-decongestion',
+                            'fc-cache-refresh',
+                            'loyalty-points-update',
+                            'menucacheupdate',
+                            'notification',
+                            'nutrition-info',
+                            'reportms',
+                            'sq-gen',
+                            'sso-service',
+                            'task-queues'
+                        ]
+                        def isCloudRunService = { String serviceName ->
+                            return (serviceName?.contains("cloud_run") || CLOUD_RUN_SERVICES.any { key -> serviceName?.contains(key) })
+                        }
+                        def resolveCloudRunServiceName = { String serviceName, String projectId ->
+                            if (serviceName?.contains('bigquerysync')) {
+                                return "bigquerysync-${projectId}"
+                            }
+                            def base = CLOUD_RUN_SERVICES.find { key -> serviceName?.contains(key) }
+                            if (!base) {
+                                return serviceName
+                            }
+                            switch (base) {
+                                case 'nutrition-info':
+                                    return "nutrition-info-${projectId}"
+                                case 'reportms':
+                                    return "reportms-${projectId}"
+                                default:
+                                    return base
+                            }
+                        }
+                        def getCloudRunRegion = { String cloudRunServiceName, String projectId ->
+                            return sh(
+                                script: "gcloud run services list --format=\"table(NAME,REGION)\" --filter=\"metadata.name=${cloudRunServiceName}\" --project=${projectId} | head -n 2 | tail -1 | awk '{print ${'$'}2}'",
+                                returnStdout: true
+                            ).trim()
+                        }
+
+                        def project_id = "${params.APP_ENGINE_PROJECT_ID}"
+                        echo "Project ID = ${project_id}"
+                        // Download the file from Google Cloud Storage
+                        sh "gcloud storage cp gs://sqinternational-cicd.appspot.com/${params.Region_Selection}/release_summary/released/${params.APP_ENGINE_PROJECT_ID}/${MIGRATE_TRAFFIC} ${WORKSPACE}/releasedfile --recursive"
+                        sh "ls"
+        
+                        def inputFile = 'releasedfile'
+                        // Read lines from the input file
+                        def lines = readFile(inputFile).split('\n')
+                        def content = lines.join('\n')
+                        println(content)
+        
+                        def servicePreviousVersions = []
+                        def selectedServices = params.SERVICES_TO_REVERT ? params.SERVICES_TO_REVERT.tokenize(',') : []
+                        
+                        // Check if "all" is selected
+                        boolean revertAll = selectedServices.contains("all")
+                        
+                        echo "Services selected for reversion: ${revertAll ? 'ALL SERVICES' : selectedServices}"
+                        
+                        lines.each { line ->
+                            // Remove square brackets and split by comma followed by space
+                            def keyValuePairs = line.replaceAll("[\\[\\]]", "").split(', ')
+        
+                            def lineParams = [:]
+        
+                            // Iterate through the key-value pairs and split by ':'
+                            keyValuePairs.each { pair ->
+                                def parts = pair.split(':')
+                                if (parts.size() == 2) {  // Check to avoid ArrayIndexOutOfBoundsException
+                                    lineParams[parts[0].trim()] = parts[1].trim()
+                                } else {
+                                    println("Invalid key-value pair format: $pair")
+                                }
+                            }
+        
+                            // Extract service name, previous version and new version
+                            def service_name = lineParams['service_name']
+                            def previous_version = lineParams['previous_version']
+                            def new_version = lineParams['new_version']
+        
+                            if (service_name && previous_version) {
+                                // Check if we should process this service
+                                def shouldProcess = revertAll || selectedServices.contains(service_name)
+                                
+                                if (shouldProcess) {
+                                    echo "Processing service: ${service_name}"
+                                    // Add service and previous version to the list
+                                    servicePreviousVersions.add("service_name: $service_name, previous_version: $previous_version")
+            
+                                    // Use Cloud Run flow for CR services, App Engine otherwise
+                                    if (isCloudRunService(service_name)) {
+                                        def cloudRunServiceName = resolveCloudRunServiceName(service_name, project_id)
+                                        def region = getCloudRunRegion(cloudRunServiceName, project_id)
+                                        echo "region = ${region}"
+            
+                                        sh "gcloud run services update-traffic ${cloudRunServiceName} --region ${region} --to-revisions ${previous_version}=100"
+            
+                                        // Delete the now-old revision if present
+                                        if (new_version) {
+                                            def crDescribeStatus = sh(
+                                                script: "gcloud run revisions describe ${new_version} --region ${region} --project=${project_id} >/dev/null 2>&1",
+                                                returnStatus: true
+                                            )
+                                            if (crDescribeStatus == 0) {
+                                                sh "gcloud run revisions delete ${new_version} --region ${region} --project=${project_id} --quiet"
+                                            } else {
+                                                echo "Skipping delete: revision ${new_version} not found in region ${region}"
+                                            }
+                                        } else {
+                                            echo "Skipping delete: new_version not found in release file for ${service_name}"
+                                        }
+                                    } else {
+                                        // If not a cloud_run service, handle as normal
+                                        sh "gcloud app services set-traffic ${service_name} --splits ${previous_version}=1 --project=${APP_ENGINE_PROJECT_ID} --quiet"
+
+                                        // Delete the now-old App Engine version if present
+                                        if (new_version) {
+                                            def aeDescribeStatus = sh(
+                                                script: "gcloud app versions describe ${new_version} --service ${service_name} --project=${project_id} >/dev/null 2>&1",
+                                                returnStatus: true
+                                            )
+                                            if (aeDescribeStatus == 0) {
+                                                sh "gcloud app versions delete ${new_version} --service ${service_name} --project=${project_id} --quiet"
+                                            } else {
+                                                echo "Skipping delete: App Engine version ${new_version} not found for service ${service_name}"
+                                            }
+                                        } else {
+                                            echo "Skipping delete: new_version not found in release file for ${service_name}"
+                                        }
+                                    }
+                                } else {
+                                    echo "Skipping service: ${service_name} (not selected for reversion)"
+                                }
+                            } else {
+                                println("Invalid line format: $line")
+                            }
+                        }
+        
+                        // Write the list of services and versions to a file
+                        def filePath = "${env.WORKSPACE}/revert_traffic-${env.VERSION_NUMBER}.txt"
+                        def list = servicePreviousVersions.join('\n')
+                        writeFile(file: filePath, text: list)
+                        echo "Reverted services written to ${filePath}"
+        
+                        // Copy the result file to GCP Storage
+                        sh "gcloud storage cp ${filePath} gs://sqinternational-cicd.appspot.com/${params.Region_Selection}/release_summary/revert_traffic/${APP_ENGINE_PROJECT_ID}/${env.VERSION_NUMBER} --recursive"
+                    }
+                }
+            }
+        }
+    }
+}

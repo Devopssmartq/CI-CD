@@ -27,11 +27,11 @@ def getURL_Status(Map args) {
 def get_Previous_Version(Map args) {
     container('gcloud') {
         // Fetch REGION within the function
-        def region = sh(script: "gcloud run services list --format=\"table(NAME,REGION)\" --filter=\"metadata.name=bigquerysync-${params.APP_ENGINE_PROJECT_ID}\" --project=${params.APP_ENGINE_PROJECT_ID} | head -n 2 | tail -1 | awk '{print \$2}'", returnStdout: true).trim()
+        def region = sh(script: "gcloud run services list --format=\"table(NAME,REGION)\" --filter=\"metadata.name=bigquerysync-${params.APP_ENGINE_PROJECT_ID}\" --project=${params.APP_ENGINE_PROJECT_ID} | head -n 2 | tail -1 | awk '{print \\$2}'", returnStdout: true).trim()
         
         echo "region = ${region}"
         
-        if (args.service_name.contains("cloud_run")) {
+        if (args.service_name.contains("bigquerysync")) {
             def previous_version = sh(
                 script: "gcloud run services describe bigquerysync-${params.APP_ENGINE_PROJECT_ID} --region ${region} --format=\"value(status.traffic[].revisionName)\"",
                 returnStdout: true
@@ -108,7 +108,7 @@ def get_AppEngine_Version(Map args) {
 }
 def promote_Service(Map args) {
     def PROMOTED_SERVICE
-    if (params.APP_ENGINE_PROJECT_ID.contains("-de") && args.service_name.contains("cloud_run")) {
+    if (params.APP_ENGINE_PROJECT_ID.contains("-de") && args.service_name.contains("bigquerysync")) {
         // Run both commands if APP_ENGINE_PROJECT_ID contains '-de'
         dir('sq_microservices_backend') {
             dir('cloud_run_longrun_script') {
@@ -127,7 +127,7 @@ def promote_Service(Map args) {
                 echo "Promoted service (bigquerysync): ${PROMOTED_SERVICE}"
             }
         }
-    } else if (args.service_name.contains("cloud_run")) {
+    } else if (args.service_name.contains("centric-os-integration")) {
         dir('sq_microservices_backend') {
             dir('cloud_run_longrun_script') {
                 PROMOTED_SERVICE = sh(
@@ -259,7 +259,7 @@ def centric_os_intergration() {
                     sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
                     sh "gcloud run deploy centric-os-integration --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
                                                                 
-                    ARR_VERIFY_SERVICE.add([service_name: 'cloud_run', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
+                    ARR_VERIFY_SERVICE.add([service_name: 'centric-os-integration', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                 }                                 
             }
         }
@@ -346,7 +346,7 @@ def py3_services = [
             [key: 'sso'],
             [key: 'pricebook'],
             [key: 'integration'],
-            [key: 'cloud_run'],
+            [key: 'bigquerysync'],
             [key: 'sap-integration-germany'],
             [key: 'index'],
             [key: 'menucacheupdate'],
@@ -458,7 +458,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","cd-v2","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","integration", "pricebook","cloud_run","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso"]'
+                    script: 'return ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","cd-v2","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","integration", "pricebook","bigquerysync","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso"]'
                 ],
                 script: [
                     classpath: [],
@@ -467,7 +467,7 @@ properties([
                         def type = DEPLOYMENT_TYPE ?: "International" 
                         def options = []
                         if (type == "International") {
-                            options = ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","cd-v2","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","integration", "pricebook","cloud_run","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso"]
+                            options = ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","cd-v2","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","integration", "pricebook","bigquerysync","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso"]
                         }
                         return options
                     '''
@@ -588,9 +588,9 @@ pipeline {
                     {
                         def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
                         echo "type of deplyoment is : ${type}"
-                        def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,cloud_run,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service'
+                        def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,bigquerysync,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service'
                         if (type == "International") {
-                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,baweb-flutter,cd-v2,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,cloud_run,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service'
+                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,baweb-flutter,cd-v2,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,bigquerysync,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service'
                         }       
                         //echo "SERVICE_NAME_LIST updated - $options"
                         ARR_SELECTED_SERVICE = "$options".split(',')                        
@@ -1062,10 +1062,10 @@ pipeline {
                                                 }
                                             }
                                         } 
-                                        if ('cloud_run' in ARR_SELECTED_SERVICE ) {
+                                        if ('bigquerysync' in ARR_SELECTED_SERVICE ) {
                                             PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend')
-                                            PREVIOUS_VERSION = get_Previous_Version(service_name: "cloud_run") 
-                                            parallelJobs[py3_services.find { it.key == 'cloud_run' }] = {
+                                            PREVIOUS_VERSION = get_Previous_Version(service_name: "bigquerysync") 
+                                            parallelJobs[py3_services.find { it.key == 'bigquerysync' }] = {
                                                 dir ('sq_microservices_backend') {
                                                     sh 'ls'
                                                     dir ('cloud_run_longrun_script') {
@@ -1073,7 +1073,7 @@ pipeline {
                                                         sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
                                                         sh "gcloud run deploy bigquerysync-${params.APP_ENGINE_PROJECT_ID} --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION" 
                                                                                                        
-                                                    ARR_VERIFY_SERVICE.add([service_name: 'cloud_run', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
+                                                    ARR_VERIFY_SERVICE.add([service_name: 'bigquerysync', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                                                     }                                 
                                                 }
                                             } 
@@ -1091,7 +1091,7 @@ pipeline {
                                                             sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
                                                             sh "gcloud run deploy sap-integration --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
                                                                                                      
-                                                        ARR_VERIFY_SERVICE.add([service_name: 'cloud_run', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
+                                                        ARR_VERIFY_SERVICE.add([service_name: 'bigquerysync', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                                                         }                                 
                                                     }
                                                 } 
