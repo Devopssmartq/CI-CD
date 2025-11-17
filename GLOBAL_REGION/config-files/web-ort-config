@@ -1,11 +1,11 @@
 def setProperties(String appName, String versionName) {
     
 	def APP_NAME = "web-ort"
-	sh "mkdir -p ${APP_NAME}-latest"
+	sh "mkdir -p \"${WORKSPACE}/${APP_NAME}-latest\""
 	sh "echo webort enter"
 	
 	//sh "echo ${web_ort_PATH}"
-	sh "gcloud storage cp ${appName}* ${WORKSPACE}/${APP_NAME}-latest --recursive"
+	sh "gcloud storage cp ${appName}* \"${WORKSPACE}/${APP_NAME}-latest/\" --recursive"
 	
 	dir("${APP_NAME}-latest") {
 		sh 'ls'

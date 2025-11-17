@@ -563,6 +563,37 @@ def uploadphrase_translateToGCS(bucketname) {
            CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
 }
+def checkoutoperation_management(branch) {
+    echo "Checkout operation_management"
+    sh "mkdir -p operation_management"
+    dir('operation_management') {
+        checkout([$class: 'GitSCM', 
+            branches: [[name: branch]], 
+            doGenerateSubmoduleConfigurations: false, 
+            extensions: [[$class: 'CleanCheckout']], 
+            userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/operations_management.git', credentialsId: 'git/devops/new',]]])
+            sh 'ls -lrt'
+            def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+            sh "echo ${commitId}"
+            newId = "${commitId}"
+        }
+}
+def uploadoperation_managementToGCS(bucketname) {
+    echo "Uploading operation_management to GCS Bucket"
+    echo "My branch & GCS Bucket name is ${branch}"
+    container('gcloud') {
+        // sh "mkdir -p operation-management.txt"
+        // sh "cp -r operation_management/* ${WORKSPACE}/operation-management.txt/"
+        dir('operation_management') {
+            sh 'ls'
+            sh "tar -czvf ${newId}.tar.gz *"
+            sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/Global_Region/${bucketname}/operation_management/ --recursive"
+            sh "tar -xzvf ${newId}.tar.gz"
+        }
+        CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
+    }
+}
+
 pipeline {
     agent {
     
@@ -655,7 +686,7 @@ pipeline {
 
     parameters {
 
-    choice(name: 'BitBucketProject', choices: ['web-ort', 'control-desk', 'ewallet', 'time2eatweb', 'vendor-dashboard','generic-admin-dashboard', 'smartq-cloud-backend', 'sq_microservices_backend','controldeskflutter', 'time2eat_flutter', 'phrase_translate'], description: 'Select BitBucket Project')
+    choice(name: 'BitBucketProject', choices: ['web-ort', 'control-desk', 'ewallet', 'time2eatweb', 'vendor-dashboard','generic-admin-dashboard', 'smartq-cloud-backend', 'sq_microservices_backend','controldeskflutter', 'time2eat_flutter', 'phrase_translate', 'operation_management'], description: 'Select BitBucket Project')
     choice(name: 'Branch', choices: ['auto-sprint', 'auto-release', 'master', 'hotfix'], description: 'Select Branch')
     string(name: 'Hotfix_Branch', description: 'Enter the branch name')
     string(name: 'CommitId', defaultValue:" ", trim: true, description: 'Enter the commitId')
@@ -792,6 +823,10 @@ pipeline {
                         checkoutphrase_translate(branch)
                         uploadphrase_translateToGCS(bucketname)
                         buildPipeline = true    
+                    } else if (bitBucketProject == 'operation_management') {
+                        checkoutoperation_management(branch)
+                        uploadoperation_managementToGCS(bucketname)
+                        buildPipeline = true
                     }          
 
                     if (!buildPipeline) {

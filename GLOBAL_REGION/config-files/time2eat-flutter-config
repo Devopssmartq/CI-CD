@@ -1,9 +1,9 @@
 def setProperties(String appName, String versionName, String projectId, String variantName) {
     def APP_NAME = "$variantName"
-    sh "mkdir -p ${APP_NAME}-latest"
+    sh "mkdir -p \"${env.WORKSPACE}/${APP_NAME}-latest\""
     sh "echo ${APP_NAME} enter"
 
-    sh "gcloud storage cp ${appName}* ${env.WORKSPACE}/${APP_NAME}-latest --recursive"
+    sh "gcloud storage cp ${appName}* \"${env.WORKSPACE}/${APP_NAME}-latest/\" --recursive"
                                                                                 
     dir("${APP_NAME}-latest") {
         sh 'ls'
