@@ -74,7 +74,7 @@ def checkingVersion(ARR_SELECTED_SERVICE) {
                     echo "Number of versions for $service: $serviceVersionCount"
 
                     // Set version threshold based on project
-                    def versionThreshold = project.contains("-india") ? 5 : 8
+                    def versionThreshold = project.contains("-india") ? 5 : 6
 
                     if (serviceVersionCount > versionThreshold) {
                         echo "Listing versions for $service to delete"

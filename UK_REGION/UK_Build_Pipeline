@@ -91,7 +91,7 @@ def buildControlDeskuk() {
             //sh 'git status'
             sh 'npm install --force'
             sh 'npm i ajv --force'
-            sh 'npm install @emotion/styled'
+            sh 'npm install @emotion/styled --force'
             sh 'npm install react-checkbox-tree@1.5.0 --force'
             sh 'CI=false npm run build'
             dir ('${WORKSPACE}/control-desk-uk/build') {
@@ -545,41 +545,7 @@ def uploadtime2eat_flutterToGCS(bucketname) {
             CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
         }
 }
-def checkoutphrase_translate(branch) {
-    echo "Checkout phrase_translate"
-    sh "mkdir -p phrase_translate"
-        dir('phrase_translate') {                        
-            checkout([$class: 'GitSCM', 
-                branches: [[name: branch]], 
-                doGenerateSubmoduleConfigurations: false, 
-                extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/phrase_translate.git', credentialsId: 'git/devops/new',]]])
-                    
-            sh 'ls -lrt'
-            //sh "touch sqmicroservicesbackend.txt"
-            def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-            sh "echo ${commitId}"
-            newId = "${commitId}"
-            // git branch: "${branch}",
-            // credentialsId: 'serviceaccount',
-            // url: 'https://AbhijeetSawhney@bitbucket.org/bottlelabtech/microservices-backend-uk.git'
-            // sh 'ls -lrt'
-            // sh "touch sqmicroservicesbackend.txt"
-        }
 
-}
-def uploadphrase_translateToGCS(bucketname) {
-    echo "Uploading phrase_translate to GCS Bucket"
-    echo "My branch & GCS Bucket name is ${branch}"
-        container('gcloud') { 
-            sh "touch phrase_translate.txt"
-            sh "tar -czvf ${newId}.tar.gz phrase_translate.txt"
-    	    sh 'ls'
-    	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/UK_Region/${bucketname}/phrase_translate/ --recursive"
-            //sh "gcloud storage cp ${WORKSPACE}/microservices-backend-uk/sqmicroservicesbackend.txt gs://sqinternational-cicd.appspot.com/${bucketname}/microservices-backend-uk/microservices-backend-uk@$VERSION_NUMBER-${newId}/default --recursive"
-           CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
-        }
-}
 pipeline {
     agent {
     
@@ -608,7 +574,7 @@ pipeline {
             tty: true
 
           - name: node-cd-js
-            image: node:14.17.4
+            image: node:22.16.0
             requests:
                 memory: "4096Mi"  # Increase the requested memory
                 cpu: "500m"
@@ -648,31 +614,14 @@ pipeline {
                 cpu: "1000m"
             command:
             - cat
-            tty: true     
-
-          - name: phrase
-            image: ubuntu:latest
-            command:
-            - sh
-            args:
-            - -c
-            - |
-              apt-get update && apt-get install -y wget tar && \
-              wget https://github.com/phrase/phrase-cli/releases/download/2.3.0/phrase_linux_amd64.tar.gz && \
-              tar -xzf phrase_linux_amd64.tar.gz && \
-              cd usr/local/bin && ls -l && cd ../../.. && \
-              ls -l && mv phrase_linux_amd64 usr/local/bin/phrase && \
-              chmod +x /usr/local/bin/phrase && \
-              phrase version && \
-              apt-get update && apt-get install -y git && \
-              sleep 99d          
+            tty: true         
         '''        
         }
     }
 
     parameters {
 
-    choice(name: 'BitBucketProject', choices: ['ort-uk', 'control-desk-uk', 'ewallet-uk', 'time2eatweb-uk', 'vendor-dashboard','admin-dashboard-uk', 'cloud-backend-uk', 'microservices-backend-uk', 'time2eat_flutter', 'phrase_translate'], description: 'Select BitBucket Project')
+    choice(name: 'BitBucketProject', choices: ['ort-uk', 'control-desk-uk', 'ewallet-uk', 'time2eatweb-uk', 'vendor-dashboard','admin-dashboard-uk', 'cloud-backend-uk', 'microservices-backend-uk', 'time2eat_flutter'], description: 'Select BitBucket Project')
     choice(name: 'Branch', choices: ['auto-sprint', 'auto-release', 'master', 'hotfix'], description: 'Select Branch')
     string(name: 'Hotfix_Branch', description: 'Enter the branch name')
     string(name: 'CommitId', defaultValue:" ", trim: true, description: 'Enter the commitId')
@@ -805,11 +754,7 @@ pipeline {
                         buildtime2eat_flutter()
                         uploadtime2eat_flutterToGCS(bucketname)
                         buildPipeline = true    
-                    }  else if (bitBucketProject == 'phrase_translate') {
-                        checkoutphrase_translate(branch)
-                        uploadphrase_translateToGCS(bucketname)
-                        buildPipeline = true    
-                    }          
+                    }         
 
                     if (!buildPipeline) {
                         error("Invalid combination of BitBucket Project and Branch.")

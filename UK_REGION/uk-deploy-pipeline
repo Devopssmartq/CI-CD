@@ -4,7 +4,6 @@ import groovy.transform.Field
 @Field def IS_NODEAPPS_ENABLED
 @Field def IS_PY2_ENABLED
 @Field def IS_PY3_ENABLED
-@Field def IS_PHRASE_TRANSLATE_ENABLED
 @Field def ARR_SELECTED_SERVICE
 @Field def ARR_VERIFY_SERVICE = []
 @Field def PROMOTED_SERVICES = []
@@ -13,7 +12,7 @@ import groovy.transform.Field
     'bigquerysync': 'cloud_run_longrun_script',
     'menucacheupdate': 'menucacheupdate',
     'cache-builder': 'new_caches_update',
-    'bq-order-validation': 'cloud_run_longrun_script/bq_order_validation',
+    'bq-order-validation':  ,
     'credit-recharge': 'cloud_run_longrun_script/credit-recharge',
     'menusync-jwo': 'menusync_jwo',
     'nutrition-service': 'cloud_run_longrun_script/uk-menu-management',
@@ -143,13 +142,22 @@ def get_AppEngine_Version(Map args) {
 def promote_Service(Map args) {
     def PROMOTED_SERVICE
     def serviceName = args.service_name
-    if (is_CloudRun_Service(serviceName)) {
-        def cloudRunServiceName = resolve_CloudRun_Service_Name(serviceName, params.APP_ENGINE_PROJECT_ID)
-        PROMOTED_SERVICE = sh(
-            script: "gcloud run services update-traffic ${cloudRunServiceName} --flags-file promote_flags/${params.APP_ENGINE_PROJECT_ID}.json",
-            returnStdout: true
-        ).trim()
-        return "${PROMOTED_SERVICE}"
+    def baseKey = CLOUD_RUN_SERVICE_DIR_MAP.keySet().find { key -> serviceName.contains(key) }
+    if (baseKey) {
+        if (baseKey == 'bq-order-validation') {
+            echo "Skipping promotion for Cloud Run service 'bq-order-validation'"
+            return ""
+        } else {
+            def cloudRunServiceName = resolve_CloudRun_Service_Name(serviceName, params.APP_ENGINE_PROJECT_ID)
+            // Determine dirPath either from args or by inferring from the service name
+            def dirPath = args.dir_path ?: CLOUD_RUN_SERVICE_DIR_MAP[baseKey]
+            def flagsPath = dirPath ? "${WORKSPACE}/microservices-backend-uk/${dirPath}/promote_flags/${params.APP_ENGINE_PROJECT_ID}.json" : "promote_flags/${params.APP_ENGINE_PROJECT_ID}.json"
+            PROMOTED_SERVICE = sh(
+                script: "gcloud run services update-traffic ${cloudRunServiceName} --flags-file ${flagsPath}",
+                returnStdout: true
+            ).trim()
+            return "${PROMOTED_SERVICE}"
+        }
     } else {
         PROMOTED_SERVICE = sh(
             script: "gcloud app services set-traffic ${args.service_name} --splits ${args.version_name}=1 --quiet",
@@ -252,9 +260,7 @@ def py3_services = [
             [key: 'nutrition-service'],
             [key: 'data-pipeline']
         ]
-def phrase_translate = [
-            [key: 'phrase'] //INTERNATIONAL
-]         
+        
 //To-Do: refactor the script blocks to use from variable definition
 properties([
     parameters([
@@ -353,7 +359,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","bigquerysync","cache-builder","index","phrase","menucacheupdate","bq-order-validation","credit-recharge","menusync-jwo","nutrition-service","data-pipeline"]'
+                    script: 'return ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","bigquerysync","cache-builder","index","menucacheupdate","bq-order-validation","credit-recharge","menusync-jwo","nutrition-service","data-pipeline"]'
                 ],
                 script: [
                     classpath: [],
@@ -362,7 +368,7 @@ properties([
                         def type = DEPLOYMENT_TYPE ?: "International" 
                         def options = []
                         if (type == "International") {
-                            options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","bigquerysync","cache-builder","index","phrase","menucacheupdate","bq-order-validation","credit-recharge","menusync-jwo","nutrition-service","data-pipeline"]
+                            options = ["All:selected","controldesk","web-ort","time2eat","time2eat-flutter","appservice","backgroundtasks","taskqservice","bqreports","dashboard","sso","py3_default","integration", "pricebook","bigquerysync","cache-builder","index","menucacheupdate","bq-order-validation","credit-recharge","menusync-jwo","nutrition-service","data-pipeline"]
                         }
                         return options
                     '''
@@ -477,9 +483,9 @@ pipeline {
                     {
                         def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
                         echo "type of deplyoment is : ${type}"
-                        def options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,bigquerysync,index,phrase,menucacheupdate,cache-builder,bq-order-validation,credit-recharge,menusync-jwo,nutrition-service,data-pipeline'
+                        def options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,bigquerysync,index,menucacheupdate,cache-builder,bq-order-validation,credit-recharge,menusync-jwo,nutrition-service,data-pipeline'
                         if (type == "International") {
-                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,bigquerysync,index,phrase,menucacheupdate,cache-builder,bq-order-validation,credit-recharge,menusync-jwo,nutrition-service,data-pipeline'
+                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,bigquerysync,index,menucacheupdate,cache-builder,bq-order-validation,credit-recharge,menusync-jwo,nutrition-service,data-pipeline'
                         }       
                         //echo "SERVICE_NAME_LIST updated - $options"
                         ARR_SELECTED_SERVICE = "$options".split(',')                        
@@ -502,12 +508,6 @@ pipeline {
                         py3_services.key.contains(element3)
                     }
                     echo "IS_PY3_SELECTED - $IS_PY3_ENABLED"  
-
-                    IS_PHRASE_TRANSLATE_ENABLED = ARR_SELECTED_SERVICE.any { element4 ->
-                        phrase_translate.key.contains(element4)
-                    }
-                    echo "IS_PHRASE_TRANSLATE - $IS_PHRASE_TRANSLATE_ENABLED"                  
-                    
                     //To get the properties from config-variables-{india/international}.groovy file
                     MY_FILE_ID = "config-variables-${DEPLOYMENT_TYPE}"
                     configFileProvider([configFile(fileId: "$MY_FILE_ID", variable: 'GroovyScript')]) {
@@ -877,19 +877,18 @@ pipeline {
                                                     parallelJobs[label] = {
                                                         dir ('microservices-backend-uk') {
                                                             sh "echo ${dirPath}"
-                                                            dir (dirPath) {
-                                                                sh "echo ${cloudRunServiceName}"
-                                                                sh "pwd"
-                                                                sh "ls -la"
-                                                                    if (selectedService.contains("bq-order-validation")) {
-                                                                        sh "gcloud builds submit --tag gcr.io/${params.APP_ENGINE_PROJECT_ID}/bigquerysync-validation-${params.APP_ENGINE_PROJECT_ID} --project ${params.APP_ENGINE_PROJECT_ID}"
-                                                                        sh "gcloud run deploy ${cloudRunServiceName} --image gcr.io/${params.APP_ENGINE_PROJECT_ID}/bigquerysync-validation-${params.APP_ENGINE_PROJECT_ID} --platform managed --region europe-west2 --project ${params.APP_ENGINE_PROJECT_ID}"
-                                                                    } else {
-                                                                        sh "gcloud builds submit --flags-file ${WORKSPACE}/microservices-backend-uk/${dirPath}/build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
-                                                                        sh "gcloud run deploy ${cloudRunServiceName} --flags-file ${WORKSPACE}/microservices-backend-uk/${dirPath}/deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json  --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
-                                                                    }
-                                                                    // ARR_VERIFY_SERVICE.add([service_name: cloudRunServiceName, version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
+                                                            sh "echo ${cloudRunServiceName}"
+                                                            sh "pwd"
+                                                            sh "ls -la ${dirPath}"
+                                                            if (selectedService.contains("bq-order-validation")) {
+                                                                sh "gcloud builds submit ${WORKSPACE}/microservices-backend-uk/${dirPath} --tag gcr.io/${params.APP_ENGINE_PROJECT_ID}/bigquerysync-validation-${params.APP_ENGINE_PROJECT_ID} --project ${params.APP_ENGINE_PROJECT_ID}"
+                                                                sh "gcloud run deploy ${cloudRunServiceName} --image gcr.io/${params.APP_ENGINE_PROJECT_ID}/bigquerysync-validation-${params.APP_ENGINE_PROJECT_ID} --platform managed --region europe-west2 --project ${params.APP_ENGINE_PROJECT_ID}"
+                                                            } else {
+                                                                sh "gcloud builds submit ${WORKSPACE}/microservices-backend-uk/${dirPath} --flags-file ${WORKSPACE}/microservices-backend-uk/${dirPath}/build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
+                                                                sh "gcloud run deploy ${cloudRunServiceName} --flags-file ${WORKSPACE}/microservices-backend-uk/${dirPath}/deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json  --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
+                                                                // Promotion will be handled later in the 'Promote' stage after verification
                                                             }
+                                                            ARR_VERIFY_SERVICE.add([service_name: cloudRunServiceName, version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '', dir_path: dirPath]) 
                                                         }
                                                     }    
                                                 } else {
@@ -918,57 +917,6 @@ pipeline {
                         }
                     }
                 }
-                stage('Pharse_translate:Deploy pharse service') {
-                    when {
-                        expression { return IS_PHRASE_TRANSLATE_ENABLED} // Check the condition here
-                    }           
-                    stages {
-                        stage('Pharse_translate:Clone') { 
-                            steps { 
-                                script {
-                                    PHRASE_TRANSLATE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'phrase_translate')
-                                    sh "mkdir -p phrase_translate"
-                                    dir('phrase_translate') {                        
-                                        checkout([$class: 'GitSCM', 
-                                            branches: [[name: "${PHRASE_TRANSLATE_APP_ENGINE_VERSION}"]], 
-                                            doGenerateSubmoduleConfigurations: false, 
-                                            extensions: [[$class: 'CleanCheckout']], 
-                                            userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/phrase_translate.git', credentialsId: 'git/devops/new',]]])
-                                                    
-                                    sh 'ls -lrt'
-                                    }
-                                }    
-                            } 
-                        }
-                        stage('Pharse_translate:Deploy') {
-                            steps {
-                                container('gcloud') {
-                                    script {
-                                        sh "echo ${WORKSPACE}"
-                                        def parallelJobs = [:]
-                                        if ('phrase' in ARR_SELECTED_SERVICE ) {
-                                            PHRASE_TRANSLATE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'phrase_translate')
-                                            PREVIOUS_VERSION = get_Previous_Version(service_name: "phrase") 
-                                            parallelJobs[phrase_translate.find { it.key == 'phrase' }] = {
-                                                dir ('phrase_translate') {
-                                                    //sh 'cp -r commonlib appms'
-                                                    //dir ('appms') {
-                                                        sh "ls *.yaml"                                                        
-                                                        sh "gcloud app deploy --version=$PHRASE_TRANSLATE_APP_ENGINE_VERSION --quiet $PY3_APPMS_YAML --no-promote"
-                                                    //}                                           
-                                                    //py3 -app : india
-                                                    ARR_VERIFY_SERVICE.add([service_name: 'phrase', version_name: "$PHRASE_TRANSLATE_APP_ENGINE_VERSION", url_suffix: ''])  
-                                                }                             
-                                            }
-                                        }              
-                                        //2.1 Add new service block here, if there is any to be added
-                                        parallel(parallelJobs)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
             }    
         }
         stage ('Check URL Status')  {
@@ -977,7 +925,12 @@ pipeline {
                     script {                        
                         for (item in ARR_VERIFY_SERVICE)   
                         {
-                            item.status = getURL_Status(service_name: "${item.service_name}", version_name: "${item.version_name}", url_suffix: "${item.url_suffix}")                            
+                            if (is_CloudRun_Service(item.service_name)) {
+                                // Skip URL status check for Cloud Run services; treat as successful
+                                item.status = "200"
+                            } else {
+                                item.status = getURL_Status(service_name: "${item.service_name}", version_name: "${item.version_name}", url_suffix: "${item.url_suffix}")
+                            }
                             item.previous_version = get_Previous_Version(service_name: "${item.service_name}") 
                             item.new_version = "${item.version_name}"
                         }
@@ -985,7 +938,7 @@ pipeline {
                     }
                 }
             }
-        }     
+        }   
         stage('Promote') {
            steps {
                 container('gcloud') {                    

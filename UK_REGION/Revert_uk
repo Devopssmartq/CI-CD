@@ -207,12 +207,16 @@ pipeline{
                         println(content)
  
                         def servicePreviousVersions = []
-                        def selectedServices = params.SERVICES_TO_REVERT ? params.SERVICES_TO_REVERT.tokenize(',') : []
+                        def selectedParam = params.SERVICES_TO_REVERT ? params.SERVICES_TO_REVERT.toString().trim() : ''
+                        def selectedServices = selectedParam ? selectedParam.tokenize(',').collect { it.trim() }.findAll { it } : []
                         
-                        // Check if "all" is selected
-                        boolean revertAll = selectedServices.contains("all")
+                        // If no services are selected, revert all. Also support explicit "all" selection (case-insensitive)
+                        boolean revertAll = selectedServices.isEmpty() || selectedServices.any { it.equalsIgnoreCase("all") }
                         
                         echo "Services selected for reversion: ${revertAll ? 'ALL SERVICES' : selectedServices}"
+                        
+                        // Track which services we actually processed (for missing-selection warnings)
+                        def processedServices = [] as Set
                         
                         lines.each { line ->
                             // Remove square brackets and split by comma followed by space
@@ -241,6 +245,7 @@ pipeline{
                                 
                                 if (shouldProcess) {
                                     echo "Processing service: ${service_name}"
+                                    processedServices.add(service_name)
                                     // Add service and previous version to the list
                                     servicePreviousVersions.add("service_name: $service_name, previous_version: $previous_version")
              
@@ -250,39 +255,63 @@ pipeline{
                                         def region = getCloudRunRegion(cloudRunServiceName, project_id)
                                         echo "region = ${region}"
 
-                                        sh "gcloud run services update-traffic ${cloudRunServiceName} --region ${region} --to-revisions ${previous_version}=100"
-
-                                        // Delete the now-old revision if present
-                                        if (new_version) {
-                                            def crDescribeStatus = sh(
-                                                script: "gcloud run revisions describe ${new_version} --region ${region} --project=${project_id} >/dev/null 2>&1",
-                                                returnStatus: true
-                                            )
-                                            if (crDescribeStatus == 0) {
-                                                sh "gcloud run revisions delete ${new_version} --region ${region} --project=${project_id} --quiet"
-                                            } else {
-                                                echo "Skipping delete: revision ${new_version} not found in region ${region}"
-                                            }
+                                        def crUpdateStatus = sh(
+                                            script: "gcloud run services update-traffic ${cloudRunServiceName} --region ${region} --to-revisions ${previous_version}=100",
+                                            returnStatus: true
+                                        )
+                                        if (crUpdateStatus != 0) {
+                                            echo "Failed to update traffic to ${previous_version} for ${cloudRunServiceName} in region ${region}. Skipping delete and continuing."
                                         } else {
-                                            echo "Skipping delete: new_version not found in release file for ${service_name}"
+                                            // Delete the now-old revision if present
+                                            if (new_version) {
+                                                def crDescribeStatus = sh(
+                                                    script: "gcloud run revisions describe ${new_version} --region ${region} --project=${project_id} >/dev/null 2>&1",
+                                                    returnStatus: true
+                                                )
+                                                if (crDescribeStatus == 0) {
+                                                    def crDeleteStatus = sh(
+                                                        script: "gcloud run revisions delete ${new_version} --region ${region} --project=${project_id} --quiet",
+                                                        returnStatus: true
+                                                    )
+                                                    if (crDeleteStatus != 0) {
+                                                        echo "Skipping delete: revision ${new_version} could not be deleted (possibly still serving)."
+                                                    }
+                                                } else {
+                                                    echo "Skipping delete: revision ${new_version} not found in region ${region}"
+                                                }
+                                            } else {
+                                                echo "Skipping delete: new_version not found in release file for ${service_name}"
+                                            }
                                         }
                                     } else {
                                         // If not a cloud_run service, handle as normal
-                                        sh "gcloud app services set-traffic ${service_name} --splits ${previous_version}=1 --project=${APP_ENGINE_PROJECT_ID} --quiet"
-
-                                        // Delete the now-old App Engine version if present
-                                        if (new_version) {
-                                            def aeDescribeStatus = sh(
-                                                script: "gcloud app versions describe ${new_version} --service ${service_name} --project=${project_id} >/dev/null 2>&1",
-                                                returnStatus: true
-                                            )
-                                            if (aeDescribeStatus == 0) {
-                                                sh "gcloud app versions delete ${new_version} --service ${service_name} --project=${project_id} --quiet"
-                                            } else {
-                                                echo "Skipping delete: App Engine version ${new_version} not found for service ${service_name}"
-                                            }
+                                        def aeTrafficStatus = sh(
+                                            script: "gcloud app services set-traffic ${service_name} --splits ${previous_version}=1 --project=${APP_ENGINE_PROJECT_ID} --quiet",
+                                            returnStatus: true
+                                        )
+                                        if (aeTrafficStatus != 0) {
+                                            echo "Failed to set traffic to ${previous_version} for service ${service_name}. Skipping delete and continuing."
                                         } else {
-                                            echo "Skipping delete: new_version not found in release file for ${service_name}"
+                                            // Delete the now-old App Engine version if present
+                                            if (new_version) {
+                                                def aeDescribeStatus = sh(
+                                                    script: "gcloud app versions describe ${new_version} --service ${service_name} --project=${project_id} >/dev/null 2>&1",
+                                                    returnStatus: true
+                                                )
+                                                if (aeDescribeStatus == 0) {
+                                                    def aeDeleteStatus = sh(
+                                                        script: "gcloud app versions delete ${new_version} --service ${service_name} --project=${project_id} --quiet",
+                                                        returnStatus: true
+                                                    )
+                                                    if (aeDeleteStatus != 0) {
+                                                        echo "Skipping delete: App Engine version ${new_version} cannot be deleted (possibly still serving)."
+                                                    }
+                                                } else {
+                                                    echo "Skipping delete: App Engine version ${new_version} not found for service ${service_name}"
+                                                }
+                                            } else {
+                                                echo "Skipping delete: new_version not found in release file for ${service_name}"
+                                            }
                                         }
                                     }
                                 } else {
@@ -290,6 +319,16 @@ pipeline{
                                 }
                             } else {
                                 println("Invalid line format: $line")
+                            }
+                        }
+                        
+                        // If specific services were selected, warn for any that were not present in the file
+                        if (!revertAll && !selectedServices.isEmpty()) {
+                            def missingServices = selectedServices.findAll { !it.equalsIgnoreCase('all') && !(it in processedServices) }
+                            if (missingServices) {
+                                missingServices.each { svc ->
+                                    echo "Selected service '${svc}' not found in release file. Skipping."
+                                }
                             }
                         }
  
