@@ -11,7 +11,7 @@ def setProperties(String appName, String versionName, String projectId, String v
         sh 'ls; pwd'
 
         if (projectId == "smartqprd-au" || projectId == "sqpreprod-au") {
-            sh "./cicd_deploy.sh $variantName $projectId $versionName v2" 
+            sh "./cicd_deploy.sh $variantName $projectId $versionName" 
         } else if(projectId == "smartqprd-uk" || projectId == "sqpreprod-uk" || projectId == "smartqdemo-uk") {
             sh "./cicd_deploy.sh $variantName $projectId $versionName"
         }  else {
