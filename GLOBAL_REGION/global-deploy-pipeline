@@ -629,7 +629,6 @@ def executePy3Deploy() {
                                 sh "gcloud run deploy menucacheupdate --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
                             }
                         //}
-                        //ARR_VERIFY_SERVICE.add([service_name: 'menucacheupdate', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                     }                                 
                 }
             }   
@@ -1246,9 +1245,13 @@ pipeline {
                     script {                        
                         for (item in ARR_VERIFY_SERVICE)   
                         {
-                            item.status = getURL_Status(service_name: "${item.service_name}", version_name: "${item.version_name}", url_suffix: "${item.url_suffix}")                            
-                            item.previous_version = get_Previous_Version(service_name: "${item.service_name}") 
-                            item.new_version = "${item.version_name}"
+                            if (item.service_name == 'menucacheupdate') {
+                                echo "Skipping URL status check for menucacheupdate"
+                            } else {
+                                item.status = getURL_Status(service_name: "${item.service_name}", version_name: "${item.version_name}", url_suffix: "${item.url_suffix}")                            
+                                item.previous_version = get_Previous_Version(service_name: "${item.service_name}") 
+                                item.new_version = "${item.version_name}"
+                            }
                         }
                         println "result of verify service: ${ARR_VERIFY_SERVICE}"                         
                     }
@@ -1259,12 +1262,14 @@ pipeline {
            steps {
                 container('gcloud') {                    
                     script {                        
-                        def failed_url_count = ARR_VERIFY_SERVICE.findAll{ row -> row.status != '200'}.size()
+                        def failed_url_count = ARR_VERIFY_SERVICE.findAll{ row -> row.service_name != 'menucacheupdate' && row.status != '200'}.size()
                         echo "failed_url_count - $failed_url_count"
                         if (failed_url_count == 0) {
                             for (item in ARR_VERIFY_SERVICE)   
                             {                           
-                                if (item.status == "200") {
+                                if (item.service_name == 'menucacheupdate') {
+                                    echo "Skipping promote for menucacheupdate"
+                                } else if (item.status == "200") {
                                     echo "promoting - ${item.service_name}"
                                     promote_Service(service_name: "${item.service_name}", version_name: "${item.version_name}")
                                     PROMOTED_SERVICES.add(item)
