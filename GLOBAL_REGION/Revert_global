@@ -205,6 +205,25 @@ pipeline{
                         
                         def project_id = "${params.APP_ENGINE_PROJECT_ID}"
                         echo "Project ID = ${project_id}"
+                        // If MIGRATE_TRAFFIC is not provided, auto-detect the latest release file/folder from GCS
+                        def MIGRATE_TRAFFIC_VALUE = params.MIGRATE_TRAFFIC ? params.MIGRATE_TRAFFIC.toString().trim() : ''
+                        if (!MIGRATE_TRAFFIC_VALUE) {
+                            def listCmd = "gcloud storage ls -l 'gs://sqinternational-cicd.appspot.com/${params.Region_Selection}/release_summary/released/${params.APP_ENGINE_PROJECT_ID}/' | sed '/TOTAL/d' | sort -k 2 -r | head -1 | awk '{print \$3}'"
+                            def latestPath = sh(
+                                script: listCmd,
+                                returnStdout: true
+                            ).trim()
+                            if (!latestPath) {
+                                error "No release entries found in GCS path: gs://sqinternational-cicd.appspot.com/${params.Region_Selection}/release_summary/released/${params.APP_ENGINE_PROJECT_ID}/"
+                            }
+                            // Extract the last non-empty segment as the file/folder name (the 'latest file number')
+                            def latestName = latestPath.replaceAll('/\$', '').tokenize('/').last()
+                            MIGRATE_TRAFFIC_VALUE = latestName
+                            echo "MIGRATE_TRAFFIC not provided; auto-selected latest: ${MIGRATE_TRAFFIC_VALUE}"
+                        }
+                        // Make available to subsequent shell and Groovy interpolations
+                        env.MIGRATE_TRAFFIC = MIGRATE_TRAFFIC_VALUE
+                        def MIGRATE_TRAFFIC = MIGRATE_TRAFFIC_VALUE
                         // Download the file from Google Cloud Storage
                         sh "gcloud storage cp gs://sqinternational-cicd.appspot.com/${params.Region_Selection}/release_summary/released/${params.APP_ENGINE_PROJECT_ID}/${MIGRATE_TRAFFIC} ${WORKSPACE}/releasedfile --recursive"
                         sh "ls"

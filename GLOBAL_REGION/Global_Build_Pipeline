@@ -582,8 +582,6 @@ def uploadoperation_managementToGCS(bucketname) {
     echo "Uploading operation_management to GCS Bucket"
     echo "My branch & GCS Bucket name is ${branch}"
     container('gcloud') {
-        // sh "mkdir -p operation-management.txt"
-        // sh "cp -r operation_management/* ${WORKSPACE}/operation-management.txt/"
         dir('operation_management') {
             sh 'ls'
             sh "tar -czvf ${newId}.tar.gz *"
@@ -593,7 +591,40 @@ def uploadoperation_managementToGCS(bucketname) {
         CLOUD_URL = "https://console.cloud.google.com/storage/browser/sqinternational-cicd.appspot.com/${branch}/${bitBucketProject}"
     }
 }
-
+def checkoutcd_v2(branch) {
+    echo "Checkout cd-v2"
+    sh "mkdir -p cd-v2"
+    dir('cd-v2') {
+        checkout([$class: 'GitSCM', 
+            branches: [[name: branch]], 
+            doGenerateSubmoduleConfigurations: false, 
+            extensions: [[$class: 'CleanCheckout']], 
+            userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/cd-v2.git', credentialsId: 'git/devops/new',]]])
+    }
+}
+def buildcd_v2() {
+    echo "Build cd-v2"
+    container('node-cd-v2') {
+        dir('cd-v2') {
+            sh 'ls'
+            sh "nom install"
+            sh "npm run build"
+            sh "ls"
+        }
+    }
+}
+def uploadcd_v2ToGCS(bucketname) {
+    echo "Upload cd-v2 to GCS Bucket"
+    echo "My branch & GCS Bucket name is ${branch}"
+    container('gcloud') {
+        dir('cd-v2') {
+            sh 'ls'
+            sh "tar -czvf ${newId}.tar.gz deploy.sh *.yaml dist/*"
+            sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/Global_Region/${bucketname}/cd-v2/ --recursive"
+            sh "tar -xzvf ${newId}.tar.gz"
+        }
+    }
+}
 pipeline {
     agent {
     
@@ -635,6 +666,12 @@ pipeline {
 
           - name: node-js
             image: node:20.12.0
+            command:
+            - cat
+            tty: true
+
+          - name: node-cd-v2
+            image: node:24.x
             command:
             - cat
             tty: true
@@ -686,7 +723,7 @@ pipeline {
 
     parameters {
 
-    choice(name: 'BitBucketProject', choices: ['web-ort', 'control-desk', 'ewallet', 'time2eatweb', 'vendor-dashboard','generic-admin-dashboard', 'smartq-cloud-backend', 'sq_microservices_backend','controldeskflutter', 'time2eat_flutter', 'phrase_translate', 'operation_management'], description: 'Select BitBucket Project')
+    choice(name: 'BitBucketProject', choices: ['web-ort', 'control-desk', 'ewallet', 'time2eatweb', 'vendor-dashboard','generic-admin-dashboard', 'smartq-cloud-backend', 'sq_microservices_backend','controldeskflutter', 'time2eat_flutter', 'phrase_translate', 'operation_management','cd-v2'], description: 'Select BitBucket Project')
     choice(name: 'Branch', choices: ['auto-sprint', 'auto-release', 'master', 'hotfix'], description: 'Select Branch')
     string(name: 'Hotfix_Branch', description: 'Enter the branch name')
     string(name: 'CommitId', defaultValue:" ", trim: true, description: 'Enter the commitId')
@@ -825,7 +862,13 @@ pipeline {
                         buildPipeline = true    
                     } else if (bitBucketProject == 'operation_management') {
                         checkoutoperation_management(branch)
+                        // buildoperation_management()
                         uploadoperation_managementToGCS(bucketname)
+                        buildPipeline = true
+                    } else if (bitBucketProject == 'cd-v2') {
+                        checkoutcd_v2(branch)
+                        buildcd_v2()
+                        uploadcd_v2ToGCS(bucketname)
                         buildPipeline = true
                     }          
 

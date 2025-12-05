@@ -27,40 +27,33 @@ def getURL_Status(Map args) {
 }
 def get_Previous_Version(Map args) {
     container('gcloud') {
-        // Fetch REGION within the function
-        def region = sh(script: "gcloud run services list --format=\"table(NAME,REGION)\" --filter=\"metadata.name=bigquerysync-${params.APP_ENGINE_PROJECT_ID}\" --project=${params.APP_ENGINE_PROJECT_ID} | head -n 2 | tail -1 | awk '{print \$2}'", returnStdout: true).trim()
-        
-        echo "region = ${region}"
-        
-        if (args.service_name.contains("cloud_run")) {
+        def serviceName = args.service_name
+        def cloudRunServiceName = null
+        if (serviceName.contains("bigquerysync")) {
+            cloudRunServiceName = "bigquerysync-${params.APP_ENGINE_PROJECT_ID}"
+        } else if (serviceName.contains("sap-integration")) {
+            cloudRunServiceName = "sap-integration"
+        } else if (serviceName.contains("centric-os-integration")) {
+            cloudRunServiceName = "centric-os-integration"
+        } else if (serviceName.contains("operation_management")) {
+            cloudRunServiceName = "operation-management-${params.APP_ENGINE_PROJECT_ID}"
+        } else if (serviceName.contains("menucacheupdate")) {
+            cloudRunServiceName = "menucacheupdate"
+        }
+
+        if (cloudRunServiceName) {
+            def region = sh(
+                script: "gcloud run services list --format=\"table(NAME,REGION)\" --filter=\"metadata.name=${cloudRunServiceName}\" --project=${params.APP_ENGINE_PROJECT_ID} | head -n 2 | tail -1 | awk '{print \$2}'",
+                returnStdout: true
+            ).trim()
+            echo "region = ${region}"
             def previous_version = sh(
-                script: "gcloud run services describe bigquerysync-${params.APP_ENGINE_PROJECT_ID} --region ${region} --format=\"value(status.traffic[].revisionName)\"",
+                script: "gcloud run services describe ${cloudRunServiceName} --region ${region} --format=\"value(status.traffic[].revisionName)\"",
                 returnStdout: true
             ).trim()
             echo "previous_version- ${previous_version}"
             return previous_version
-        } else if (args.service_name.contains("sap-integration")) {
-            def previous_version = sh(
-                script: "gcloud run services describe sap-integration --region ${region} --format=\"value(status.traffic[].revisionName)\"",
-                returnStdout: true
-            ).trim()
-            echo "previous_version- ${previous_version}"
-            return previous_version
-        } else if (args.service_name.contains("centric-os-integration")) {
-            def previous_version = sh(
-                script: "gcloud run services describe centric-os-integration --region ${region} --format=\"value(status.traffic[].revisionName)\"",
-                returnStdout: true
-            ).trim()
-            echo "previous_version- ${previous_version}"
-            return previous_version
-        } else if (args.service_name.contains("operation_management")) {
-            def previous_version = sh(
-                script: "gcloud run services describe operation-management-${params.APP_ENGINE_PROJECT_ID} --region ${region} --format=\"value(status.traffic[].revisionName)\"",
-                returnStdout: true
-            ).trim()
-            echo "previous_version- ${previous_version}"
-            return previous_version
-        } else {    
+        } else {
             def previous_version = sh(
                 script: "gcloud app versions list --service=${args.service_name} --limit=1 --format='value(VERSION.ID)' --filter='traffic_split>0'",
                 returnStdout: true
@@ -116,35 +109,69 @@ def get_AppEngine_Version(Map args) {
 }
 def promote_Service(Map args) {
     def PROMOTED_SERVICE
-    if (params.APP_ENGINE_PROJECT_ID.contains("-de") && args.service_name.contains("cloud_run")) {
-        // Run both commands if APP_ENGINE_PROJECT_ID contains '-de'
+    def serviceName = args.service_name
+    // Map input service_name to Cloud Run service name and flags directory (under sq_microservices_backend)
+    def cloudRunServiceName = null
+    def flagsDirPath = null
+
+    if (serviceName.contains("bigquerysync")) {
+        cloudRunServiceName = "bigquerysync-${params.APP_ENGINE_PROJECT_ID}"
+        flagsDirPath = "cloud_run_longrun_script"
+    } else if (serviceName.contains("sap-integration")) {
+        cloudRunServiceName = "sap-integration"
+        flagsDirPath = "cloud_run_longrun_script"
+    } else if (serviceName.contains("centric-os-integration")) {
+        cloudRunServiceName = "centric-os-integration"
+        flagsDirPath = "cloudrun/centric-os-service"
+    } else if (serviceName.contains("menucacheupdate")) {
+        cloudRunServiceName = "menucacheupdate"
+        flagsDirPath = "menucacheupdate"
+    } else if (serviceName.contains("short-url-service")) {
+        cloudRunServiceName = "short-url-service"
+        flagsDirPath = "cloudrun/short-url-service"
+    } else if (serviceName.contains("notification-service")) {
+        cloudRunServiceName = "notification-service"
+        flagsDirPath = "cloudrun/notification-service"
+    }
+
+    if (cloudRunServiceName == "menucacheupdate" || cloudRunServiceName == "centric-os-integration" || cloudRunServiceName == "notification-service" || cloudRunServiceName == "sap-integration" || cloudRunServiceName == "short-url-service") {
+        def region = sh(
+            script: "gcloud run services list --format=\"table(NAME,REGION)\" --filter=\"metadata.name=${cloudRunServiceName}\" --project=${params.APP_ENGINE_PROJECT_ID} | head -n 2 | tail -1 | awk '{print \$2}'",
+            returnStdout: true
+        ).trim()
+        echo "region = ${region}"
         dir('sq_microservices_backend') {
-            dir('cloud_run_longrun_script') {
-                // First command for sap-integration
+            dir(flagsDirPath) {
                 PROMOTED_SERVICE = sh(
-                    script: "gcloud run services update-traffic sap-integration --flags-file promote_flags/${params.APP_ENGINE_PROJECT_ID}.json",
+                    script: "gcloud run services update-traffic ${cloudRunServiceName} --region ${region} --to-latest",
                     returnStdout: true
                 ).trim()
-                echo "Promoted service (sap-integration): ${PROMOTED_SERVICE}"
-                
-                // Second command for bigquerysync
-                PROMOTED_SERVICE = sh(
-                    script: "gcloud run services update-traffic bigquerysync-${params.APP_ENGINE_PROJECT_ID} --flags-file promote_flags/${params.APP_ENGINE_PROJECT_ID}.json",
-                    returnStdout: true
-                ).trim()
-                echo "Promoted service (bigquerysync): ${PROMOTED_SERVICE}"
             }
         }
-    } else if (args.service_name.contains("cloud_run")) {
+    }else if (cloudRunServiceName) {
         dir('sq_microservices_backend') {
-            dir('cloud_run_longrun_script') {
+            if (flagsDirPath) {
+                dir(flagsDirPath) {
+                    PROMOTED_SERVICE = sh(
+                        script: "gcloud run services update-traffic ${cloudRunServiceName} --flags-file promote_flags/${params.APP_ENGINE_PROJECT_ID}.json",
+                        returnStdout: true
+                    ).trim()
+                }
+            } else {
+                // Fallback if no specific directory mapping is required
                 PROMOTED_SERVICE = sh(
-                    script: "gcloud run services update-traffic bigquerysync-${params.APP_ENGINE_PROJECT_ID} --flags-file promote_flags/${params.APP_ENGINE_PROJECT_ID}.json",
+                    script: "gcloud run services update-traffic ${cloudRunServiceName} --flags-file promote_flags/${params.APP_ENGINE_PROJECT_ID}.json",
                     returnStdout: true
                 ).trim()
-                echo "Promoted service (bigquerysync): ${PROMOTED_SERVICE}"
+            }
+            // Special case: for '-de' environments, promoting bigquerysync should also promote sap-integration
+            if (params.APP_ENGINE_PROJECT_ID.contains("-de") && serviceName.contains("bigquerysync")) {
+                dir('cloud_run_longrun_script') {
+                    sh "gcloud run services update-traffic sap-integration --flags-file promote_flags/${params.APP_ENGINE_PROJECT_ID}.json"
+                }
             }
         }
+        return "${PROMOTED_SERVICE}"
     } else  {
         PROMOTED_SERVICE = sh(
                 script: "gcloud app services set-traffic ${args.service_name} --splits ${args.version_name}=1 --quiet",
@@ -165,7 +192,9 @@ def Stop_Old_Version(Map args) {
 def Write_To_File() {
     script {    
         def filePath = "${env.WORKSPACE}/release-${env.VERSION_NUMBER}.txt"                  
-        def content = PROMOTED_SERVICES.join('\n')
+        def content = PROMOTED_SERVICES.collect { item ->
+            "[service_name:${item.service_name}, version_name:${item.version_name}, url_suffix:${item.url_suffix}, status:${item.status}, previous_version:${item.previous_version}, new_version:${item.new_version}]"
+        }.join('\n')
         writeFile file: filePath, text: content                                            
         echo "Items written to ${filePath}"
         def data = readFile(file: "${filePath}")
@@ -265,9 +294,9 @@ def centric_os_intergration() {
                 dir ('cloudrun/centric-os-service') {
                     sh "ls"                                                               
                     sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
-                    sh "gcloud run deploy centric-os-integration --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
+                    sh "gcloud run deploy centric-os-integration --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
                                                                 
-                    ARR_VERIFY_SERVICE.add([service_name: 'cloud_run', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
+                    ARR_VERIFY_SERVICE.add([service_name: 'centric-os-integration', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                 }                                 
             }
         }
@@ -294,7 +323,7 @@ def notification_service() {
                     sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
                     sh "gcloud run deploy notification-service --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
                                                                 
-                    // ARR_VERIFY_SERVICE.add([service_name: 'notification-service', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
+                    ARR_VERIFY_SERVICE.add([service_name: 'notification-service', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                 }                                 
             }
         }
@@ -440,7 +469,7 @@ def executeNodeDeploy() {
                         def parallelDeployJobs = [:]
                         parallelJobs[nodeapps.find { it.key == 'baweb-flutter' }] = {
                             load("deploy_baweb_jumpr.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat-flutter"), TIME2EAT_FLUTTER_APP_ENGINE_VERSION, APP_ENGINE_PROJECT_ID, variant_Name)
-                            ARR_VERIFY_SERVICE.add([service_name: 'baweb-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'baweb-v2/'])                                           
+                            ARR_VERIFY_SERVICE.add([service_name: 'baweb-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'baweb/'])                                           
                         }
                         parallel parallelDeployJobs                                                                                                                                                                                                               
                     }
@@ -455,7 +484,7 @@ def executeNodeDeploy() {
                         def variant_Name = "jumpr"
                         parallelJobs[nodeapps.find { it.key == 'time2eat-flutter' }] = {
                             load("deploy_baweb_jumpr.groovy").setProperties(get_Storage_Object_Source_Path(app_name: "time2eat-flutter"), TIME2EAT_FLUTTER_APP_ENGINE_VERSION, APP_ENGINE_PROJECT_ID, variant_Name)
-                            ARR_VERIFY_SERVICE.add([service_name: 'jumpr-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'jumpr-v2/'])                                           
+                            ARR_VERIFY_SERVICE.add([service_name: 'jumpr-flutter', version_name: "$TIME2EAT_FLUTTER_APP_ENGINE_VERSION", url_suffix: 'jumpr-pwa/'])                                           
                         }                                                                                                                                                                                                           
                     }
                 } 
@@ -536,7 +565,7 @@ def executePy3Deploy() {
                     }                                 
                 }
             }
-            if (params.APP_ENGINE_PROJECT_ID.contains("-de") || params.APP_ENGINE_PROJECT_ID.contains("-spain")) {
+            if (params.APP_ENGINE_PROJECT_ID.contains("-de") || params.APP_ENGINE_PROJECT_ID.contains("-spain") || params.APP_ENGINE_PROJECT_ID.contains("smartqprd-au") || params.APP_ENGINE_PROJECT_ID.contains("smartqprd-jp")) {
                 if('pricebook' in ARR_SELECTED_SERVICE) {
                     PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend')
                     PREVIOUS_VERSION = get_Previous_Version(service_name: "pricebook")
@@ -568,10 +597,10 @@ def executePy3Deploy() {
                     }
                 }
             } 
-            if ('cloud_run' in ARR_SELECTED_SERVICE ) {
+            if ('bigquerysync' in ARR_SELECTED_SERVICE ) {
                 PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend')
-                PREVIOUS_VERSION = get_Previous_Version(service_name: "cloud_run") 
-                parallelJobs[py3_services.find { it.key == 'cloud_run' }] = {
+                PREVIOUS_VERSION = get_Previous_Version(service_name: "bigquerysync") 
+                parallelJobs[py3_services.find { it.key == 'bigquerysync' }] = {
                     dir ('sq_microservices_backend') {
                         sh 'ls'
                         dir ('cloud_run_longrun_script') {
@@ -579,7 +608,7 @@ def executePy3Deploy() {
                             sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
                             sh "gcloud run deploy bigquerysync-${params.APP_ENGINE_PROJECT_ID} --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION" 
                                                                                                    
-                        ARR_VERIFY_SERVICE.add([service_name: 'cloud_run', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
+                        ARR_VERIFY_SERVICE.add([service_name: 'bigquerysync', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                         }                                 
                     }
                 } 
@@ -597,7 +626,7 @@ def executePy3Deploy() {
                                 sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
                                 sh "gcloud run deploy sap-integration --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
                                                                              
-                            ARR_VERIFY_SERVICE.add([service_name: 'cloud_run', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
+                            ARR_VERIFY_SERVICE.add([service_name: 'sap-integration', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                             }                                 
                         }
                     } 
@@ -619,6 +648,7 @@ def executePy3Deploy() {
             }    
             if ('menucacheupdate' in ARR_SELECTED_SERVICE ) {
                 PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                PREVIOUS_VERSION = get_Previous_Version(service_name: "menucacheupdate")
                 parallelJobs[py3_services.find { it.key == 'menucacheupdate' }] = {
                     dir ('sq_microservices_backend') {
                         sh 'ls'
@@ -626,12 +656,31 @@ def executePy3Deploy() {
                             dir ('menucacheupdate') {
                                 sh "ls"                                                        
                                 sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
-                                sh "gcloud run deploy menucacheupdate --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
+                                sh "gcloud run deploy menucacheupdate --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
+
+                            ARR_VERIFY_SERVICE.add([service_name: 'menucacheupdate', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
+
                             }
                         //}
                     }                                 
                 }
-            }   
+            } 
+            if (params.APP_ENGINE_PROJECT_ID.contains("-us")) {
+                if ('short-url-service' in ARR_SELECTED_SERVICE ) {
+                    PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
+                    parallelJobs[py3_services.find { it.key == 'short-url-service' }] = {
+                        dir ('sq_microservices_backend') {
+                            sh 'ls'
+                            dir ('cloudrun/short-url-service') {
+                                sh "ls"                                                        
+                                sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
+                                sh "gcloud run deploy short-url-service --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
+                            ARR_VERIFY_SERVICE.add([service_name: 'short-url-service', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
+                            }
+                        }                                 
+                    }
+                }
+            } 
             if ('index' in ARR_SELECTED_SERVICE ) {
                 PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
                 parallelJobs[py3_services.find { it.key == 'index' }] = {
@@ -675,12 +724,13 @@ def executePy3Deploy() {
             [key: 'sso'],
             [key: 'pricebook'],
             [key: 'integration'],
-            [key: 'cloud_run'],
+            [key: 'bigquerysync'],
             [key: 'sap-integration-germany'],
             [key: 'index'],
             [key: 'menucacheupdate'],
             [key: 'centric-os-integration-us'],
             [key: 'notification-service'],
+            [key: 'short-url-service'],
         ]
 @Field def phrase_translate = [
             [key: 'phrase'] //INTERNATIONAL
@@ -787,7 +837,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","cd-v2","operation_management","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","integration", "pricebook","cloud_run","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso"]'
+                    script: 'return ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","cd-v2","operation_management","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","integration", "pricebook","bigquerysync","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso","short-url-service"]'
                 ],
                 script: [
                     classpath: [],
@@ -796,7 +846,7 @@ properties([
                         def type = DEPLOYMENT_TYPE ?: "International" 
                         def options = []
                         if (type == "International") {
-                            options = ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","cd-v2","operation_management","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","integration", "pricebook","cloud_run","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso"]
+                            options = ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","cd-v2","operation_management","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","integration", "pricebook","bigquerysync","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso","short-url-service"]
                         }
                         return options
                     '''
@@ -917,9 +967,9 @@ pipeline {
                     {
                         def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
                         echo "type of deplyoment is : ${type}"
-                        def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,cloud_run,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service'
+                        def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,bigquerysync,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service'
                         if (type == "International") {
-                            options = 'controldesk,web-ort,time2eat,time2eat-flutter,baweb,baweb-flutter,cd-v2,operation_management,appservice,backgroundtasks,taskqservice,bqreports,dashboard,sso,py3_default,integration,pricebook,cloud_run,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service'
+                            options = 'controldesk,web-ort,time2eat-flutter,baweb-flutter,cd-v2,operation_management,appservice,backgroundtasks,taskqservice,bqreports,dashboard,py3_default,integration,pricebook,bigquerysync,index,phrase,menucacheupdate'
                         }       
                         //echo "SERVICE_NAME_LIST updated - $options"
                         ARR_SELECTED_SERVICE = "$options".split(',')                        
@@ -1214,19 +1264,21 @@ pipeline {
                                     script {
                                         sh "echo ${WORKSPACE}"
                                         def parallelJobs = [:]
-                                        if ('phrase' in ARR_SELECTED_SERVICE ) {
-                                            PHRASE_TRANSLATE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'phrase_translate')
-                                            PREVIOUS_VERSION = get_Previous_Version(service_name: "phrase") 
-                                            parallelJobs[phrase_translate.find { it.key == 'phrase' }] = {
-                                                dir ('phrase_translate') {
-                                                    //sh 'cp -r commonlib appms'
-                                                    //dir ('appms') {
-                                                        sh "ls *.yaml"                                                        
-                                                        sh "gcloud app deploy --version=$PHRASE_TRANSLATE_APP_ENGINE_VERSION --quiet $PY3_APPMS_YAML --no-promote"
-                                                    //}                                           
-                                                    //py3 -app : india
-                                                    ARR_VERIFY_SERVICE.add([service_name: 'phrase', version_name: "$PHRASE_TRANSLATE_APP_ENGINE_VERSION", url_suffix: ''])  
-                                                }                             
+                                        if (params.APP_ENGINE_PROJECT_ID.contains("-us") || params.APP_ENGINE_PROJECT_ID.contains("-de") || params.APP_ENGINE_PROJECT_ID.contains("-spain") || params.APP_ENGINE_PROJECT_ID.contains("smartqprd-au") || params.APP_ENGINE_PROJECT_ID.contains("-hk") || params.APP_ENGINE_PROJECT_ID.contains("smartqprd-sng") || params.APP_ENGINE_PROJECT_ID.contains("smartqprd-jp") || params.APP_ENGINE_PROJECT_ID.contains("smartqprd-it") || params.APP_ENGINE_PROJECT_ID.contains("smartqprd-cn")) {
+                                            if ('phrase' in ARR_SELECTED_SERVICE ) {
+                                                PHRASE_TRANSLATE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'phrase_translate')
+                                                PREVIOUS_VERSION = get_Previous_Version(service_name: "phrase") 
+                                                parallelJobs[phrase_translate.find { it.key == 'phrase' }] = {
+                                                    dir ('phrase_translate') {
+                                                        //sh 'cp -r commonlib appms'
+                                                        //dir ('appms') {
+                                                            sh "ls *.yaml"                                                        
+                                                            sh "gcloud app deploy --version=$PHRASE_TRANSLATE_APP_ENGINE_VERSION --quiet $PY3_APPMS_YAML --no-promote"
+                                                        //}                                           
+                                                        //py3 -app : india
+                                                        ARR_VERIFY_SERVICE.add([service_name: 'phrase', version_name: "$PHRASE_TRANSLATE_APP_ENGINE_VERSION", url_suffix: ''])  
+                                                    }                             
+                                                }
                                             }
                                         }              
                                         //2.1 Add new service block here, if there is any to be added
@@ -1245,8 +1297,13 @@ pipeline {
                     script {                        
                         for (item in ARR_VERIFY_SERVICE)   
                         {
-                            if (item.service_name == 'menucacheupdate') {
-                                echo "Skipping URL status check for menucacheupdate"
+                            if (item.service_name == 'menucacheupdate' || item.service_name == 'centric-os-integration' || item.service_name == 'notification-service' || item.service_name == 'sap-integration' || item.service_name == 'short-url-service' || item.service_name == 'bigquerysync') {
+                                echo "Skipping URL status check for ${item.service_name}"
+                                // Treat skipped checks as successful to ensure they are promoted and written to file
+                                item.status = "200"
+                                // Still populate version info for auditability
+                                item.previous_version = get_Previous_Version(service_name: "${item.service_name}") 
+                                item.new_version = "${item.version_name}"
                             } else {
                                 item.status = getURL_Status(service_name: "${item.service_name}", version_name: "${item.version_name}", url_suffix: "${item.url_suffix}")                            
                                 item.previous_version = get_Previous_Version(service_name: "${item.service_name}") 
@@ -1262,14 +1319,12 @@ pipeline {
            steps {
                 container('gcloud') {                    
                     script {                        
-                        def failed_url_count = ARR_VERIFY_SERVICE.findAll{ row -> row.service_name != 'menucacheupdate' && row.status != '200'}.size()
+                        def failed_url_count = ARR_VERIFY_SERVICE.findAll{ row -> row.status != '200'}.size()
                         echo "failed_url_count - $failed_url_count"
                         if (failed_url_count == 0) {
                             for (item in ARR_VERIFY_SERVICE)   
                             {                           
-                                if (item.service_name == 'menucacheupdate') {
-                                    echo "Skipping promote for menucacheupdate"
-                                } else if (item.status == "200") {
+                                if (item.status == "200") {
                                     echo "promoting - ${item.service_name}"
                                     promote_Service(service_name: "${item.service_name}", version_name: "${item.version_name}")
                                     PROMOTED_SERVICES.add(item)

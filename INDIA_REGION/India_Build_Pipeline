@@ -90,7 +90,7 @@ def buildcontroldeskindia() {
             //sh 'git config --global --add safe.directory ${WORKSPACE}/control-desk-india'
            // sh 'git status'
             sh 'npm install --force'
-            sh 'npm install @emotion/styled'
+            // sh 'npm install @emotion/styled'
             sh 'npm install react-checkbox-tree@1.5.0 --force'
             sh 'CI=false npm run build'
             dir ('${WORKSPACE}/control-desk-india/build') {
@@ -470,7 +470,7 @@ def checkouttime2eat_flutter(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/main-app-india.git', credentialsId: 'git/devops/new',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_flutter_main_app.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             // git branch: "${branch}",
@@ -507,7 +507,6 @@ def buildtime2eat_flutter() {
                 sh 'flutter pub get'
                 sh 'dart run phrase'
                 sh 'flutter pub upgrade'
-                sh 'chmod +x india_cicd_build.sh'
                 sh './india_cicd_build.sh'
                 sh 'ls'
                 dir ('${WORKSPACE}/build/web') {
@@ -524,7 +523,7 @@ def uploadtime2eat_flutterToGCS(bucketname) {
         container('gcloud') {
             dir('time2eat_flutter') {
                 sh 'ls'
-		        sh "tar -czvf ${newId}.tar.gz cicd_deploy.sh *.yaml flavors/smartq/BuildWeb/* flavors/smartq/*.yaml flavors/foodbook/BuildWeb/* flavors/foodbook/*.yaml"
+		        sh "tar -czvf ${newId}.tar.gz cicd_deploy.sh flavors *.yaml build/* web/*"
                 sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/India_Region/${bucketname}/time2eat-flutter/  --recursive"
 		        sh "tar -xzvf ${newId}.tar.gz"
             }
@@ -598,7 +597,7 @@ pipeline {
             tty: true
 
           - name: node-cd-js
-            image: node:14.17.4
+            image: node:16.20.2
             requests:
                 memory: "4096Mi"  # Increase the requested memory
                 cpu: "500m"
