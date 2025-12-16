@@ -176,7 +176,7 @@ def checkouttime2eatwebuk(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/main-app-uk.git', credentialsId: 'git/devops/new',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/uk-time2eat-frontend-projects', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             def commitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -204,16 +204,8 @@ def buildtime2eatwebuk() {
                 //sh "git config --global credential.helper"
                 sh "git config --list"
                 sh "git clone https://github.com/Bottle-Lab-Technologies-PVT-LTD/atomic-ui-lib-uk.git "
-                sh 'flutter clean'
-                sh 'flutter pub get'
-                sh 'dart run phrase'
-                sh 'flutter pub upgrade'
-                sh './uk_cicd_build.sh v2 '
+                sh './uk_cicd_build.sh'
                 sh 'ls'
-                dir ('${WORKSPACE}/build/web') {
-                    sh 'ls'
-                    sh 'pwd'
-                }
             }
         }       
     }
@@ -224,7 +216,7 @@ def uploadtime2eatwebukToGCS(bucketname) {
     container('gcloud') {
         dir('time2eatweb-uk') {
             sh 'ls'
-            sh "tar -czvf ${newId}.tar.gz flavors *.yaml build/* web/* web_builds/* cicd_deploy.sh"
+            sh "tar -czvf ${newId}.tar.gz *.yaml build/* web/* cicd_deploy.sh"
     	    sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/UK_Region/${bucketname}/time2eatweb-uk/ --recursive"
     	    sh "tar -xzvf ${newId}.tar.gz"
             //sh "gcloud storage cp ${WORKSPACE}/time2eatweb-uk/*.yaml gs://sqinternational-cicd.appspot.com/${bucketname}/time2eatweb-uk/time2eatweb-uk@$VERSION_NUMBER --recursive"

@@ -58,38 +58,40 @@ def checkingVersion(ARR_SELECTED_SERVICE) {
         ARR_SELECTED_SERVICE.each { project ->
             echo "Selected APP_ENGINE_PROJECT_ID: $project"
             sh "gcloud config set project $project"
-            def overallVersionCount = sh(script: 'gcloud app versions list --sort-by=~last_deployed_time --format="csv[no-heading](id)" | wc -l', returnStdout: true).trim().toInteger()
-            echo "Overall Number of Versions: ${overallVersionCount}"
+            // Always check each service; keep only the latest 4 versions
+            def options = 'controldesk,control-desk-flutter,web-ort,foodbook-web,smartq-pwa,default,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,reports,dashboard,sso,integration,time2eat-flutter,app,pricebook,cncms,betaapp-web-ort,betaapp-taskqservice,' +
+                          'betaapp-default,betaapp-smartq-pwa,betaapp-app,betaapp-backgroundtasks,betaapp-bqreports,betaapp-dashboard,betaapp-controldesk,flutter-cnc,flutter-mis,misms,phrasesmartq-flutter,vendor-mis-backend'
 
-            if (overallVersionCount > 160) {
-                def options = 'controldesk,control-desk-flutter,web-ort,foodbook-web,smartq-pwa,default,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,reports,dashboard,sso,integration,time2eat-flutter,app,pricebook,cncms,betaapp-web-ort,betaapp-taskqservice,' +
-                              'betaapp-default,betaapp-smartq-pwa,betaapp-app,betaapp-backgroundtasks,betaapp-bqreports,betaapp-dashboard,betaapp-controldesk,flutter-cnc,flutter-mis,misms,phrasesmartq-flutter,vendor-mis-backend'                                                            
+            def services = options.split(',')
 
-                def services = options.split(',')
+            services.each { service ->
+                // Verify service existence by attempting to list its versions
+                def listCmd = "gcloud app versions list --service=${service} --format=\"value(id)\""
+                def listStatus = sh(script: listCmd, returnStatus: true)
+                if (listStatus != 0) {
+                    echo "Service not available in project ${project}: ${service}. Skipping."
+                    return
+                }
 
-                services.each { service ->
-                    echo "Checking version for service: $service"
-                    def serviceVersionCount = sh(script: "gcloud app versions list --service=$service --sort-by=~last_deployed_time --format=\"csv[no-heading](id)\" | wc -l", returnStdout: true).trim().toInteger()
-                    
-                    echo "Number of versions for $service: $serviceVersionCount"
+                echo "Checking versions for service: ${service}"
+                def versionsOutput = sh(script: "gcloud app versions list --service=${service} --sort-by=~last_deployed_time --format=\"value(id)\"", returnStdout: true).trim()
+                def versionIds = versionsOutput ? versionsOutput.readLines().collect { it.trim() }.findAll { it } : []
+                def serviceVersionCount = versionIds.size()
 
-                    // Set version threshold based on project
-                    def versionThreshold = project.contains("-india") ? 5 : 6
+                echo "Number of versions for ${service}: ${serviceVersionCount}"
 
-                    if (serviceVersionCount > versionThreshold) {
-                        echo "Listing versions for $service to delete"
-                        // List versions to delete, keeping the most recent 'versionThreshold'
-                        def versionsList = sh(script: "gcloud app versions list --service=$service --sort-by=~last_deployed_time --format=\"csv[no-heading](id)\" | sed '1,${versionThreshold}d'", returnStdout: true).trim()
-                        echo "Versions for $service to delete: $versionsList"
+                // Keep only the most recent 4 versions
+                def versionThreshold = 4
 
-                        // Delete old versions
-                        versionsList.split().each { version ->
-                            echo "Deleting version: $version for service: $service"
-                            sh "gcloud app versions delete $version --service=$service --quiet"
-                        }
-                    } else {
-                        echo "No versions to delete for $service."
+                if (serviceVersionCount > versionThreshold) {
+                    def versionsToDelete = versionIds.drop(versionThreshold)
+                    echo "Versions for ${service} to delete: ${versionsToDelete.join(' ')}"
+                    versionsToDelete.each { version ->
+                        echo "Deleting version: ${version} for service: ${service}"
+                        sh "gcloud app versions delete ${version} --service=${service} --quiet"
                     }
+                } else {
+                    echo "No versions to delete for ${service}."
                 }
             }
         }

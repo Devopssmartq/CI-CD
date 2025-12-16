@@ -39,6 +39,8 @@ def get_Previous_Version(Map args) {
             cloudRunServiceName = "operation-management-${params.APP_ENGINE_PROJECT_ID}"
         } else if (serviceName.contains("menucacheupdate")) {
             cloudRunServiceName = "menucacheupdate"
+        } else if (serviceName.contains("notification-service")) {
+            cloudRunServiceName = "notification-service"
         }
 
         if (cloudRunServiceName) {
@@ -294,7 +296,7 @@ def centric_os_intergration() {
                 dir ('cloudrun/centric-os-service') {
                     sh "ls"                                                               
                     sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
-                    sh "gcloud run deploy centric-os-integration --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
+                    sh "gcloud run deploy centric-os-integration --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
                                                                 
                     ARR_VERIFY_SERVICE.add([service_name: 'centric-os-integration', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                 }                                 
@@ -312,7 +314,7 @@ def notification_service() {
         
         // Ensure py3_services map exists and has the required key
         PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend')
-        // PREVIOUS_VERSION = get_Previous_Version(service_name: "notification-service") 
+        PREVIOUS_VERSION = get_Previous_Version(service_name: "notification-service") 
         
         // Return the job closure so it can be added to the main parallelJobs map
         return {
@@ -321,7 +323,7 @@ def notification_service() {
                 dir ('cloudrun/notification-service') {
                     sh "ls"                                                               
                     sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
-                    sh "gcloud run deploy notification-service --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
+                    sh "gcloud run deploy notification-service --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
                                                                 
                     ARR_VERIFY_SERVICE.add([service_name: 'notification-service', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                 }                                 
@@ -674,7 +676,7 @@ def executePy3Deploy() {
                             dir ('cloudrun/short-url-service') {
                                 sh "ls"                                                        
                                 sh "gcloud builds submit --flags-file build_flags/${params.APP_ENGINE_PROJECT_ID}.json"
-                                sh "gcloud run deploy short-url-service --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
+                                sh "gcloud run deploy short-url-service --flags-file deploy_flags/${params.APP_ENGINE_PROJECT_ID}.json --no-traffic --revision-suffix $PY3_SERVICE_APP_ENGINE_VERSION"
                             ARR_VERIFY_SERVICE.add([service_name: 'short-url-service', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: '']) 
                             }
                         }                                 
