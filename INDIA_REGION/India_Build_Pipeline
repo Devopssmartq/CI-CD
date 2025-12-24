@@ -470,7 +470,7 @@ def checkouttime2eat_flutter(branch) {
                 branches: [[name: branch]], 
                 doGenerateSubmoduleConfigurations: false, 
                 extensions: [[$class: 'CleanCheckout']], 
-                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/sq_flutter_main_app.git', credentialsId: 'git/devops/new',]]])
+                userRemoteConfigs: [[url: 'https://github.com/Bottle-Lab-Technologies-PVT-LTD/main-app-india.git', credentialsId: 'git/devops/new',]]])
                     
             sh 'ls -lrt'
             // git branch: "${branch}",
@@ -507,7 +507,7 @@ def buildtime2eat_flutter() {
                 sh 'flutter pub get'
                 sh 'dart run phrase'
                 sh 'flutter pub upgrade'
-                sh './india_cicd_build.sh'
+                sh './cicd_build.sh'
                 sh 'ls'
                 dir ('${WORKSPACE}/build/web') {
                     sh 'ls'
@@ -524,7 +524,7 @@ def uploadtime2eat_flutterToGCS(bucketname) {
             dir('time2eat_flutter') {
                 sh 'ls'
 		        sh "tar -czvf ${newId}.tar.gz cicd_deploy.sh flavors *.yaml build/* web/*"
-                sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/India_Region/${bucketname}/time2eat-flutter/  --recursive"
+                sh "gcloud storage cp ${newId}.tar.gz gs://sqinternational-cicd.appspot.com/India_Region/${bucketname}/time2eat-flutter-india/  --recursive"
 		        sh "tar -xzvf ${newId}.tar.gz"
             }
             //sh "tar -czvf ${newId}.tar.gz time2eat_flutter/*.yaml time2eat_flutter/build/*"
