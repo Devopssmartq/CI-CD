@@ -607,8 +607,8 @@ def buildcd_v2() {
     container('node-cd-v2') {
         dir('cd-v2') {
             sh 'ls'
-            sh "nom install"
-            sh "npm run build"
+            sh "npm install"
+			sh "VITE_GOOGLE_MAPS_API_KEY=AIzaSyBIMY6cjbKtBdyRUVpqoDreM0qO9zcAf7c npm run build"
             sh "ls"
         }
     }

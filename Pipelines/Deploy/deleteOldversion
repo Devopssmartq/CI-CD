@@ -59,8 +59,8 @@ def checkingVersion(ARR_SELECTED_SERVICE) {
             echo "Selected APP_ENGINE_PROJECT_ID: $project"
             sh "gcloud config set project $project"
             // Always check each service; keep only the latest 4 versions
-            def options = 'controldesk,control-desk-flutter,web-ort,foodbook-web,smartq-pwa,default,time2eat,time2eat-flutter,baweb,appservice,backgroundtasks,taskqservice,bqreports,reports,dashboard,sso,integration,time2eat-flutter,app,pricebook,cncms,betaapp-web-ort,betaapp-taskqservice,' +
-                          'betaapp-default,betaapp-smartq-pwa,betaapp-app,betaapp-backgroundtasks,betaapp-bqreports,betaapp-dashboard,betaapp-controldesk,flutter-cnc,flutter-mis,misms,phrasesmartq-flutter,vendor-mis-backend'
+            def options = 'controldesk,control-desk-flutter,cd-v2,web-ort,foodbook-web,smartq-pwa,default,time2eat,time2eat-flutter,baweb,baweb-flutter,appservice,backgroundtasks,taskqservice,bqreports,reports,dashboard,sso,integration,app,pricebook,cncms,betaapp-web-ort,betaapp-taskqservice,' +
+                          'betaapp-default,betaapp-smartq-pwa,betaapp-app,betaapp-backgroundtasks,betaapp-bqreports,betaapp-dashboard,betaapp-controldesk,flutter-cnc,flutter-mis,misms,phrase,smartq-flutter,vendor-mis-backend,deeplink-flutter,kms-flutter'
 
             def services = options.split(',')
 

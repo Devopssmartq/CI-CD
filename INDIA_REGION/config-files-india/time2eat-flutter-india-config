@@ -7,10 +7,10 @@ def setProperties(String appName, String versionName, String projectId, String v
                                                                                 
     dir("${APP_NAME}-latest") {
         sh 'ls'
-        sh "[ -f ${versionName}.tar.gz ] && tar -xzvf ${versionName}.tar.gz || echo 'Tar file not found'"
+        sh "tar -xzvf ${versionName}.tar.gz"
         sh 'ls; pwd'
 
-        sh "./cicd_deploy.sh $variantName $projectId $versionName v2" 
+        sh "./cicd_deploy.sh $variantName $projectId $versionName" 
             
     }
 }
