@@ -134,9 +134,12 @@ def promote_Service(Map args) {
     } else if (serviceName.contains("notification-service")) {
         cloudRunServiceName = "notification-service"
         flagsDirPath = "cloudrun/notification-service"
+    } else if (serviceName.contains("operation-management")) {
+        cloudRunServiceName = "operation-management"
+        flagsDirPath = "operation-management"
     }
 
-    if (cloudRunServiceName == "menucacheupdate" || cloudRunServiceName == "centric-os-integration" || cloudRunServiceName == "notification-service" || cloudRunServiceName == "sap-integration" || cloudRunServiceName == "short-url-service") {
+    if (cloudRunServiceName == "menucacheupdate" || cloudRunServiceName == "centric-os-integration" || cloudRunServiceName == "notification-service" || cloudRunServiceName == "sap-integration" || cloudRunServiceName == "short-url-service" || cloudRunServiceName == "operation-management") {
         def region = sh(
             script: "gcloud run services list --format=\"table(NAME,REGION)\" --filter=\"metadata.name=${cloudRunServiceName}\" --project=${params.APP_ENGINE_PROJECT_ID} | head -n 2 | tail -1 | awk '{print \$2}'",
             returnStdout: true
@@ -534,6 +537,24 @@ def executePy3Deploy() {
                     }                             
                 }
             }
+            if ('appservice-py3' in ARR_SELECTED_SERVICE ) {
+                PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend')
+                // PREVIOUS_VERSION = get_Previous_Version(service_name: "appservice-py3")
+                parallelJobs[py3_services.find { it.key == 'appservice-py3' }] = {
+                    dir ('sq_microservices_backend') {
+                        sh 'cp -r commonlib appservice-py3'
+                        dir ('appms') {
+                            sh "ls *.yaml"                                                        
+                            sh "gcloud app deploy --version=$PY3_SERVICE_APP_ENGINE_VERSION --quiet $PY3_APPMS_SERVICE_YAML --no-promote"
+                        }
+                        dir ('dispatch') {
+                            sh "gcloud app deploy ${params.APP_ENGINE_PROJECT_ID}/dispatch.yaml" 
+                        }
+                        //py3 services
+                        ARR_VERIFY_SERVICE.add([service_name: 'appservice-py3', version_name: "$PY3_SERVICE_APP_ENGINE_VERSION", url_suffix: ''])  
+                    }
+                }
+            }
             if ('dashboard' in ARR_SELECTED_SERVICE ) {
                 PY3_SERVICE_APP_ENGINE_VERSION = get_AppEngine_Version(app_name: 'sq_microservices_backend') 
                 PREVIOUS_VERSION = get_Previous_Version(service_name: "dashboard")
@@ -733,6 +754,7 @@ def executePy3Deploy() {
             [key: 'centric-os-integration-us'],
             [key: 'notification-service'],
             [key: 'short-url-service'],
+            [key: 'appservice-py3']
         ]
 @Field def phrase_translate = [
             [key: 'phrase'] //INTERNATIONAL
@@ -839,7 +861,7 @@ properties([
                 fallbackScript: [
                     classpath: [],
                     sandbox: true, // should be true, otherwise you have to manually approve the script
-                    script: 'return ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","cd-v2","operation_management","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","integration", "pricebook","bigquerysync","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso","short-url-service"]'
+                    script: 'return ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","cd-v2","operation_management","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","appservice-py3","integration", "pricebook","bigquerysync","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso","short-url-service"]'
                 ],
                 script: [
                     classpath: [],
@@ -848,7 +870,7 @@ properties([
                         def type = DEPLOYMENT_TYPE ?: "International" 
                         def options = []
                         if (type == "International") {
-                            options = ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","cd-v2","operation_management","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","integration", "pricebook","bigquerysync","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso","short-url-service"]
+                            options = ["All:selected","controldesk","web-ort","time2eat-flutter","baweb-flutter","cd-v2","operation_management","appservice","backgroundtasks","taskqservice","bqreports","dashboard","py3_default","appservice-py3","integration", "pricebook","bigquerysync","index","phrase","menucacheupdate","sap-integration-germany","centric-os-integration-us","notification-service","time2eat","baweb","sso","short-url-service"]
                         }
                         return options
                     '''
@@ -969,9 +991,9 @@ pipeline {
                     {
                         def type = DEPLOYMENT_TYPE ?: "India" // Default to 'India' if not selected
                         echo "type of deplyoment is : ${type}"
-                        def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,bigquerysync,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service'
+                        def options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,appservice-py3,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,bigquerysync,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service'
                         if (type == "International") {
-                            options = 'controldesk,web-ort,time2eat-flutter,baweb-flutter,cd-v2,operation_management,appservice,backgroundtasks,taskqservice,bqreports,dashboard,py3_default,integration,pricebook,bigquerysync,index,phrase,menucacheupdate'
+                            options = 'controldesk,web-ort,time2eat,foodbook-web,smartq-pwa,py2_default,appservice-py3,backgroundtasks,taskqservice,reports,bqreports,dashboard,sso,app,pricebook,bigquerysync,sap-integration-germany,index,phrase,menucacheupdate,centric-os-integration-us,notification-service'
                         }       
                         //echo "SERVICE_NAME_LIST updated - $options"
                         ARR_SELECTED_SERVICE = "$options".split(',')                        

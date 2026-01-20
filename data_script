@@ -4,9 +4,6 @@ pipeline {
             yaml '''
         apiVersion: v1
         kind: Pod
-        environment:
-            name: "NODE_OPTIONS"
-            value: "--max-old-space-size=4096"
         spec:
           containers:
           - name: jnlp  
@@ -20,6 +17,9 @@ pipeline {
 
           - name: gcloud
             image: google/cloud-sdk:latest
+            env:
+            - name: "NODE_OPTIONS"
+              value: "--max-old-space-size=4096"
             command:
             - cat
             tty: true
